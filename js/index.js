@@ -1,17 +1,23 @@
 // ============================================================
 // index.js — Login
+// NÃO importa protegerRota — tem seu próprio listener simples
 // ============================================================
 import {
   signInWithEmailAndPassword,
+  onAuthStateChanged,
   sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 import { auth } from "./firebase-config.js";
-import { protegerRota } from "./auth.js";
 
-// Redireciona pro dashboard se já estiver logado
-// (protegerRota cuida disso — PUBLIC_PAGES inclui index.html)
-protegerRota(null);
+// Se já estiver logado, vai pro dashboard — listener próprio, sem protegerRota
+let redirecionando = false;
+onAuthStateChanged(auth, (usuario) => {
+  if (usuario && !redirecionando) {
+    redirecionando = true;
+    window.location.replace("/dashboard.html");
+  }
+});
 
 // Elementos
 const elEmail        = document.getElementById("email");
@@ -72,9 +78,11 @@ async function fazerLogin() {
 
   setCarregando(elBtnLogin, true);
   try {
+    redirecionando = true;
     await signInWithEmailAndPassword(auth, email, senha);
     window.location.replace("/dashboard.html");
   } catch (err) {
+    redirecionando = false;
     setCarregando(elBtnLogin, false);
     mostrarErro(traduzirErro(err.code));
     elSenha.value = "";
