@@ -52,7 +52,7 @@
   .mobile-hero {
     display: block;
     position: relative;
-    background: linear-gradient(160deg, var(--blue-950) 0%, #0d2580 50%, var(--blue-800) 100%);
+    background: linear-gradient(160deg, var(--blue-950) 0%, var(--blue-800) 50%, var(--blue-600) 100%);
     padding: 48px var(--space-5) var(--space-8);
     overflow: hidden;
     margin-bottom: var(--space-5);
