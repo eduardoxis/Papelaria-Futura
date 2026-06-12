@@ -45,6 +45,7 @@ export async function loginUsuario(email, senha) {
 // ----------------------------------------------------------------
 export async function logoutUsuario() {
   try {
+    sessionStorage.removeItem("pf_auth_ok");
     await signOut(auth);
     window.location.replace("/index.html");
   } catch (erro) {
@@ -82,27 +83,20 @@ export async function verificarAdmin(uid) {
 }
 
 // ----------------------------------------------------------------
-// Proteção de rota — APENAS para páginas protegidas (ex: dashboard)
-//
-// Usa auth.authStateReady() para aguardar a resolução REAL do estado
-// de autenticação antes de decidir redirecionar. Isso evita o loop
-// causado pelo estado transitório "null" que o Firebase emite
-// durante a inicialização do SDK enquanto lê o token persistido.
+// Proteção de rota — somente para páginas protegidas
 // ----------------------------------------------------------------
 export async function protegerRota(callbackAutenticado) {
-  // Aguarda o Firebase resolver o estado inicial (leitura do IndexedDB/
-  // localStorage). Só depois disso o currentUser é confiável.
   await auth.authStateReady();
 
   const usuario = auth.currentUser;
 
   if (!usuario) {
-    // Definitivamente não autenticado — redireciona pro login
+    sessionStorage.removeItem("pf_auth_ok");
     window.location.replace("/index.html");
     return;
   }
 
-  // Autenticado — executa o callback com os dados do usuário
+  sessionStorage.setItem("pf_auth_ok", "1");
   const dadosUsuario = await buscarDadosUsuario(usuario.uid);
   callbackAutenticado(usuario, dadosUsuario);
 }
@@ -115,7 +109,7 @@ export function observarAuth(callback) {
 }
 
 // ----------------------------------------------------------------
-// Obter usuário atual em sincronia
+// Obter usuário atual
 // ----------------------------------------------------------------
 export function usuarioAtual() {
   return auth.currentUser;
@@ -134,7 +128,7 @@ export async function resetarSenha(email) {
 }
 
 // ----------------------------------------------------------------
-// Tradução de erros Firebase Auth para português
+// Tradução de erros Firebase Auth
 // ----------------------------------------------------------------
 function traduzirErroAuth(codigo) {
   const erros = {
