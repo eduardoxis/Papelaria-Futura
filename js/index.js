@@ -1,20 +1,23 @@
 // ============================================================
 // index.js — Login
-// NÃO importa protegerRota — tem seu próprio listener simples
 // ============================================================
+
 import {
   signInWithEmailAndPassword,
-  onAuthStateChanged,
   sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 import { auth } from "./firebase-config.js";
 
-// Se já estiver logado, vai pro dashboard — listener próprio, sem protegerRota
-let redirecionando = false;
-onAuthStateChanged(auth, (usuario) => {
-  if (usuario && !redirecionando) {
-    redirecionando = true;
+// ----------------------------------------------------------------
+// Redirect se já estiver logado
+//
+// Usa auth.authStateReady() em vez de onAuthStateChanged para evitar
+// reagir ao estado transitório "null" inicial do Firebase.
+// Só redireciona após a resolução real do estado de autenticação.
+// ----------------------------------------------------------------
+auth.authStateReady().then(() => {
+  if (auth.currentUser) {
     window.location.replace("/dashboard.html");
   }
 });
@@ -78,11 +81,9 @@ async function fazerLogin() {
 
   setCarregando(elBtnLogin, true);
   try {
-    redirecionando = true;
     await signInWithEmailAndPassword(auth, email, senha);
     window.location.replace("/dashboard.html");
   } catch (err) {
-    redirecionando = false;
     setCarregando(elBtnLogin, false);
     mostrarErro(traduzirErro(err.code));
     elSenha.value = "";
