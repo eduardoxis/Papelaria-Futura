@@ -3,20 +3,15 @@
 // ============================================================
 import {
   signInWithEmailAndPassword,
-  onAuthStateChanged,
   sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 import { auth } from "./firebase-config.js";
+import { protegerRota } from "./auth.js";
 
-// Redirecionar se já estiver logado (flag evita disparo duplo durante transição)
-let redirecionando = false;
-onAuthStateChanged(auth, (usuario) => {
-  if (usuario && !redirecionando) {
-    redirecionando = true;
-    window.location.href = "/dashboard.html";
-  }
-});
+// Redireciona pro dashboard se já estiver logado
+// (protegerRota cuida disso — PUBLIC_PAGES inclui index.html)
+protegerRota(null);
 
 // Elementos
 const elEmail        = document.getElementById("email");
@@ -77,11 +72,9 @@ async function fazerLogin() {
 
   setCarregando(elBtnLogin, true);
   try {
-    redirecionando = true; // bloqueia o listener antes do redirect
     await signInWithEmailAndPassword(auth, email, senha);
-    window.location.href = "/dashboard.html";
+    window.location.replace("/dashboard.html");
   } catch (err) {
-    redirecionando = false; // libera se der erro
     setCarregando(elBtnLogin, false);
     mostrarErro(traduzirErro(err.code));
     elSenha.value = "";
@@ -89,8 +82,8 @@ async function fazerLogin() {
 }
 
 elBtnLogin.addEventListener("click", fazerLogin);
-elEmail.addEventListener("keydown", e => { if (e.key === "Enter") elSenha.focus(); });
-elSenha.addEventListener("keydown", e => { if (e.key === "Enter") fazerLogin(); });
+elEmail.addEventListener("keydown",  e => { if (e.key === "Enter") elSenha.focus(); });
+elSenha.addEventListener("keydown",  e => { if (e.key === "Enter") fazerLogin(); });
 
 elToggle.addEventListener("click", () => {
   const vis = elSenha.type === "text";
