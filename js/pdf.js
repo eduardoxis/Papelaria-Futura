@@ -164,10 +164,20 @@ export function gerarPDF(cotacao) {
     doc.line(PW/2 - 8, 6, PW/2 - 8, CAB_H - 6);
     doc.setGState(doc.GState({ opacity: 1 }));
 
-    // ── Logo: imagem F + texto empilhado ─────────────────
-    const LOGO_F = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAA4ADwDASIAAhEBAxEB/8QAGwAAAQUBAQAAAAAAAAAAAAAABwAEBQYIAgP/xAA8EAABAgUCAwQGBgsBAAAAAAABAgMABAUGEQchEjFhCBMUURYiMkFxgYKDkaGywSNCRGJyk6KxwsPS0//EABkBAAIDAQAAAAAAAAAAAAAAAAUGAwQHAv/EADERAAEDAwMBBAgHAAAAAAAAAAECAwQABRESITEGExQiQSNSYXFykbGyJTIzUWKB0f/aAAwDAQACEQMRAD8AGsnLvzr7MrKtKeeeUEoQkZJJguUnT23LUpjc1fNydxMrVkSUo33q/hgAn7Ia9m6QlJmtVGsOBDi5GVUWwRslfMY+QMO9MFMV3URFwVpIm3n5pYl2lqyEITkHA5bHGI0Tqi/Su89zjbYGSfPjP0pNtdsYLAekDIJ2FPjSNKn1B7wV2pQpOQoUuZ3+XBDF2iaQKUR3t5px5USbP+uNVS623G0lpRWnGxB/KOlZz7ZEJqb7cAP1lfOmIWuGOGxWTxbmj5UCZy9AOtCmv/KOk0zRVh1KHbluGTeG6UzFLeaJHTibEatPL2x88xn3tXvyL6aUyyGVzMqovuqHtIawRuffupMWYt6nvPJaU8rxHG29QSrbFDZUGwSBUBcthyVXst+5LDrDtVl2CoOIeQUK9XnjIHlACLjzuHCpQ4t+caW0MqKJDRWozs0VBtfiEFIHvJOIzrJSw8MjOc46Q8WKQ7rfYeVq0KwDSxMixo6W3Gk6dQzijR2Z5VDMlcigriHcEHf90w20XZDlyUFefZM3gfWCPPsquLepF1qUo7IT+BUeeibjgvC3WhulQnCf5ghYvQ/GHx/E/ZR+O0RCbSTvqH1rUNuTSW1GWWr1Vbg+XSKprFWq9THJNqizxkmQhb8y6hCVqISMBIBB5kj7Imtwcg4PSIy5KOityb0u/MOtl1hTIWnGU5I3HXaFFop7ROvjIz7qNLyUHHNZbq2tmo6klAuPCV5ynw6BgfEJin1a5qxcJSZ6aWviUFLOclXQ9OnSDW52Z6a4Uj0sqZSOeUN5P3RT9SNIU2WxKzknV1TbLxKeF1OF8Q92wxyBjUIc7p5DqewSAry2PP8AdLsiPNS0das81erESWezrPgn9od/EYDLEupTQI5QabUGeztNYGMzLnL+IwK5RsIl0pxnaIrUrEqXn1v9oDeFnu8f4aIfZllkS1CuxSPZ4E7/AEFQ10Mb4rpoTpGyfFb/AFgiV7PxQ1aN1rx+oj8CoiNB5tEvXqAmZUGy6mb4C5txfpBgD5QDvAJvMjHqn7aYoq1Kgsq9o+taPhpO1KnyZAm52XlyUlQDjgSSBzO/uh41lwE8CseR84FuuT1JbQt+bfYbeZpbyEpURxZK0bAecKcZgvOpbI5IFHVrCUk1dvS61eAEXDSSTyHi0Z/vAp7Qt1UKelabJydSYmphpReIZUFpxjHMfGM0pl2wyhQbTxYx6w+6JWlyq3XmWpdHePqUEoQkbk+UaS10SxHcDpdPh34HlS1IvKloKAnnatDWcjj7PDiQBxGae2+kYFsqkdyM84Lwp6bW0OZkag8W31KU8pCuaivJ4PiM/dAbl0vJbAIWfhiOLN6V6S6PyqVtQK9hKUMNqOCE71PaRXvJ2s7OydUlVPU+eA7wjOUkDA5dCYm6pcejk+mVS9IT7RkuJDJZeebUMnJIKSMbiFCg5dOn4j8gyTkLPODirUK5PNtdmMYHsrweunR1Lm67mUelWmx/nDR+saFTQ7yao1bm1Hmp6oTCz/UuFCiJvpeIncLXn4qJquLxSM4+Vcmr6AJSU+itRV08U7/1D6n6h6Z24QuzrKc8So5S7NOFxKT5+uokfKFCiY9PRiPEtZH7FRxVZ2e4lGUgA+6q5dd21O5Z7xVUeKkhWUMN7No+A/PnDJiZa7vZUKFHbTDbY7NAwBShKKnzrcOSa//Z";
+    // ── Logo: caixa F desenhada + texto empilhado ─────────
     const LX = MX, LY = 7, LW = 20, LH = 20;
-    doc.addImage(LOGO_F, "JPEG", LX, LY, LW, LH);
+
+    // caixa branca arredondada
+    fill(C.branco);
+    doc.roundedRect(LX, LY, LW, LH, 3, 3, "F");
+    // fundo interno azul claro
+    fill([190, 215, 255]);
+    doc.roundedRect(LX+1.5, LY+1.5, LW-3, LH-3, 2, 2, "F");
+    // letra F
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(14);
+    rgb(C.azulEscuro);
+    doc.text("F", LX + LW/2, LY + LH/2 + 2.8, { align:"center" });
 
     // 3 linhas empilhadas à direita da caixa F
     const TX = LX + LW + 4;
@@ -441,7 +451,28 @@ export function gerarPDF(cotacao) {
     }
 
     // ══════════════════════════════════════════════════════
-    // 7. RODAPÉ
+    // 7. ELABORADO POR
+    // ══════════════════════════════════════════════════════
+    if (Y + 10 > 272) { doc.addPage(); Y = 16; }
+
+    doc.setFont("helvetica","normal");
+    doc.setFontSize(7.5);
+    rgb(C.cinzaTexto);
+    doc.text("Elaborado por:", MX, Y + 5);
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(8);
+    rgb(C.pretoTexto);
+    doc.text((cotacao.funcionario || "—").toUpperCase(), MX + 28, Y + 5);
+
+    // linha separadora fina
+    draw(C.cinzaLinha);
+    doc.setLineWidth(0.3);
+    doc.line(MX, Y + 7, MX + CW, Y + 7);
+
+    Y += 12;
+
+    // ══════════════════════════════════════════════════════
+    // 8. RODAPÉ
     // ══════════════════════════════════════════════════════
     const ROD_H = 18;
     const ROD_Y = 297 - ROD_H;
