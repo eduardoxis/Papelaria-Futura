@@ -7,43 +7,34 @@ import {
   sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth }       from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { auth } from "./firebase-config.js";
 
-const firebaseConfig = {
-  apiKey:            "AIzaSyA5j_7Ef90CUjkk5FurjwG1amlMzG98PoU",
-  authDomain:        "papelaria-futura.firebaseapp.com",
-  projectId:         "papelaria-futura",
-  storageBucket:     "papelaria-futura.firebasestorage.app",
-  messagingSenderId: "643112282801",
-  appId:             "1:643112282801:web:9e076c751282fa1988d090"
-};
-
-const app  = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-
-// Redirecionar se já estiver logado
+// Redirecionar se já estiver logado (flag evita disparo duplo durante transição)
+let redirecionando = false;
 onAuthStateChanged(auth, (usuario) => {
-  if (usuario) window.location.href = "/dashboard.html";
+  if (usuario && !redirecionando) {
+    redirecionando = true;
+    window.location.href = "/dashboard.html";
+  }
 });
 
 // Elementos
-const elEmail      = document.getElementById("email");
-const elSenha      = document.getElementById("senha");
-const elBtnLogin   = document.getElementById("btnLogin");
-const elBtnEsqueci = document.getElementById("btnEsqueciSenha");
-const elBtnVoltar  = document.getElementById("btnVoltarLogin");
-const elBtnReset   = document.getElementById("btnEnviarReset");
-const elEmailRec   = document.getElementById("emailRecuperar");
-const elFormLogin  = document.getElementById("formLogin");
-const elFormRec    = document.getElementById("formRecuperacao");
-const elAlertErro  = document.getElementById("alertErro");
+const elEmail        = document.getElementById("email");
+const elSenha        = document.getElementById("senha");
+const elBtnLogin     = document.getElementById("btnLogin");
+const elBtnEsqueci   = document.getElementById("btnEsqueciSenha");
+const elBtnVoltar    = document.getElementById("btnVoltarLogin");
+const elBtnReset     = document.getElementById("btnEnviarReset");
+const elEmailRec     = document.getElementById("emailRecuperar");
+const elFormLogin    = document.getElementById("formLogin");
+const elFormRec      = document.getElementById("formRecuperacao");
+const elAlertErro    = document.getElementById("alertErro");
 const elAlertErroTxt = document.getElementById("alertErroTexto");
-const elAlertOk    = document.getElementById("alertSucesso");
-const elAlertOkTxt = document.getElementById("alertSucessoTexto");
-const elToggle     = document.getElementById("toggleSenha");
-const elIconAberto = document.getElementById("iconOlhoAberto");
-const elIconFechado= document.getElementById("iconOlhoFechado");
+const elAlertOk      = document.getElementById("alertSucesso");
+const elAlertOkTxt   = document.getElementById("alertSucessoTexto");
+const elToggle       = document.getElementById("toggleSenha");
+const elIconAberto   = document.getElementById("iconOlhoAberto");
+const elIconFechado  = document.getElementById("iconOlhoFechado");
 
 function mostrarErro(msg) {
   elAlertOk.hidden = true;
@@ -57,7 +48,7 @@ function mostrarSucesso(msg) {
 }
 function esconderAlertas() {
   elAlertErro.hidden = true;
-  elAlertOk.hidden = true;
+  elAlertOk.hidden   = true;
 }
 function setCarregando(btn, estado) {
   btn.querySelector(".btn-login__text").hidden    = estado;
@@ -67,12 +58,12 @@ function setCarregando(btn, estado) {
 
 function traduzirErro(codigo) {
   const erros = {
-    "auth/invalid-email":      "E-mail inválido.",
-    "auth/user-not-found":     "Usuário não encontrado.",
-    "auth/wrong-password":     "Senha incorreta.",
-    "auth/invalid-credential": "E-mail ou senha incorretos.",
-    "auth/too-many-requests":  "Muitas tentativas. Aguarde um momento.",
-    "auth/user-disabled":      "Usuário desativado.",
+    "auth/invalid-email":          "E-mail inválido.",
+    "auth/user-not-found":         "Usuário não encontrado.",
+    "auth/wrong-password":         "Senha incorreta.",
+    "auth/invalid-credential":     "E-mail ou senha incorretos.",
+    "auth/too-many-requests":      "Muitas tentativas. Aguarde um momento.",
+    "auth/user-disabled":          "Usuário desativado.",
     "auth/network-request-failed": "Erro de rede. Verifique sua conexão."
   };
   return erros[codigo] || "Erro inesperado. Tente novamente.";
@@ -86,9 +77,11 @@ async function fazerLogin() {
 
   setCarregando(elBtnLogin, true);
   try {
+    redirecionando = true; // bloqueia o listener antes do redirect
     await signInWithEmailAndPassword(auth, email, senha);
     window.location.href = "/dashboard.html";
   } catch (err) {
+    redirecionando = false; // libera se der erro
     setCarregando(elBtnLogin, false);
     mostrarErro(traduzirErro(err.code));
     elSenha.value = "";
@@ -102,21 +95,21 @@ elSenha.addEventListener("keydown", e => { if (e.key === "Enter") fazerLogin(); 
 elToggle.addEventListener("click", () => {
   const vis = elSenha.type === "text";
   elSenha.type = vis ? "password" : "text";
-  elIconAberto.style.display  = vis ? "" : "none";
+  elIconAberto.style.display  = vis ? ""     : "none";
   elIconFechado.style.display = vis ? "none" : "";
 });
 
 elBtnEsqueci.addEventListener("click", () => {
   esconderAlertas();
   elFormLogin.hidden = true;
-  elFormRec.hidden = false;
-  elEmailRec.value = elEmail.value;
+  elFormRec.hidden   = false;
+  elEmailRec.value   = elEmail.value;
   elEmailRec.focus();
 });
 
 elBtnVoltar.addEventListener("click", () => {
   esconderAlertas();
-  elFormRec.hidden = true;
+  elFormRec.hidden   = true;
   elFormLogin.hidden = false;
   elEmail.focus();
 });
