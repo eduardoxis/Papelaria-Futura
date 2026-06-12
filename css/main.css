@@ -7,18 +7,19 @@
    Design tokens
    ---------------------------------------------------------------- */
 :root {
-  /* Paleta principal */
-  --blue-950: #0B1D4A;
-  --blue-900: #0F2460;
-  --blue-800: #1535A0;
-  --blue-700: #1A40C0;
-  --blue-600: #1E4FD8;
-  --blue-500: #2563EB;
-  --blue-400: #3B82F6;
-  --blue-300: #93C5FD;
-  --blue-200: #BFDBFE;
-  --blue-100: #DBEAFE;
-  --blue-050: #EFF6FF;
+  /* Paleta principal — brand color #002D94 (extraído do logo) */
+  --blue-950: #000C3A;
+  --blue-900: #001258;
+  --blue-800: #001A74;
+  --blue-700: #002080;
+  --blue-600: #002D94;   /* ← COR OFICIAL DO LOGO */
+  --blue-500: #0038B8;
+  --blue-400: #1A55D4;
+  --blue-300: #5885F0;
+  --blue-200: #AABFFC;
+  --blue-100: #D5E2FF;
+  --blue-050: #EEF3FF;
+
 
   /* Acentuação */
   --gold:      #F59E0B;
@@ -85,8 +86,8 @@
   --shadow-md:  0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.06);
   --shadow-lg:  0 10px 30px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.08);
   --shadow-xl:  0 20px 50px rgba(0,0,0,0.15), 0 8px 16px rgba(0,0,0,0.10);
-  --shadow-blue: 0 4px 20px rgba(37,99,235,0.35);
-  --shadow-blue-lg: 0 8px 40px rgba(37,99,235,0.40);
+  --shadow-blue: 0 4px 20px rgba(0,45,148,0.40);
+  --shadow-blue-lg: 0 8px 40px rgba(0,45,148,0.45);
 
   /* Transições */
   --ease-out:   cubic-bezier(0.22, 1, 0.36, 1);
