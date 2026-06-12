@@ -2,6 +2,7 @@
 // pdf.js — Gerador de Cotação PDF — Papelaria Futura Centro
 // ============================================================
 // Usa jsPDF + jsPDF-AutoTable (carregados via CDN no dashboard.html)
+// Layout idêntico ao comprovante impresso da loja.
 // ============================================================
 
 export function gerarPDF(cotacao) {
@@ -9,376 +10,427 @@ export function gerarPDF(cotacao) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
 
-    const PW  = 210; // largura A4
-    const MX  = 14;  // margem lateral
-    const CW  = PW - MX * 2; // largura útil
-    let   Y   = 0;
+    const PW = 210;
+    const MX = 12;
+    const CW = PW - MX * 2;
+    let   Y  = 0;
 
     // ----------------------------------------------------------------
-    // Cores e fontes
+    // Cores
     // ----------------------------------------------------------------
-    const AZUL_ESCURO  = [15,  36,  96];
-    const AZUL_MEDIO   = [30,  79, 216];
-    const AZUL_CLARO   = [219, 234, 254];
-    const AZUL_CABEC   = [37,  99, 235];
-    const BRANCO       = [255, 255, 255];
+    const AZUL_ESCURO  = [10,  36, 114];   // #0A2472
+    const AZUL_MEDIO   = [25,  85, 200];   // #1955C8
+    const AZUL_HEADER  = [13,  71, 161];   // cabeçalho fundo
+    const AZUL_TH      = [21,  82, 181];   // thead tabela
+    const AZUL_TEXTO   = [21,  82, 181];   // texto azul destaque
     const CINZA_CLARO  = [248, 250, 252];
-    const CINZA_BORDA  = [226, 232, 240];
+    const CINZA_LINHA  = [226, 232, 240];
+    const BRANCO       = [255, 255, 255];
+    const PRETO_TEXTO  = [20,  20,  20];
     const CINZA_TEXTO  = [100, 116, 139];
-    const PRETO        = [15,  23,  42];
-    const VERDE        = [5,   150, 105];
-    const DOURADO      = [217, 119, 6];
+    const AZUL_TOTAL   = [13,  71, 161];   // fundo do card total
 
     // ================================================================
-    // 1. CABEÇALHO
+    // 1. CABEÇALHO AZUL ESCURO
     // ================================================================
-    // Fundo gradiente simulado com retângulos sobrepostos
-    for (let i = 0; i <= 40; i++) {
-      const ratio = i / 40;
-      const r = Math.round(AZUL_ESCURO[0] + (AZUL_MEDIO[0] - AZUL_ESCURO[0]) * ratio);
-      const g = Math.round(AZUL_ESCURO[1] + (AZUL_MEDIO[1] - AZUL_ESCURO[1]) * ratio);
-      const b = Math.round(AZUL_ESCURO[2] + (AZUL_MEDIO[2] - AZUL_ESCURO[2]) * ratio);
+    const ALT_CABEC = 48;
+
+    // Fundo gradiente azul
+    for (let i = 0; i <= ALT_CABEC; i++) {
+      const t = i / ALT_CABEC;
+      const r = Math.round(AZUL_ESCURO[0] + (AZUL_HEADER[0] - AZUL_ESCURO[0]) * t);
+      const g = Math.round(AZUL_ESCURO[1] + (AZUL_HEADER[1] - AZUL_ESCURO[1]) * t);
+      const b = Math.round(AZUL_ESCURO[2] + (AZUL_HEADER[2] - AZUL_ESCURO[2]) * t);
       doc.setFillColor(r, g, b);
-      doc.rect(0, i * (46 / 40), PW, (46 / 40) + 0.5, "F");
+      doc.rect(0, i, PW, 1.3, "F");
     }
 
-    // Linha decorativa dourada no topo
-    doc.setFillColor(...DOURADO);
-    doc.rect(0, 0, PW, 2, "F");
+    // ---- LOGO "F" (caixa branca arredondada com letra F) ----
+    const logoX = MX;
+    const logoY = 6;
+    const logoW = 28;
+    const logoH = 28;
 
-    // Ícone de documento (símbolo simples)
+    // Borda exterior branca arredondada
     doc.setFillColor(...BRANCO);
-    doc.roundedRect(MX, 7, 22, 28, 3, 3, "F");
-    doc.setFillColor(...AZUL_CLARO);
-    doc.rect(MX + 4, 14, 14, 1.5, "F");
-    doc.rect(MX + 4, 18, 14, 1.5, "F");
-    doc.rect(MX + 4, 22, 9,  1.5, "F");
-    // Orelha do documento
-    doc.setFillColor(219, 234, 254);
-    doc.triangle(MX + 16, 7, MX + 22, 7, MX + 22, 13, "F");
-    doc.setFillColor(...BRANCO);
-    doc.triangle(MX + 17, 8, MX + 21, 8, MX + 21, 12, "F");
+    doc.roundedRect(logoX, logoY, logoW, logoH, 5, 5, "F");
 
-    // Nome da empresa
+    // Fundo interno levemente azul
+    doc.setFillColor(200, 220, 255);
+    doc.roundedRect(logoX + 2, logoY + 2, logoW - 4, logoH - 4, 3, 3, "F");
+
+    // Letra F azul
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.setTextColor(...BRANCO);
-    doc.text("PAPELARIA FUTURA CENTRO", MX + 28, 17);
+    doc.setFontSize(22);
+    doc.setTextColor(...AZUL_ESCURO);
+    doc.text("F", logoX + logoW / 2, logoY + logoH / 2 + 3, { align: "center" });
 
-    // Dados de contato
+    // ---- NOME DA EMPRESA ----
+    const txtX = logoX + logoW + 5;
+
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(180, 210, 255);
-    doc.text("📍 Rua Exemplo, 123 — Centro — Cidade/UF", MX + 28, 23);
-    doc.text("📞 (61) 9 9999-9999   |   📧 contato@papelariafutura.com.br", MX + 28, 28);
-    doc.text("CNPJ: 00.000.000/0001-00", MX + 28, 33);
+    doc.text("PAPELARIA", txtX, logoY + 6);
 
-    // Linha separadora direita com badge "COTAÇÃO"
-    doc.setFillColor(...DOURADO);
-    doc.roundedRect(PW - MX - 36, 8, 36, 14, 3, 3, "F");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
+    doc.setFontSize(20);
     doc.setTextColor(...BRANCO);
-    doc.text("COTAÇÃO", PW - MX - 18, 17, { align: "center" });
+    doc.text("Futura", txtX, logoY + 16);
 
-    Y = 50;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(180, 210, 255);
+    doc.text("C E N T R O", txtX, logoY + 22);
 
-    // ================================================================
-    // 2. TÍTULO E NÚMERO
-    // ================================================================
-    doc.setFillColor(...CINZA_CLARO);
-    doc.roundedRect(MX, Y, CW, 14, 2, 2, "F");
-    doc.setDrawColor(...CINZA_BORDA);
-    doc.setLineWidth(0.3);
-    doc.roundedRect(MX, Y, CW, 14, 2, 2, "S");
+    // Linha separadora vertical
+    doc.setDrawColor(...BRANCO);
+    doc.setLineWidth(0.4);
+    doc.line(PW / 2 - 10, 8, PW / 2 - 10, 42);
+
+    // ---- ENDEREÇO / CONTATO (lado direito) ----
+    const rdX = PW / 2 - 4;
+
+    // Ícone pino de localização (círculo azul)
+    doc.setFillColor(...AZUL_MEDIO);
+    doc.circle(rdX + 2.5, 12, 2.5, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6);
+    doc.setTextColor(...BRANCO);
+    doc.text("📍", rdX + 0.5, 12.5);
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.setTextColor(...AZUL_MEDIO);
-    doc.text("PROPOSTA COMERCIAL", PW / 2, Y + 9, { align: "center" });
-
-    // Data de emissão (lado direito)
-    const dataEmissao = new Date().toLocaleDateString("pt-BR", {
-      day: "2-digit", month: "long", year: "numeric"
-    });
-    doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
-    doc.setTextColor(...CINZA_TEXTO);
-    doc.text(`Emitido em: ${dataEmissao}`, PW - MX - 2, Y + 9, { align: "right" });
+    doc.setTextColor(...BRANCO);
+    doc.text("AV. DR. ÉZIO CARNEIRO QD.32 LT31/33", rdX + 7, 11);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(180, 210, 255);
+    doc.text("SETOR AEROPORTO, LUZIÂNIA/GO", rdX + 7, 15.5);
 
-    Y += 20;
+    // Ícone telefone
+    doc.setFillColor(...AZUL_MEDIO);
+    doc.circle(rdX + 2.5, 23, 2.5, "F");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.setTextColor(...BRANCO);
+    doc.text("(61) 99918-4452", rdX + 7, 25.5);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(180, 210, 255);
+    doc.text("CNPJ: 01.064.836/0001-12", rdX + 7, 33);
+
+    Y = ALT_CABEC + 6;
 
     // ================================================================
-    // 3. CARDS DE INFORMAÇÕES DO CLIENTE (2 colunas)
+    // 2. TÍTULO "Cotação"
     // ================================================================
-    const cardW = (CW - 5) / 2;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(...AZUL_TEXTO);
+    doc.text("Cotação", PW / 2, Y + 6, { align: "center" });
 
-    // Card esquerdo — Cliente
+    Y += 14;
+
+    // ================================================================
+    // 3. CARD CLIENTE + DATA  (retângulo com borda cinza)
+    // ================================================================
+    const cardH = 22;
     doc.setFillColor(...BRANCO);
-    doc.setDrawColor(...CINZA_BORDA);
-    doc.setLineWidth(0.3);
-    doc.roundedRect(MX, Y, cardW, 28, 2, 2, "FD");
-    // borda azul topo
-    doc.setFillColor(...AZUL_CABEC);
-    doc.roundedRect(MX, Y, cardW, 6, 2, 2, "F");
-    doc.rect(MX, Y + 4, cardW, 2, "F");
+    doc.setDrawColor(...CINZA_LINHA);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(MX, Y, CW, cardH, 2, 2, "FD");
+
+    // Linha divisória vertical no meio do card
+    doc.setDrawColor(...CINZA_LINHA);
+    doc.setLineWidth(0.4);
+    doc.line(PW / 2 + 10, Y, PW / 2 + 10, Y + cardH);
+
+    // Ícone pessoa (círculo azul)
+    doc.setFillColor(...AZUL_TOTAL);
+    doc.circle(MX + 8, Y + cardH / 2, 6, "F");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
+    doc.setFontSize(9);
     doc.setTextColor(...BRANCO);
-    doc.text("CLIENTE", MX + 4, Y + 4.5);
+    doc.text("👤", MX + 5, Y + cardH / 2 + 1.5);
+
+    // Dados cliente
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(...PRETO);
-    doc.text(truncar(cotacao.cliente || "—", 35), MX + 4, Y + 14);
+    doc.setFontSize(7);
+    doc.setTextColor(...AZUL_TEXTO);
+    doc.text("Cliente:", MX + 17, Y + 7);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9.5);
+    doc.setTextColor(...PRETO_TEXTO);
+    doc.text((cotacao.cliente || "—").toUpperCase(), MX + 17, Y + 13.5);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(...AZUL_TEXTO);
+    doc.text("CNPJ:", MX + 17, Y + 19);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(...CINZA_TEXTO);
+    doc.text(cotacao.cnpj || "", MX + 28, Y + 19);
+
+    // Ícone calendário (círculo azul)
+    const cx2 = PW / 2 + 16;
+    doc.setFillColor(...AZUL_TOTAL);
+    doc.circle(cx2 + 6, Y + cardH / 2, 6, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...BRANCO);
+    doc.text("📅", cx2 + 3, Y + cardH / 2 + 1.5);
+
+    // Emissão e validade
+    const dataEmissao = new Date().toLocaleDateString("pt-BR", {
+      day: "2-digit", month: "2-digit", year: "numeric"
+    });
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(...AZUL_TEXTO);
+    doc.text("Emissão:", cx2 + 15, Y + 7);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8.5);
-    doc.setTextColor(...CINZA_TEXTO);
-    doc.text(`CNPJ/CPF: ${cotacao.cnpj || "Não informado"}`, MX + 4, Y + 21);
+    doc.setTextColor(...PRETO_TEXTO);
+    doc.text(dataEmissao, cx2 + 15, Y + 13);
 
-    // Card direito — Datas
-    const cx2 = MX + cardW + 5;
-    doc.setFillColor(...BRANCO);
-    doc.roundedRect(cx2, Y, cardW, 28, 2, 2, "FD");
-    doc.setFillColor(...DOURADO);
-    doc.roundedRect(cx2, Y, cardW, 6, 2, 2, "F");
-    doc.rect(cx2, Y + 4, cardW, 2, "F");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    doc.setTextColor(...BRANCO);
-    doc.text("DATAS", cx2 + 4, Y + 4.5);
+    doc.setFontSize(7);
+    doc.setTextColor(...AZUL_TEXTO);
+    doc.text("Validade:", cx2 + 15, Y + 18);
+
+    // Calcular dias de validade baseado na data
+    let validadeTexto = "30 dias";
+    if (cotacao.validade) {
+      const hoje = new Date();
+      const valid = new Date(cotacao.validade + "T12:00:00");
+      const diff = Math.ceil((valid - hoje) / (1000 * 60 * 60 * 24));
+      if (diff > 0) validadeTexto = `${diff} dias`;
+      else validadeTexto = valid.toLocaleDateString("pt-BR");
+    }
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8.5);
-    doc.setTextColor(...CINZA_TEXTO);
-    doc.text(`Emissão:`, cx2 + 4, Y + 14);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(...PRETO);
-    doc.text(dataEmissao, cx2 + 22, Y + 14);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(...CINZA_TEXTO);
-    doc.text(`Válida até:`, cx2 + 4, Y + 21);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(...PRETO);
-    const validadeFormatada = cotacao.validade
-      ? new Date(cotacao.validade + "T12:00:00").toLocaleDateString("pt-BR")
-      : "Não informado";
-    doc.text(validadeFormatada, cx2 + 24, Y + 21);
+    doc.setTextColor(...PRETO_TEXTO);
+    doc.text(validadeTexto, cx2 + 15, Y + 23.5);
 
-    Y += 34;
+    Y += cardH + 8;
 
     // ================================================================
     // 4. TABELA DE PRODUTOS
     // ================================================================
     const itens = cotacao.itens || [];
 
-    const colunas = [
-      { header: "#",              dataKey: "item"          },
-      { header: "Descrição / Produto", dataKey: "descricao"    },
-      { header: "Marca",          dataKey: "marca"         },
-      { header: "Qtd.",           dataKey: "quantidade"    },
-      { header: "Valor Unit.",    dataKey: "valorUnitario" },
-      { header: "Valor Total",    dataKey: "valorTotal"    },
-    ];
-
-    const linhas = itens.map((i, idx) => ({
+    const linhas = itens.map((item, idx) => ({
       item:          String(idx + 1),
-      descricao:     i.descricao    || "—",
-      marca:         i.marca        || "—",
-      quantidade:    formatarNumero(i.quantidade),
-      valorUnitario: formatarMoedaPDF(i.valorUnitario),
-      valorTotal:    formatarMoedaPDF(i.valorTotal),
+      descricao:     (item.descricao || "—").toUpperCase(),
+      marca:         (item.marca     || "-").toUpperCase(),
+      quantidade:    formatarNumero(item.quantidade),
+      valorUnitario: formatarMoedaPDF(item.valorUnitario),
+      valorTotal:    formatarMoedaPDF(item.valorTotal),
     }));
 
     doc.autoTable({
       startY: Y,
-      columns: colunas,
+      columns: [
+        { header: "ITEM",            dataKey: "item"          },
+        { header: "DESCRIÇÃO / PRODUTO", dataKey: "descricao" },
+        { header: "MARCA",           dataKey: "marca"         },
+        { header: "QUANTIDADE",      dataKey: "quantidade"    },
+        { header: "VALOR UNITÁRIO",  dataKey: "valorUnitario" },
+        { header: "VALOR TOTAL",     dataKey: "valorTotal"    },
+      ],
       body: linhas,
       margin: { left: MX, right: MX },
       styles: {
         fontSize: 9,
-        cellPadding: { top: 4, bottom: 4, left: 4, right: 4 },
-        textColor: PRETO,
-        lineColor: CINZA_BORDA,
-        lineWidth: 0.2,
+        cellPadding: { top: 5, bottom: 5, left: 5, right: 5 },
+        textColor: PRETO_TEXTO,
+        lineColor: CINZA_LINHA,
+        lineWidth: 0.25,
+        font: "helvetica",
       },
       headStyles: {
-        fillColor: AZUL_CABEC,
+        fillColor: AZUL_TH,
         textColor: BRANCO,
         fontStyle: "bold",
-        fontSize: 8.5,
+        fontSize: 8,
         halign: "left",
+        minCellHeight: 10,
       },
       columnStyles: {
-        item:          { cellWidth: 12,  halign: "center", fontStyle: "bold" },
+        item:          { cellWidth: 14, halign: "center", fontStyle: "bold" },
         descricao:     { cellWidth: "auto" },
-        marca:         { cellWidth: 28 },
-        quantidade:    { cellWidth: 16,  halign: "center" },
+        marca:         { cellWidth: 28,  halign: "center" },
+        quantidade:    { cellWidth: 24,  halign: "center" },
         valorUnitario: { cellWidth: 32,  halign: "right" },
         valorTotal:    { cellWidth: 32,  halign: "right", fontStyle: "bold" },
       },
       alternateRowStyles: { fillColor: CINZA_CLARO },
-      didParseCell: (data) => {
-        if (data.section === "body" && data.column.dataKey === "valorTotal") {
-          data.cell.styles.textColor = AZUL_MEDIO;
-        }
-      },
-      tableLineColor: CINZA_BORDA,
+      bodyStyles: { fillColor: BRANCO },
+      tableLineColor: CINZA_LINHA,
       tableLineWidth: 0.3,
     });
 
     Y = doc.lastAutoTable.finalY + 6;
 
     // ================================================================
-    // 5. RESUMO FINANCEIRO
+    // 5. CARD VALOR TOTAL + VALIDADE + CIDADE
     // ================================================================
-    // Verificar se precisa de nova página
-    if (Y + 45 > 270) {
-      doc.addPage();
-      Y = 20;
-    }
+    if (Y + 28 > 270) { doc.addPage(); Y = 20; }
 
-    // Subtotal e total (fundo azul escuro, destaque)
-    const totalW = 90;
-    const totalX = PW - MX - totalW;
+    const totCardH = 22;
+    doc.setFillColor(...BRANCO);
+    doc.setDrawColor(...CINZA_LINHA);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(MX, Y, CW, totCardH, 2, 2, "FD");
 
-    doc.setFillColor(...AZUL_ESCURO);
-    doc.roundedRect(totalX, Y, totalW, 22, 3, 3, "F");
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(180, 210, 255);
-    doc.text("VALOR TOTAL DA COTAÇÃO", totalX + totalW / 2, Y + 8, { align: "center" });
+    // Secção esquerda — carrinho + VALOR TOTAL
+    doc.setFillColor(...AZUL_TOTAL);
+    doc.circle(MX + 8, Y + totCardH / 2, 7, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(...BRANCO);
+    doc.text("🛒", MX + 4.5, Y + totCardH / 2 + 2);
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.setTextColor(...BRANCO);
-    doc.text(
-      formatarMoedaPDF(cotacao.valorTotal),
-      totalX + totalW / 2,
-      Y + 18,
-      { align: "center" }
-    );
+    doc.setFontSize(7.5);
+    doc.setTextColor(...AZUL_TEXTO);
+    doc.text("VALOR TOTAL:", MX + 18, Y + 8);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(15);
+    doc.setTextColor(...AZUL_TEXTO);
+    doc.text(formatarMoedaPDF(cotacao.valorTotal), MX + 18, Y + 18);
 
-    // Linha de validade ao lado
+    // Divisórias verticais
+    const terco = CW / 3;
+    doc.setDrawColor(...CINZA_LINHA);
+    doc.setLineWidth(0.4);
+    doc.line(MX + terco, Y + 2, MX + terco, Y + totCardH - 2);
+    doc.line(MX + terco * 2, Y + 2, MX + terco * 2, Y + totCardH - 2);
+
+    // Seção central — ✅ VALIDO ATÉ
+    const c2X = MX + terco + 6;
+    doc.setFillColor(...AZUL_TOTAL);
+    doc.circle(c2X + 5, Y + totCardH / 2, 5, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...BRANCO);
+    doc.text("✓", c2X + 2.5, Y + totCardH / 2 + 1.5);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(...AZUL_TEXTO);
+    doc.text("VALIDO ATÉ", c2X + 13, Y + 9);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8.5);
-    doc.setTextColor(...CINZA_TEXTO);
-    doc.text(`Proposta válida até: ${validadeFormatada}`, MX, Y + 8);
-    const cidade = "Brasília/DF";
-    doc.text(`${cidade}, ${dataEmissao}`, MX, Y + 15);
+    doc.setTextColor(...PRETO_TEXTO);
+    doc.text(validadeTexto.toUpperCase(), c2X + 13, Y + 16);
 
-    Y += 30;
+    // Seção direita — 📍 CIDADE/DATA
+    const c3X = MX + terco * 2 + 6;
+    doc.setFillColor(...AZUL_TOTAL);
+    doc.circle(c3X + 5, Y + totCardH / 2, 5, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...BRANCO);
+    doc.text("📍", c3X + 2.5, Y + totCardH / 2 + 1.5);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(...PRETO_TEXTO);
+    doc.text("LUZIÂNIA/GO", c3X + 13, Y + 9);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(...CINZA_TEXTO);
+
+    const [dia, mes, ano] = dataEmissao.split("/");
+    const mesesPT = [
+      "", "JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
+      "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"
+    ];
+    doc.text(`${dia} DE ${mesesPT[parseInt(mes)]} DE ${ano}`, c3X + 13, Y + 16);
+
+    Y += totCardH + 6;
 
     // ================================================================
     // 6. OBSERVAÇÕES
     // ================================================================
     if (cotacao.observacoes) {
-      if (Y + 25 > 270) { doc.addPage(); Y = 20; }
+      if (Y + 20 > 270) { doc.addPage(); Y = 20; }
 
       doc.setFillColor(...CINZA_CLARO);
-      doc.setDrawColor(...CINZA_BORDA);
-      doc.setLineWidth(0.3);
-      doc.roundedRect(MX, Y, CW, 4, 1, 1, "F");
+      doc.setDrawColor(...CINZA_LINHA);
+      doc.setLineWidth(0.4);
+      const obsH = 8 + doc.splitTextToSize(cotacao.observacoes, CW - 20).length * 4;
+      doc.roundedRect(MX, Y, CW, obsH, 2, 2, "FD");
 
-      // barra lateral colorida
-      doc.setFillColor(...AZUL_MEDIO);
-      doc.rect(MX, Y, 3, 4 + (cotacao.observacoes.length > 80 ? 10 : 4), "F");
+      // Ícone
+      doc.setFillColor(...AZUL_TOTAL);
+      doc.circle(MX + 7, Y + obsH / 2, 5, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(...BRANCO);
+      doc.text("≡", MX + 4.5, Y + obsH / 2 + 1.5);
 
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(8);
-      doc.setTextColor(...AZUL_MEDIO);
-      doc.text("OBSERVAÇÕES", MX + 6, Y + 2.8);
+      doc.setFontSize(7.5);
+      doc.setTextColor(...AZUL_TEXTO);
+      doc.text("OBSERVAÇÕES", MX + 15, Y + 6);
 
-      Y += 7;
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8.5);
-      doc.setTextColor(...CINZA_TEXTO);
-      const linhasObs = doc.splitTextToSize(cotacao.observacoes, CW - 6);
-      doc.text(linhasObs, MX + 6, Y);
-      Y += linhasObs.length * 4 + 4;
+      doc.setTextColor(...PRETO_TEXTO);
+      const linhasObs = doc.splitTextToSize(cotacao.observacoes.toUpperCase(), CW - 20);
+      doc.text(linhasObs, MX + 15, Y + 12);
+      Y += obsH + 6;
     }
 
     // ================================================================
-    // 7. ASSINATURA (linha para assinar)
+    // 7. RODAPÉ AZUL — "Obrigado pela preferência!"
     // ================================================================
-    if (Y + 30 > 270) { doc.addPage(); Y = 20; }
-    Y += 6;
-
-    const assinW = (CW - 10) / 2;
-    // Empresa
-    doc.setDrawColor(...CINZA_BORDA);
-    doc.setLineWidth(0.4);
-    doc.line(MX, Y + 16, MX + assinW, Y + 16);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(...CINZA_TEXTO);
-    doc.text("Papelaria Futura Centro", MX + assinW / 2, Y + 21, { align: "center" });
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.text("Responsável / Carimbo", MX + assinW / 2, Y + 25.5, { align: "center" });
-
-    // Cliente
-    const ax2 = MX + assinW + 10;
-    doc.line(ax2, Y + 16, ax2 + assinW, Y + 16);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(...CINZA_TEXTO);
-    doc.text(truncar(cotacao.cliente || "Cliente", 30), ax2 + assinW / 2, Y + 21, { align: "center" });
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.text("Aprovação / Data", ax2 + assinW / 2, Y + 25.5, { align: "center" });
-
-    Y += 34;
-
-    // ================================================================
-    // 8. RODAPÉ
-    // ================================================================
-    const altRod = 22;
+    const altRod = 18;
     const yRod   = 297 - altRod;
 
-    // Fundo azul rodapé
     for (let i = 0; i <= altRod; i++) {
-      const ratio = i / altRod;
-      const r = Math.round(AZUL_ESCURO[0] + (AZUL_MEDIO[0] - AZUL_ESCURO[0]) * ratio * 0.5);
-      const g = Math.round(AZUL_ESCURO[1] + (AZUL_MEDIO[1] - AZUL_ESCURO[1]) * ratio * 0.5);
-      const b = Math.round(AZUL_ESCURO[2] + (AZUL_MEDIO[2] - AZUL_ESCURO[2]) * ratio * 0.5);
+      const t = i / altRod;
+      const r = Math.round(AZUL_ESCURO[0] + (AZUL_HEADER[0] - AZUL_ESCURO[0]) * t);
+      const g = Math.round(AZUL_ESCURO[1] + (AZUL_HEADER[1] - AZUL_ESCURO[1]) * t);
+      const b = Math.round(AZUL_ESCURO[2] + (AZUL_HEADER[2] - AZUL_ESCURO[2]) * t);
       doc.setFillColor(r, g, b);
       doc.rect(0, yRod + i, PW, 1.2, "F");
     }
 
-    // Linha dourada no topo do rodapé
-    doc.setFillColor(...DOURADO);
-    doc.rect(0, yRod, PW, 1.2, "F");
-
-    // Slogan
+    // Slogan cursivo central
     doc.setFont("helvetica", "bolditalic");
-    doc.setFontSize(9);
+    doc.setFontSize(11);
     doc.setTextColor(...BRANCO);
-    doc.text(
-      '"A qualidade que você precisa, o atendimento que você merece!"',
-      PW / 2,
-      yRod + 8,
-      { align: "center" }
-    );
+    doc.text("Obrigado pela preferência!", PW / 2 - 20, yRod + 8, { align: "center" });
 
-    // Contatos rodapé
+    // Divisores verticais
+    doc.setDrawColor(100, 140, 220);
+    doc.setLineWidth(0.3);
+    doc.line(PW / 3, yRod + 3, PW / 3, yRod + altRod - 3);
+    doc.line((PW / 3) * 2, yRod + 3, (PW / 3) * 2, yRod + altRod - 3);
+
+    // Instagram
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
     doc.setTextColor(180, 210, 255);
-    doc.text(
-      "📸 @papelariafuturacentro   |   📱 (61) 9 9999-9999   |   🌐 papelariafutura.com.br",
-      PW / 2,
-      yRod + 15,
-      { align: "center" }
-    );
+    doc.text("@papelariafuturacentro", PW / 6, yRod + 11, { align: "center" });
+
+    // WhatsApp
+    doc.text("(61) 99918-4452", (PW / 6) * 5, yRod + 11, { align: "center" });
 
     // Numeração de páginas
     const totalPags = doc.internal.getNumberOfPages();
     for (let p = 1; p <= totalPags; p++) {
       doc.setPage(p);
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(7);
-      doc.setTextColor(180, 210, 255);
-      doc.text(`Página ${p} de ${totalPags}`, PW - MX, yRod + 19, { align: "right" });
+      doc.setFontSize(6);
+      doc.setTextColor(150, 180, 230);
+      doc.text(`Página ${p} de ${totalPags}`, PW - MX, yRod + altRod - 2, { align: "right" });
     }
 
     // ----------------------------------------------------------------
@@ -399,19 +451,13 @@ export function gerarPDF(cotacao) {
 // ================================================================
 function formatarMoedaPDF(valor) {
   return new Intl.NumberFormat("pt-BR", {
-    style:    "currency",
-    currency: "BRL"
+    style: "currency", currency: "BRL"
   }).format(Number(valor) || 0);
 }
 
 function formatarNumero(valor) {
   const n = Number(valor) || 0;
   return n % 1 === 0 ? String(n) : n.toFixed(2).replace(".", ",");
-}
-
-function truncar(str, max) {
-  if (!str) return "—";
-  return str.length > max ? str.substring(0, max - 1) + "…" : str;
 }
 
 function sanitizarNome(nome) {
