@@ -9,18 +9,20 @@ import {
 
 import { auth } from "./firebase-config.js";
 
-// ----------------------------------------------------------------
-// Redirect se já estiver logado
-//
-// Usa auth.authStateReady() em vez de onAuthStateChanged para evitar
-// reagir ao estado transitório "null" inicial do Firebase.
-// Só redireciona após a resolução real do estado de autenticação.
-// ----------------------------------------------------------------
-auth.authStateReady().then(() => {
+// Redireciona pro dashboard se já estiver autenticado
+// Usa authStateReady() para aguardar resolução real do Firebase
+// e checa sessionStorage para evitar loop caso o redirect falhe
+(async () => {
+  if (sessionStorage.getItem("pf_auth_ok") === "1") {
+    window.location.replace("/dashboard.html");
+    return;
+  }
+  await auth.authStateReady();
   if (auth.currentUser) {
+    sessionStorage.setItem("pf_auth_ok", "1");
     window.location.replace("/dashboard.html");
   }
-});
+})();
 
 // Elementos
 const elEmail        = document.getElementById("email");
@@ -82,6 +84,7 @@ async function fazerLogin() {
   setCarregando(elBtnLogin, true);
   try {
     await signInWithEmailAndPassword(auth, email, senha);
+    sessionStorage.setItem("pf_auth_ok", "1");
     window.location.replace("/dashboard.html");
   } catch (err) {
     setCarregando(elBtnLogin, false);
