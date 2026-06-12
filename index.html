@@ -14,6 +14,7 @@
   <!-- CSS -->
   <link rel="stylesheet" href="css/main.css" />
   <link rel="stylesheet" href="css/login.css" />
+  <link rel="stylesheet" href="css/index.css" />
 </head>
 <body>
 
@@ -25,6 +26,20 @@
     <div class="bg-orb bg-orb--2"></div>
     <div class="bg-orb bg-orb--3"></div>
     <div class="bg-grid"></div>
+  </div>
+
+  <!-- Partículas decorativas -->
+  <div class="bg-particles" aria-hidden="true">
+    <span class="particle"></span>
+    <span class="particle"></span>
+    <span class="particle"></span>
+    <span class="particle"></span>
+    <span class="particle"></span>
+    <span class="particle"></span>
+    <span class="particle"></span>
+    <span class="particle"></span>
+    <span class="particle"></span>
+    <span class="particle"></span>
   </div>
 
   <!-- ============================================================ -->
@@ -76,7 +91,7 @@
     <section class="login-panel">
       <div class="login-card">
 
-        <!-- Logo mobile (aparece só em telas pequenas) -->
+        <!-- Logo mobile -->
         <div class="login-logo-mobile" aria-hidden="true">
           <div class="mobile-logo-icon">
             <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -150,8 +165,14 @@
                 required
               />
               <button type="button" class="field-toggle" id="toggleSenha" aria-label="Mostrar senha">
-                <svg id="iconOlhoAberto" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
-                <svg id="iconOlhoFechado" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" style="display:none"><path fill-rule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clip-rule="evenodd"/><path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.064 7 9.542 7 .847 0 1.669-.105 2.454-.303z"/></svg>
+                <svg id="iconOlhoAberto" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+                  <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+                </svg>
+                <svg id="iconOlhoFechado" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" style="display:none">
+                  <path fill-rule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clip-rule="evenodd"/>
+                  <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.064 7 9.542 7 .847 0 1.669-.105 2.454-.303z"/>
+                </svg>
               </button>
             </div>
           </div>
@@ -194,7 +215,10 @@
             <button class="btn-login" type="button" id="btnEnviarReset">
               <span class="btn-login__text">Enviar link</span>
               <span class="btn-login__spinner" aria-hidden="true" hidden>
-                <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="3"/><path d="M12 2a10 10 0 0110 10" stroke="white" stroke-width="3" stroke-linecap="round"/></svg>
+                <svg viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" stroke-width="3"/>
+                  <path d="M12 2a10 10 0 0110 10" stroke="white" stroke-width="3" stroke-linecap="round"/>
+                </svg>
               </span>
             </button>
             <button class="btn-voltar" type="button" id="btnVoltarLogin">← Voltar ao login</button>
@@ -204,151 +228,14 @@
         <footer class="login-footer">
           <p>© 2025 Papelaria Futura Centro. Todos os direitos reservados.</p>
         </footer>
+
       </div>
     </section>
 
   </main>
 
-  <!-- ============================================================ -->
-  <!-- SCRIPTS                                                      -->
-  <!-- ============================================================ -->
-  <script type="module">
-    import { loginUsuario, protegerRota, resetarSenha } from "./js/auth.js";
-
-    // Redirecionar se já logado
-    protegerRota(null);
-
-    // Elementos
-    const elEmail          = document.getElementById("email");
-    const elSenha          = document.getElementById("senha");
-    const elBtnLogin       = document.getElementById("btnLogin");
-    const elBtnEsqueci     = document.getElementById("btnEsqueciSenha");
-    const elBtnVoltarLogin = document.getElementById("btnVoltarLogin");
-    const elBtnReset       = document.getElementById("btnEnviarReset");
-    const elEmailRec       = document.getElementById("emailRecuperar");
-    const elFormLogin      = document.getElementById("formLogin");
-    const elFormRec        = document.getElementById("formRecuperacao");
-    const elAlertErro      = document.getElementById("alertErro");
-    const elAlertErroTxt   = document.getElementById("alertErroTexto");
-    const elAlertOk        = document.getElementById("alertSucesso");
-    const elAlertOkTxt     = document.getElementById("alertSucessoTexto");
-    const elToggle         = document.getElementById("toggleSenha");
-    const elIconAberto     = document.getElementById("iconOlhoAberto");
-    const elIconFechado    = document.getElementById("iconOlhoFechado");
-
-    // ----------------------------------------------------------------
-    // Mostrar / esconder alerta
-    // ----------------------------------------------------------------
-    function mostrarErro(msg) {
-      elAlertOk.hidden    = true;
-      elAlertErroTxt.textContent = msg;
-      elAlertErro.hidden  = false;
-    }
-    function mostrarSucesso(msg) {
-      elAlertErro.hidden  = true;
-      elAlertOkTxt.textContent  = msg;
-      elAlertOk.hidden    = false;
-    }
-    function esconderAlertas() {
-      elAlertErro.hidden = true;
-      elAlertOk.hidden   = true;
-    }
-
-    // ----------------------------------------------------------------
-    // Carregando / não carregando
-    // ----------------------------------------------------------------
-    function setCarregando(btn, estado) {
-      const txt     = btn.querySelector(".btn-login__text");
-      const spinner = btn.querySelector(".btn-login__spinner");
-      btn.disabled  = estado;
-      txt.hidden    = estado;
-      spinner.hidden = !estado;
-    }
-
-    // ----------------------------------------------------------------
-    // Login
-    // ----------------------------------------------------------------
-    async function fazerLogin() {
-      esconderAlertas();
-      const email = elEmail.value.trim();
-      const senha = elSenha.value;
-
-      if (!email || !senha) {
-        mostrarErro("Preencha e-mail e senha.");
-        return;
-      }
-
-      setCarregando(elBtnLogin, true);
-      const resultado = await loginUsuario(email, senha);
-      setCarregando(elBtnLogin, false);
-
-      if (resultado.sucesso) {
-        window.location.href = "/dashboard.html";
-      } else {
-        mostrarErro(resultado.erro);
-        elSenha.value = "";
-        elSenha.focus();
-      }
-    }
-
-    elBtnLogin.addEventListener("click", fazerLogin);
-
-    // Enter nos campos
-    [elEmail, elSenha].forEach(el =>
-      el.addEventListener("keydown", e => { if (e.key === "Enter") fazerLogin(); })
-    );
-
-    // ----------------------------------------------------------------
-    // Toggle senha
-    // ----------------------------------------------------------------
-    elToggle.addEventListener("click", () => {
-      const escondida = elSenha.type === "password";
-      elSenha.type          = escondida ? "text" : "password";
-      elIconAberto.style.display  = escondida ? "none" : "";
-      elIconFechado.style.display = escondida ? "" : "none";
-      elToggle.setAttribute("aria-label", escondida ? "Esconder senha" : "Mostrar senha");
-    });
-
-    // ----------------------------------------------------------------
-    // Troca para formulário de recuperação
-    // ----------------------------------------------------------------
-    elBtnEsqueci.addEventListener("click", () => {
-      esconderAlertas();
-      elFormLogin.hidden = true;
-      elFormRec.hidden   = false;
-      elEmailRec.value   = elEmail.value;
-      elEmailRec.focus();
-    });
-
-    elBtnVoltarLogin.addEventListener("click", () => {
-      esconderAlertas();
-      elFormRec.hidden   = true;
-      elFormLogin.hidden = false;
-      elEmail.focus();
-    });
-
-    // ----------------------------------------------------------------
-    // Enviar reset de senha
-    // ----------------------------------------------------------------
-    async function enviarReset() {
-      esconderAlertas();
-      const email = elEmailRec.value.trim();
-      if (!email) { mostrarErro("Informe o e-mail."); return; }
-
-      setCarregando(elBtnReset, true);
-      const resultado = await resetarSenha(email);
-      setCarregando(elBtnReset, false);
-
-      if (resultado.sucesso) {
-        mostrarSucesso("Link enviado! Verifique sua caixa de entrada.");
-      } else {
-        mostrarErro(resultado.erro);
-      }
-    }
-
-    elBtnReset.addEventListener("click", enviarReset);
-    elEmailRec.addEventListener("keydown", e => { if (e.key === "Enter") enviarReset(); });
-  </script>
+  <!-- JS externo — módulo ES6 -->
+  <script type="module" src="js/index.js"></script>
 
 </body>
 </html>
