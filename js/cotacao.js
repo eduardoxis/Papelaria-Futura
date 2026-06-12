@@ -23,6 +23,16 @@ export function iniciarCotacao(usuario, dadosUsuario) {
     if (e.detail.page === "nova-cotacao") prepararNovaCotacao();
   });
 
+  // Máscara CNPJ — 00.000.000/0001-00
+  document.getElementById("cotCnpj")?.addEventListener("input", (e) => {
+    let v = e.target.value.replace(/\D/g,"").substring(0,14);
+    if (v.length > 12) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})$/,"$1.$2.$3/$4-$5");
+    else if (v.length > 8) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4})$/,"$1.$2.$3/$4");
+    else if (v.length > 5) v = v.replace(/^(\d{2})(\d{3})(\d{0,3})$/,"$1.$2.$3");
+    else if (v.length > 2) v = v.replace(/^(\d{2})(\d{0,3})$/,"$1.$2");
+    e.target.value = v;
+  });
+
   // Botões do formulário
   document.getElementById("btnAdicionarLinha")?.addEventListener("click", adicionarLinha);
   document.getElementById("btnSalvarCotacao")?.addEventListener("click", salvarCotacao);
