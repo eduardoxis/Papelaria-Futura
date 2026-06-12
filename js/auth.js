@@ -24,25 +24,22 @@ import { auth, db } from "./firebase-config.js";
 // Constantes e rotas protegidas
 // ----------------------------------------------------------------
 const ROUTES = {
-  login: "/index.html",
+  login:     "/index.html",
   dashboard: "/dashboard.html"
 };
 
 const PROTECTED_PAGES = ["dashboard.html"];
-const PUBLIC_PAGES    = ["index.html"];
+const PUBLIC_PAGES    = ["index.html", ""];
 
 // ----------------------------------------------------------------
 // Login
 // ----------------------------------------------------------------
 export async function loginUsuario(email, senha) {
   try {
-    const credencial = await signInWithEmailAndPassword(auth, email, senha);
-    const usuario    = credencial.user;
-
-    // Buscar dados extras do usuário no Firestore
+    const credencial   = await signInWithEmailAndPassword(auth, email, senha);
+    const usuario      = credencial.user;
     const dadosUsuario = await buscarDadosUsuario(usuario.uid);
 
-    // Registrar último acesso
     await setDoc(
       doc(db, "usuarios", usuario.uid),
       { ultimoAcesso: serverTimestamp() },
@@ -61,7 +58,7 @@ export async function loginUsuario(email, senha) {
 export async function logoutUsuario() {
   try {
     await signOut(auth);
-    window.location.href = ROUTES.login;
+    window.location.replace(ROUTES.login);
   } catch (erro) {
     console.error("Erro ao fazer logout:", erro);
   }
@@ -79,11 +76,10 @@ export async function buscarDadosUsuario(uid) {
       return docSnap.data();
     }
 
-    // Caso o documento não exista, cria com role padrão
     const dadosPadrao = {
       uid,
-      role: "user",
-      criadoEm: serverTimestamp()
+      role:      "user",
+      criadoEm:  serverTimestamp()
     };
     await setDoc(docRef, dadosPadrao, { merge: true });
     return dadosPadrao;
@@ -105,18 +101,27 @@ export async function verificarAdmin(uid) {
 // Proteção de rotas — chamar em cada página protegida
 // ----------------------------------------------------------------
 export function protegerRota(callbackAutenticado) {
+  // Guard: evita múltiplos redirects se o listener disparar mais de uma vez
+  let redirecionando = false;
+
   return onAuthStateChanged(auth, async (usuario) => {
-    const paginaAtual = window.location.pathname.split("/").pop() || "index.html";
+    // Se já estamos redirecionando, ignora disparos subsequentes
+    if (redirecionando) return;
+
+    const pathname    = window.location.pathname;
+    const paginaAtual = pathname.split("/").pop() || "index.html";
 
     if (!usuario && PROTECTED_PAGES.includes(paginaAtual)) {
-      // Não autenticado numa página protegida → vai pro login
-      window.location.href = ROUTES.login;
+      // Não autenticado em página protegida → login
+      redirecionando = true;
+      window.location.replace(ROUTES.login);
       return;
     }
 
     if (usuario && PUBLIC_PAGES.includes(paginaAtual)) {
-      // Já autenticado na página de login → vai pro dashboard
-      window.location.href = ROUTES.dashboard;
+      // Já autenticado na página de login → dashboard
+      redirecionando = true;
+      window.location.replace(ROUTES.dashboard);
       return;
     }
 
@@ -158,17 +163,17 @@ export async function resetarSenha(email) {
 // ----------------------------------------------------------------
 function traduzirErroAuth(codigo) {
   const erros = {
-    "auth/invalid-email":             "E-mail inválido.",
-    "auth/user-disabled":             "Usuário desativado.",
-    "auth/user-not-found":            "Usuário não encontrado.",
-    "auth/wrong-password":            "Senha incorreta.",
-    "auth/invalid-credential":        "E-mail ou senha incorretos.",
-    "auth/too-many-requests":         "Muitas tentativas. Tente novamente mais tarde.",
-    "auth/network-request-failed":    "Erro de rede. Verifique sua conexão.",
-    "auth/email-already-in-use":      "E-mail já cadastrado.",
-    "auth/weak-password":             "Senha fraca. Use ao menos 6 caracteres.",
-    "auth/requires-recent-login":     "Faça login novamente para continuar.",
-    "auth/operation-not-allowed":     "Operação não permitida."
+    "auth/invalid-email":          "E-mail inválido.",
+    "auth/user-disabled":          "Usuário desativado.",
+    "auth/user-not-found":         "Usuário não encontrado.",
+    "auth/wrong-password":         "Senha incorreta.",
+    "auth/invalid-credential":     "E-mail ou senha incorretos.",
+    "auth/too-many-requests":      "Muitas tentativas. Tente novamente mais tarde.",
+    "auth/network-request-failed": "Erro de rede. Verifique sua conexão.",
+    "auth/email-already-in-use":   "E-mail já cadastrado.",
+    "auth/weak-password":          "Senha fraca. Use ao menos 6 caracteres.",
+    "auth/requires-recent-login":  "Faça login novamente para continuar.",
+    "auth/operation-not-allowed":  "Operação não permitida."
   };
   return erros[codigo] || "Erro inesperado. Tente novamente.";
 }
