@@ -1,14 +1,12 @@
 // ============================================================
 // firebase-config.js
-// Configuração centralizada do Firebase SDK v9+ Modular
 // ============================================================
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth }       from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore }  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyA5j_7Ef90CUjkk5FurjwG1amlMzG98PoU",
+  apiKey:            "AIzaSyA5j_7Ef90CUjkk5FurjwG1amlMzG98PoU",
   authDomain:        "papelaria-futura.firebaseapp.com",
   projectId:         "papelaria-futura",
   storageBucket:     "papelaria-futura.firebasestorage.app",
