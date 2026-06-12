@@ -247,7 +247,52 @@
 }
 
 /* ----------------------------------------------------------------
-   Responsividade do formulário
+   Field label e wrapper — desktop
+   ---------------------------------------------------------------- */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--gray-700);
+}
+
+/* ----------------------------------------------------------------
+   Botão Gerar PDF — destaque azul primário
+   ---------------------------------------------------------------- */
+#btnGerarPDF {
+  gap: var(--space-2);
+}
+
+#btnGerarPDF svg { width: 16px; height: 16px; }
+
+/* ----------------------------------------------------------------
+   Desktop: grid 2 colunas para o form
+   ---------------------------------------------------------------- */
+@media (min-width: 768px) {
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-5) var(--space-6);
+  }
+
+  /* Validade e Status ficam lado a lado na segunda linha */
+  #cotValidade,
+  #cotStatus { width: 100%; }
+
+  /* Observações ocupa linha inteira */
+  .field--full { grid-column: 1 / -1; }
+
+  /* Tabela — coluna # mais estreita no desktop */
+  .col-item { width: 52px; }
+  .col-desc { min-width: 0; } /* flex grow via table-layout */
+}
+
+/* ----------------------------------------------------------------
+   Responsividade do formulário — mobile
    ---------------------------------------------------------------- */
 @media (max-width: 640px) {
   .form-grid {
@@ -257,4 +302,13 @@
   .field--full {
     grid-column: 1;
   }
+}
+
+/* ----------------------------------------------------------------
+   Rodapé da tabela — célula de ação no total
+   ---------------------------------------------------------------- */
+.total-row-acao {
+  background: linear-gradient(135deg, var(--blue-950) 0%, var(--blue-900) 100%);
+  border: none;
+  width: 44px;
 }
