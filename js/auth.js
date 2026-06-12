@@ -82,27 +82,29 @@ export async function verificarAdmin(uid) {
 }
 
 // ----------------------------------------------------------------
-// Proteção de rota — APENAS para dashboard.html
-// Nunca chamar no index.html
+// Proteção de rota — APENAS para páginas protegidas (ex: dashboard)
+//
+// Usa auth.authStateReady() para aguardar a resolução REAL do estado
+// de autenticação antes de decidir redirecionar. Isso evita o loop
+// causado pelo estado transitório "null" que o Firebase emite
+// durante a inicialização do SDK enquanto lê o token persistido.
 // ----------------------------------------------------------------
-export function protegerRota(callbackAutenticado) {
-  let executado = false;
+export async function protegerRota(callbackAutenticado) {
+  // Aguarda o Firebase resolver o estado inicial (leitura do IndexedDB/
+  // localStorage). Só depois disso o currentUser é confiável.
+  await auth.authStateReady();
 
-  return onAuthStateChanged(auth, async (usuario) => {
-    if (executado) return;
+  const usuario = auth.currentUser;
 
-    if (!usuario) {
-      // Não autenticado → manda pro login e para
-      executado = true;
-      window.location.replace("/index.html");
-      return;
-    }
+  if (!usuario) {
+    // Definitivamente não autenticado — redireciona pro login
+    window.location.replace("/index.html");
+    return;
+  }
 
-    // Autenticado → executa callback uma única vez
-    executado = true;
-    const dadosUsuario = await buscarDadosUsuario(usuario.uid);
-    callbackAutenticado(usuario, dadosUsuario);
-  });
+  // Autenticado — executa o callback com os dados do usuário
+  const dadosUsuario = await buscarDadosUsuario(usuario.uid);
+  callbackAutenticado(usuario, dadosUsuario);
 }
 
 // ----------------------------------------------------------------
