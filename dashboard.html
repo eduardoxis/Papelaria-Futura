@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="css/dashboard.css" />
   <link rel="stylesheet" href="css/cotacao.css" />
   <link rel="stylesheet" href="css/admin.css" />
+  <link rel="stylesheet" href="css/mobile.css" />
 </head>
 <body>
 
@@ -113,6 +114,52 @@
     <!-- ======================================================== -->
     <section id="page-dashboard" class="page page--active" aria-label="Dashboard">
 
+      <!-- ====== MOBILE HERO (visível só no mobile) ====== -->
+      <div class="mobile-hero" aria-hidden="false">
+        <!-- Padrão decorativo de fundo -->
+        <div class="mobile-hero-pattern" aria-hidden="true">
+          <!-- Ícone documento grande -->
+          <svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
+          <!-- Ícone documento pequeno -->
+          <svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
+          <!-- Ícone calendário -->
+          <svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>
+          <!-- Ícone pasta/grid -->
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/></svg>
+          <!-- Ícone moeda -->
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/></svg>
+          <!-- Ícone grade -->
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+        </div>
+
+        <!-- Logo -->
+        <div class="mobile-hero-logo">
+          <div class="mobile-hero-logo-icon">
+            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="40" height="40" rx="10" fill="rgba(255,255,255,0.15)"/>
+              <path d="M9 11h14l7 7v11a2 2 0 01-2 2H9a2 2 0 01-2-2V13a2 2 0 012-2z" fill="white" opacity="0.9"/>
+              <path d="M23 11l7 7h-7V11z" fill="white" opacity="0.5"/>
+              <line x1="12" y1="21" x2="22" y2="21" stroke="#1E40AF" stroke-width="1.5" stroke-linecap="round"/>
+              <line x1="12" y1="25" x2="22" y2="25" stroke="#1E40AF" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="mobile-hero-logo-text">
+            <span class="mobile-hero-logo-brand">
+              <small>PAPELARIA</small>
+              Futura
+            </span>
+            <span class="mobile-hero-logo-sub">CENTRO</span>
+          </div>
+        </div>
+
+        <!-- Saudação -->
+        <div class="mobile-hero-greeting">
+          <h2 id="mobileSaudacao">Bom dia! 👋</h2>
+          <p>Aqui está um resumo das suas cotações.</p>
+        </div>
+      </div>
+      <!-- /MOBILE HERO -->
+
       <div class="page-header">
         <div>
           <h2 class="page-title">Visão Geral</h2>
@@ -194,6 +241,11 @@
     <!-- ======================================================== -->
     <section id="page-cotacoes" class="page" aria-label="Cotações" hidden>
 
+      <!-- Mobile page header -->
+      <div class="mobile-page-header">
+        <h2>Cotações</h2>
+      </div>
+
       <div class="page-header">
         <div>
           <h2 class="page-title">Cotações</h2>
@@ -242,6 +294,11 @@
     <!-- PÁGINA: NOVA / EDITAR COTAÇÃO                            -->
     <!-- ======================================================== -->
     <section id="page-nova-cotacao" class="page" aria-label="Nova Cotação" hidden>
+
+      <!-- Mobile page header -->
+      <div class="mobile-page-header">
+        <h2 id="titleFormCotacaoMobile">Nova Cotação</h2>
+      </div>
 
       <div class="page-header">
         <div>
@@ -339,6 +396,11 @@
     <!-- ======================================================== -->
     <section id="page-admin" class="page" aria-label="Administração" hidden>
 
+      <!-- Mobile page header -->
+      <div class="mobile-page-header">
+        <h2>Administração</h2>
+      </div>
+
       <div class="page-header">
         <div>
           <h2 class="page-title">Administração</h2>
@@ -396,6 +458,38 @@
 <!-- ============================================================ -->
 <div class="toast-container" id="toastContainer" aria-live="polite"></div>
 
+<!-- ============================================================ -->
+<!-- MOBILE CTA — Nova Cotação (fixo, acima do bottom nav)       -->
+<!-- ============================================================ -->
+<div class="mobile-cta-bar" id="mobileCTABar">
+  <button class="btn-mobile-nova-cotacao" data-page="nova-cotacao">
+    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+    Nova Cotação
+  </button>
+</div>
+
+<!-- ============================================================ -->
+<!-- MOBILE BOTTOM NAV                                            -->
+<!-- ============================================================ -->
+<nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Navegação principal">
+  <a href="#" class="mobile-nav-item mobile-nav-item--active" data-page="dashboard" id="mobileNavDash">
+    <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z"/><path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z"/></svg>
+    <span>Dashboard</span>
+  </a>
+  <a href="#" class="mobile-nav-item" data-page="cotacoes" id="mobileNavCotacoes">
+    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
+    <span>Cotações</span>
+  </a>
+  <a href="#" class="mobile-nav-item nav-item-admin" data-page="admin" id="mobileNavAdmin" hidden>
+    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+    <span>Administração</span>
+  </a>
+  <a href="#" class="mobile-nav-item" id="mobileNavPerfil" data-action="perfil">
+    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+    <span>Perfil</span>
+  </a>
+</nav>
+
 <!-- Scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -427,6 +521,10 @@
     const hora = new Date().getHours();
     const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
     document.getElementById("dashSaudacao").textContent = `${saudacao}, ${nome}!`;
+
+    // Saudação mobile hero
+    const mobileSaud = document.getElementById("mobileSaudacao");
+    if (mobileSaud) mobileSaud.textContent = `${saudacao}, ${nome}! 👋`;
 
     // Exibir menu admin
     if (isAdmin) {
@@ -478,6 +576,16 @@
 
       document.getElementById("topbarTitle").textContent = titles[pageId] || pageId;
 
+      // Sincronizar bottom nav mobile
+      document.querySelectorAll(".mobile-nav-item").forEach(el => {
+        el.classList.remove("mobile-nav-item--active");
+        if (el.dataset.page === pageId) el.classList.add("mobile-nav-item--active");
+      });
+
+      // Esconde CTA "Nova Cotação" quando já estiver na página nova-cotacao
+      const ctaBar = document.getElementById("mobileCTABar");
+      if (ctaBar) ctaBar.style.display = pageId === "nova-cotacao" ? "none" : "";
+
       // Fechar sidebar no mobile
       fecharSidebar();
 
@@ -491,6 +599,13 @@
         const page = el.dataset.page;
         if (page) navegar(page);
       });
+    });
+
+    // Botão Perfil mobile — abre o sidebar como drawer de perfil
+    document.getElementById("mobileNavPerfil")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      document.getElementById("sidebar").classList.add("sidebar--open");
+      document.getElementById("sidebarOverlay").classList.add("overlay--visible");
     });
 
     // Expor globalmente para uso nos módulos
