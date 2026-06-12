@@ -78,12 +78,16 @@ function renderizarUltimas(cotacoes) {
 
   tbody.innerHTML = cotacoes.map(c => `
     <tr>
-      <td><strong>${escHtml(c.cliente || "—")}</strong></td>
-      <td>${formatarData(c.dataCriacao)}</td>
-      <td class="col-right"><strong>${formatarMoeda(c.valorTotal)}</strong></td>
-      <td>${badgeStatus(c.status)}</td>
-      <td class="col-center">
-        <div style="display:flex;gap:6px;justify-content:center">
+      <td class="td-cliente-row">
+        <strong>${escHtml(c.cliente || "—")}</strong>
+        <strong>${formatarMoeda(c.valorTotal)}</strong>
+      </td>
+      <td class="td-status-actions-row">
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <span style="font-size:0.75rem;color:var(--gray-500)">${formatarData(c.dataCriacao)}</span>
+          ${badgeStatus(c.status)}
+        </div>
+        <div class="td-actions-wrap">
           <button class="btn-action btn-action--edit" onclick="window.editarCotacaoById('${c.id}')">
             <svg viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
             Editar
