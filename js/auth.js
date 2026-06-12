@@ -1,6 +1,5 @@
 // ============================================================
 // auth.js
-// Gerenciamento completo de autenticação Firebase
 // ============================================================
 
 import {
@@ -19,17 +18,6 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import { auth, db } from "./firebase-config.js";
-
-// ----------------------------------------------------------------
-// Constantes e rotas protegidas
-// ----------------------------------------------------------------
-const ROUTES = {
-  login:     "/index.html",
-  dashboard: "/dashboard.html"
-};
-
-const PROTECTED_PAGES = ["dashboard.html"];
-const PUBLIC_PAGES    = ["index.html", ""];
 
 // ----------------------------------------------------------------
 // Login
@@ -58,7 +46,7 @@ export async function loginUsuario(email, senha) {
 export async function logoutUsuario() {
   try {
     await signOut(auth);
-    window.location.replace(ROUTES.login);
+    window.location.replace("/index.html");
   } catch (erro) {
     console.error("Erro ao fazer logout:", erro);
   }
@@ -76,11 +64,7 @@ export async function buscarDadosUsuario(uid) {
       return docSnap.data();
     }
 
-    const dadosPadrao = {
-      uid,
-      role:      "user",
-      criadoEm:  serverTimestamp()
-    };
+    const dadosPadrao = { uid, role: "user", criadoEm: serverTimestamp() };
     await setDoc(docRef, dadosPadrao, { merge: true });
     return dadosPadrao;
   } catch (erro) {
@@ -98,37 +82,26 @@ export async function verificarAdmin(uid) {
 }
 
 // ----------------------------------------------------------------
-// Proteção de rotas — chamar em cada página protegida
+// Proteção de rota — APENAS para dashboard.html
+// Nunca chamar no index.html
 // ----------------------------------------------------------------
 export function protegerRota(callbackAutenticado) {
-  // Guard: evita múltiplos redirects se o listener disparar mais de uma vez
-  let redirecionando = false;
+  let executado = false;
 
   return onAuthStateChanged(auth, async (usuario) => {
-    // Se já estamos redirecionando, ignora disparos subsequentes
-    if (redirecionando) return;
+    if (executado) return;
 
-    const pathname    = window.location.pathname;
-    const paginaAtual = pathname.split("/").pop() || "index.html";
-
-    if (!usuario && PROTECTED_PAGES.includes(paginaAtual)) {
-      // Não autenticado em página protegida → login
-      redirecionando = true;
-      window.location.replace(ROUTES.login);
+    if (!usuario) {
+      // Não autenticado → manda pro login e para
+      executado = true;
+      window.location.replace("/index.html");
       return;
     }
 
-    if (usuario && PUBLIC_PAGES.includes(paginaAtual)) {
-      // Já autenticado na página de login → dashboard
-      redirecionando = true;
-      window.location.replace(ROUTES.dashboard);
-      return;
-    }
-
-    if (usuario && callbackAutenticado) {
-      const dadosUsuario = await buscarDadosUsuario(usuario.uid);
-      callbackAutenticado(usuario, dadosUsuario);
-    }
+    // Autenticado → executa callback uma única vez
+    executado = true;
+    const dadosUsuario = await buscarDadosUsuario(usuario.uid);
+    callbackAutenticado(usuario, dadosUsuario);
   });
 }
 
