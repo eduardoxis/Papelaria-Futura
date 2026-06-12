@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — Papelaria Futura</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/cotacao.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- SIDEBAR                                                       -->
+<!-- ============================================================ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">
+        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="40" height="40" rx="11" fill="rgba(255,255,255,0.15)"/>
+          <path d="M9 11h14l7 7v11a2 2 0 01-2 2H9a2 2 0 01-2-2V13a2 2 0 012-2z" fill="white" opacity="0.9"/>
+          <path d="M23 11l7 7h-7V11z" fill="white" opacity="0.5"/>
+          <line x1="12" y1="21" x2="22" y2="21" stroke="#1E40AF" strokeWidth="1.5" strokeLinecap="round"/>
+          <line x1="12" y1="25" x2="22" y2="25" stroke="#1E40AF" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+      </div>
+      <div class="sidebar-logo-text">
+        <span class="sidebar-logo-name">Papelaria Futura</span>
+        <span class="sidebar-logo-sub">Centro</span>
+      </div>
+    </div>
+    <button class="sidebar-close" id="btnFecharSidebar" aria-label="Fechar menu">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+    </button>
+  </div>
+
+  <nav class="sidebar-nav" aria-label="Menu principal">
+    <ul class="nav-list" role="list">
+      <li>
+        <a href="#" class="nav-item nav-item--active" data-page="dashboard">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z"/><path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z"/></svg>
+          Dashboard
+        </a>
+      </li>
+      <li>
+        <a href="#" class="nav-item" data-page="cotacoes">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
+          Cotações
+        </a>
+      </li>
+      <li>
+        <a href="#" class="nav-item" data-page="nova-cotacao">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+          Nova Cotação
+        </a>
+      </li>
+      <li class="nav-item-admin" hidden>
+        <a href="#" class="nav-item" data-page="admin">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+          Administração
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="sidebar-user" id="sidebarUser">
+      <div class="user-avatar" id="userAvatar">?</div>
+      <div class="user-info">
+        <span class="user-name" id="userName">Carregando...</span>
+        <span class="user-role" id="userRole">—</span>
+      </div>
+    </div>
+    <button class="btn-logout" id="btnLogout" aria-label="Sair do sistema">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"/></svg>
+      Sair
+    </button>
+  </div>
+</aside>
+
+<!-- Overlay mobile -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- ============================================================ -->
+<!-- CONTEÚDO PRINCIPAL                                            -->
+<!-- ============================================================ -->
+<div class="main-wrap">
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <button class="topbar-menu" id="btnAbrirSidebar" aria-label="Abrir menu">
+      <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>
+    </button>
+    <h1 class="topbar-title" id="topbarTitle">Dashboard</h1>
+    <div class="topbar-actions">
+      <button class="btn-primary" id="btnNovaCotacaoTop" data-page="nova-cotacao">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+        Nova Cotação
+      </button>
+    </div>
+  </header>
+
+  <!-- Área de páginas -->
+  <main class="content-area">
+
+    <!-- ======================================================== -->
+    <!-- PÁGINA: DASHBOARD                                         -->
+    <!-- ======================================================== -->
+    <section id="page-dashboard" class="page page--active" aria-label="Dashboard">
+
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">Visão Geral</h2>
+          <p class="page-subtitle" id="dashSaudacao">Bom dia!</p>
+        </div>
+        <button class="btn-icon" id="btnAtualizarDash" title="Atualizar dados">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+        </button>
+      </div>
+
+      <!-- Cards de estatísticas -->
+      <div class="stats-grid">
+        <div class="stat-card stat-card--blue">
+          <div class="stat-card__icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
+          </div>
+          <div class="stat-card__body">
+            <span class="stat-card__label">Total de Cotações</span>
+            <strong class="stat-card__value" id="statTotal">—</strong>
+          </div>
+        </div>
+        <div class="stat-card stat-card--green">
+          <div class="stat-card__icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/></svg>
+          </div>
+          <div class="stat-card__body">
+            <span class="stat-card__label">Valor Total Cotado</span>
+            <strong class="stat-card__value" id="statValor">—</strong>
+          </div>
+        </div>
+        <div class="stat-card stat-card--purple">
+          <div class="stat-card__icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>
+          </div>
+          <div class="stat-card__body">
+            <span class="stat-card__label">Cotações no Mês</span>
+            <strong class="stat-card__value" id="statMes">—</strong>
+          </div>
+        </div>
+        <div class="stat-card stat-card--gold">
+          <div class="stat-card__icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+          </div>
+          <div class="stat-card__body">
+            <span class="stat-card__label">Meu Acesso</span>
+            <strong class="stat-card__value stat-card__value--sm" id="statAcesso">—</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Últimas cotações -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Últimas Cotações</h3>
+          <a href="#" class="link-ver-todas" data-page="cotacoes">Ver todas →</a>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table" id="tabelaUltimas">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Data</th>
+                <th class="col-right">Valor</th>
+                <th>Status</th>
+                <th class="col-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyUltimas">
+              <tr><td colspan="5" class="loading-cell">Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- PÁGINA: LISTA DE COTAÇÕES                                 -->
+    <!-- ======================================================== -->
+    <section id="page-cotacoes" class="page" aria-label="Cotações" hidden>
+
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">Cotações</h2>
+          <p class="page-subtitle">Gerencie todas as suas cotações</p>
+        </div>
+        <button class="btn-primary" data-page="nova-cotacao">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+          Nova Cotação
+        </button>
+      </div>
+
+      <!-- Filtros -->
+      <div class="filter-bar">
+        <div class="filter-search">
+          <svg class="filter-search-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+          <input type="text" class="filter-input" id="filtroBusca" placeholder="Buscar por cliente..." />
+        </div>
+        <button class="btn-secondary" id="btnBuscarCotacoes">Buscar</button>
+        <button class="btn-ghost" id="btnLimparBusca">Limpar</button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data-table" id="tabelaCotacoes">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>CNPJ</th>
+                <th>Data</th>
+                <th>Validade</th>
+                <th class="col-right">Valor Total</th>
+                <th>Status</th>
+                <th class="col-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyCotacoes">
+              <tr><td colspan="7" class="loading-cell">Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- PÁGINA: NOVA / EDITAR COTAÇÃO                            -->
+    <!-- ======================================================== -->
+    <section id="page-nova-cotacao" class="page" aria-label="Nova Cotação" hidden>
+
+      <div class="page-header">
+        <div>
+          <h2 class="page-title" id="titleFormCotacao">Nova Cotação</h2>
+          <p class="page-subtitle">Preencha os dados e adicione os produtos</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn-ghost" id="btnCancelarCotacao" data-page="cotacoes">Cancelar</button>
+          <button class="btn-secondary" id="btnSalvarCotacao">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z"/></svg>
+            Salvar
+          </button>
+          <button class="btn-primary" id="btnGerarPDF">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/></svg>
+            Gerar PDF
+          </button>
+        </div>
+      </div>
+
+      <input type="hidden" id="cotacaoEditandoId" value="" />
+
+      <!-- Dados do cliente -->
+      <div class="card">
+        <h3 class="card-section-title">Dados do Cliente</h3>
+        <div class="form-grid">
+          <div class="field">
+            <label class="field-label" for="cotCliente">Cliente *</label>
+            <input class="field-input field-input--plain" type="text" id="cotCliente" placeholder="Nome do cliente ou empresa" required />
+          </div>
+          <div class="field">
+            <label class="field-label" for="cotCnpj">CNPJ / CPF</label>
+            <input class="field-input field-input--plain" type="text" id="cotCnpj" placeholder="00.000.000/0001-00" />
+          </div>
+          <div class="field">
+            <label class="field-label" for="cotValidade">Validade da Cotação *</label>
+            <input class="field-input field-input--plain" type="date" id="cotValidade" required />
+          </div>
+          <div class="field">
+            <label class="field-label" for="cotStatus">Status</label>
+            <select class="field-input field-input--plain" id="cotStatus">
+              <option value="ativa">Ativa</option>
+              <option value="aprovada">Aprovada</option>
+              <option value="recusada">Recusada</option>
+              <option value="expirada">Expirada</option>
+            </select>
+          </div>
+          <div class="field field--full">
+            <label class="field-label" for="cotObs">Observações</label>
+            <textarea class="field-input field-input--plain field-textarea" id="cotObs" placeholder="Ex.: Materiais à pronta entrega. Preços sujeitos a alteração." rows="3"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabela de produtos (mini Excel) -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-section-title">Produtos / Itens</h3>
+          <button class="btn-primary btn-sm" id="btnAdicionarLinha">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+            Adicionar Item
+          </button>
+        </div>
+
+        <div class="excel-wrap">
+          <table class="excel-table" id="tabelaItens">
+            <thead>
+              <tr>
+                <th class="col-item">#</th>
+                <th class="col-desc">Descrição / Produto</th>
+                <th class="col-marca">Marca</th>
+                <th class="col-qtd">Qtd.</th>
+                <th class="col-unit">Valor Unit.</th>
+                <th class="col-total">Valor Total</th>
+                <th class="col-acao"></th>
+              </tr>
+            </thead>
+            <tbody id="tbodyItens">
+              <!-- Linhas injetadas via JS -->
+            </tbody>
+            <tfoot>
+              <tr class="total-row">
+                <td colspan="5" class="total-label">VALOR TOTAL DA COTAÇÃO</td>
+                <td class="total-value" id="totalGeral">R$ 0,00</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- PÁGINA: ADMINISTRAÇÃO                                     -->
+    <!-- ======================================================== -->
+    <section id="page-admin" class="page" aria-label="Administração" hidden>
+
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">Administração</h2>
+          <p class="page-subtitle">Gerencie usuários e configurações do sistema</p>
+        </div>
+        <button class="btn-primary" id="btnNovoUsuario">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"/></svg>
+          Novo Usuário
+        </button>
+      </div>
+
+      <div class="card">
+        <h3 class="card-section-title">Usuários do Sistema</h3>
+        <div class="table-wrap">
+          <table class="data-table" id="tabelaUsuarios">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Perfil</th>
+                <th>Último Acesso</th>
+                <th class="col-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyUsuarios">
+              <tr><td colspan="5" class="loading-cell">Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL GENÉRICO                                               -->
+<!-- ============================================================ -->
+<div class="modal-backdrop" id="modalBackdrop" hidden>
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitulo">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modalTitulo">Modal</h3>
+      <button class="modal-close" id="btnFecharModal" aria-label="Fechar modal">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- TOAST                                                        -->
+<!-- ============================================================ -->
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<script type="module">
+  import { protegerRota, logoutUsuario } from "./js/auth.js";
+  import { iniciarDashboard }            from "./js/dashboard.js";
+  import { iniciarCotacao }              from "./js/cotacao.js";
+  import { iniciarAdmin }                from "./js/admin.js";
+
+  // ----------------------------------------------------------------
+  // Proteção de rota + inicialização
+  // ----------------------------------------------------------------
+  protegerRota((usuario, dadosUsuario) => {
+    iniciarApp(usuario, dadosUsuario);
+  });
+
+  function iniciarApp(usuario, dadosUsuario) {
+    // Dados do usuário no sidebar
+    const nome   = dadosUsuario?.nome   || usuario.email.split("@")[0];
+    const role   = dadosUsuario?.role   || "user";
+    const isAdmin = role === "admin";
+
+    document.getElementById("userName").textContent  = nome;
+    document.getElementById("userRole").textContent  = isAdmin ? "Administrador" : "Usuário";
+    document.getElementById("userAvatar").textContent = nome.charAt(0).toUpperCase();
+
+    // Saudação dinâmica
+    const hora = new Date().getHours();
+    const saudacao = hora < 12 ? "Bom dia" : hora < 18 ? "Boa tarde" : "Boa noite";
+    document.getElementById("dashSaudacao").textContent = `${saudacao}, ${nome}!`;
+
+    // Exibir menu admin
+    if (isAdmin) {
+      document.querySelectorAll(".nav-item-admin").forEach(el => el.hidden = false);
+    }
+
+    // Inicializar módulos
+    iniciarDashboard(usuario, dadosUsuario);
+    iniciarCotacao(usuario, dadosUsuario);
+    iniciarAdmin(usuario, dadosUsuario);
+
+    // Navegação
+    configurarNavegacao();
+
+    // Logout
+    document.getElementById("btnLogout").addEventListener("click", logoutUsuario);
+  }
+
+  // ----------------------------------------------------------------
+  // Sistema de navegação SPA
+  // ----------------------------------------------------------------
+  function configurarNavegacao() {
+    const paginas = document.querySelectorAll(".page");
+    const navItems = document.querySelectorAll("[data-page]");
+    const titles = {
+      "dashboard":     "Dashboard",
+      "cotacoes":      "Cotações",
+      "nova-cotacao":  "Nova Cotação",
+      "admin":         "Administração"
+    };
+
+    function navegar(pageId) {
+      paginas.forEach(p => {
+        p.hidden = true;
+        p.classList.remove("page--active");
+      });
+
+      navItems.forEach(n => n.classList.remove("nav-item--active"));
+
+      const target = document.getElementById(`page-${pageId}`);
+      if (target) {
+        target.hidden = false;
+        target.classList.add("page--active");
+      }
+
+      document.querySelectorAll(`[data-page="${pageId}"]`).forEach(el => {
+        if (el.classList.contains("nav-item")) el.classList.add("nav-item--active");
+      });
+
+      document.getElementById("topbarTitle").textContent = titles[pageId] || pageId;
+
+      // Fechar sidebar no mobile
+      fecharSidebar();
+
+      // Disparar evento de navegação
+      document.dispatchEvent(new CustomEvent("navegacao", { detail: { page: pageId } }));
+    }
+
+    navItems.forEach(el => {
+      el.addEventListener("click", (e) => {
+        e.preventDefault();
+        const page = el.dataset.page;
+        if (page) navegar(page);
+      });
+    });
+
+    // Expor globalmente para uso nos módulos
+    window.navegar = navegar;
+
+    // Iniciar na página dashboard
+    navegar("dashboard");
+  }
+
+  // ----------------------------------------------------------------
+  // Sidebar mobile
+  // ----------------------------------------------------------------
+  function fecharSidebar() {
+    document.getElementById("sidebar").classList.remove("sidebar--open");
+    document.getElementById("sidebarOverlay").classList.remove("overlay--visible");
+  }
+
+  document.getElementById("btnAbrirSidebar").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.add("sidebar--open");
+    document.getElementById("sidebarOverlay").classList.add("overlay--visible");
+  });
+  document.getElementById("btnFecharSidebar").addEventListener("click", fecharSidebar);
+  document.getElementById("sidebarOverlay").addEventListener("click", fecharSidebar);
+
+  // ----------------------------------------------------------------
+  // Modal global
+  // ----------------------------------------------------------------
+  window.abrirModal = function(titulo, bodyHTML, footerHTML = "") {
+    document.getElementById("modalTitulo").textContent  = titulo;
+    document.getElementById("modalBody").innerHTML      = bodyHTML;
+    document.getElementById("modalFooter").innerHTML    = footerHTML;
+    document.getElementById("modalBackdrop").hidden     = false;
+    document.body.style.overflow = "hidden";
+  };
+
+  window.fecharModal = function() {
+    document.getElementById("modalBackdrop").hidden = true;
+    document.body.style.overflow = "";
+  };
+
+  document.getElementById("btnFecharModal").addEventListener("click", window.fecharModal);
+  document.getElementById("modalBackdrop").addEventListener("click", (e) => {
+    if (e.target === document.getElementById("modalBackdrop")) window.fecharModal();
+  });
+
+  // ----------------------------------------------------------------
+  // Toast global
+  // ----------------------------------------------------------------
+  window.mostrarToast = function(mensagem, tipo = "success", duracao = 4000) {
+    const container = document.getElementById("toastContainer");
+    const id = `toast-${Date.now()}`;
+    const icons = {
+      success: `<svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>`,
+      error:   `<svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>`,
+      warning: `<svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>`
+    };
+    const toast = document.createElement("div");
+    toast.id = id;
+    toast.className = `toast toast--${tipo}`;
+    toast.innerHTML = `<span class="toast-icon">${icons[tipo] || icons.success}</span><span class="toast-msg">${mensagem}</span><button class="toast-close" aria-label="Fechar">×</button>`;
+    container.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add("toast--show"));
+    const remover = () => {
+      toast.classList.remove("toast--show");
+      setTimeout(() => toast.remove(), 300);
+    };
+    toast.querySelector(".toast-close").addEventListener("click", remover);
+    setTimeout(remover, duracao);
+  };
+</script>
+
+</body>
+</html>
