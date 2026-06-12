@@ -378,7 +378,7 @@
 <!-- ============================================================ -->
 <!-- MODAL GENÉRICO                                               -->
 <!-- ============================================================ -->
-<div class="modal-backdrop" id="modalBackdrop" hidden>
+<div class="modal-backdrop" id="modalBackdrop" style="display:none">
   <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitulo">
     <div class="modal-header">
       <h3 class="modal-title" id="modalTitulo">Modal</h3>
@@ -522,12 +522,12 @@
     document.getElementById("modalTitulo").textContent  = titulo;
     document.getElementById("modalBody").innerHTML      = bodyHTML;
     document.getElementById("modalFooter").innerHTML    = footerHTML;
-    document.getElementById("modalBackdrop").hidden     = false;
+    document.getElementById("modalBackdrop").style.display = "flex";
     document.body.style.overflow = "hidden";
   };
 
   window.fecharModal = function() {
-    document.getElementById("modalBackdrop").hidden = true;
+    document.getElementById("modalBackdrop").style.display = "none";
     document.body.style.overflow = "";
   };
 
