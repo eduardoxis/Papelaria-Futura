@@ -14,9 +14,9 @@ export function gerarPDF(cotacao) {
 
     // ── Cores ──────────────────────────────────────────────
     const C = {
-      azulEscuro : [10,  36, 114],
-      azulMedio  : [21,  82, 181],
-      azulClaro  : [41, 121, 255],
+      azulEscuro : [0,  18,  80],   // #001250 — sombra/texto escuro
+      azulMedio  : [0,  45, 148],   // #002D94 — COR OFICIAL DO LOGO
+      azulClaro  : [0,  56, 184],   // #0038B8 — variante mais clara
       azulTH     : [21,  82, 181],
       branco     : [255, 255, 255],
       cinzaLinha : [220, 228, 240],
@@ -170,13 +170,13 @@ export function gerarPDF(cotacao) {
     // caixa branca arredondada
     fill(C.branco);
     doc.roundedRect(LX, LY, LW, LH, 3, 3, "F");
-    // fundo interno azul claro
-    fill([190, 215, 255]);
+    // fundo interno azul brand
+    fill([0, 45, 148]);
     doc.roundedRect(LX+1.5, LY+1.5, LW-3, LH-3, 2, 2, "F");
-    // letra F
+    // letra F (branca sobre fundo azul brand)
     doc.setFont("helvetica","bold");
     doc.setFontSize(14);
-    rgb(C.azulEscuro);
+    rgb(C.branco);
     doc.text("F", LX + LW/2, LY + LH/2 + 2.8, { align:"center" });
 
     // 3 linhas empilhadas à direita da caixa F
