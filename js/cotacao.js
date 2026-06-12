@@ -426,6 +426,10 @@ async function excluirCotacaoById(id, cliente) {
 // ================================================================
 // GERAR PDF
 // ================================================================
+function nomeFuncionarioLogado() {
+  return _dadosUsuario?.nome || _usuario?.email?.split("@")[0] || "—";
+}
+
 function gerarPDFDaTela() {
   const dados = coletarDadosCotacao();
   if (!dados.cliente) {
@@ -436,6 +440,7 @@ function gerarPDFDaTela() {
     window.mostrarToast?.("Adicione ao menos um item.", "warning");
     return;
   }
+  dados.funcionario = nomeFuncionarioLogado();
   gerarPDF(dados);
 }
 
@@ -445,7 +450,9 @@ async function gerarPDFById(id) {
     window.mostrarToast?.("Cotação não encontrada.", "error");
     return;
   }
-  gerarPDF(resultado.dados);
+  const dados = resultado.dados;
+  dados.funcionario = nomeFuncionarioLogado();
+  gerarPDF(dados);
 }
 
 // ================================================================
