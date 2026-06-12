@@ -1,0 +1,179 @@
+/* ============================================================
+   index.css — Estilos exclusivos da tela de Login (index.html)
+   Importa e estende login.css com animações e detalhes extras
+   ============================================================ */
+
+/* ----------------------------------------------------------------
+   Animação de shake (erro de login)
+   ---------------------------------------------------------------- */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  15%       { transform: translateX(-8px); }
+  30%       { transform: translateX(8px); }
+  45%       { transform: translateX(-6px); }
+  60%       { transform: translateX(6px); }
+  75%       { transform: translateX(-3px); }
+  90%       { transform: translateX(3px); }
+}
+
+.shake {
+  animation: shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* ----------------------------------------------------------------
+   Partículas flutuantes no fundo (elementos decorativos)
+   ---------------------------------------------------------------- */
+@keyframes float-particle {
+  0%   { transform: translateY(0) rotate(0deg);   opacity: 0; }
+  10%  { opacity: 0.6; }
+  90%  { opacity: 0.3; }
+  100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+}
+
+.bg-particles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.particle {
+  position: absolute;
+  bottom: -20px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  animation: float-particle linear infinite;
+}
+
+.particle:nth-child(1)  { left: 8%;   width: 4px;  height: 4px;  animation-duration: 18s; animation-delay: 0s; }
+.particle:nth-child(2)  { left: 18%;  width: 8px;  height: 8px;  animation-duration: 22s; animation-delay: 3s; }
+.particle:nth-child(3)  { left: 28%;  width: 5px;  height: 5px;  animation-duration: 15s; animation-delay: 7s; }
+.particle:nth-child(4)  { left: 38%;  width: 3px;  height: 3px;  animation-duration: 25s; animation-delay: 1s; }
+.particle:nth-child(5)  { left: 50%;  width: 7px;  height: 7px;  animation-duration: 20s; animation-delay: 5s; }
+.particle:nth-child(6)  { left: 62%;  width: 4px;  height: 4px;  animation-duration: 17s; animation-delay: 9s; }
+.particle:nth-child(7)  { left: 72%;  width: 6px;  height: 6px;  animation-duration: 23s; animation-delay: 2s; }
+.particle:nth-child(8)  { left: 82%;  width: 3px;  height: 3px;  animation-duration: 19s; animation-delay: 6s; }
+.particle:nth-child(9)  { left: 90%;  width: 5px;  height: 5px;  animation-duration: 21s; animation-delay: 4s; }
+.particle:nth-child(10) { left: 95%;  width: 4px;  height: 4px;  animation-duration: 16s; animation-delay: 8s; }
+
+/* ----------------------------------------------------------------
+   Campo com foco destacado — versão reforçada para login
+   ---------------------------------------------------------------- */
+.field-input:focus {
+  border-color: var(--blue-400);
+  background: var(--white);
+  box-shadow:
+    0 0 0 3px rgba(37, 99, 235, 0.12),
+    0 1px 4px rgba(37, 99, 235, 0.08);
+}
+
+/* Campo com valor preenchido */
+.field-input:not(:placeholder-shown) {
+  background: var(--white);
+  border-color: var(--gray-300);
+}
+
+/* ----------------------------------------------------------------
+   Botão de login — estado de sucesso (✓ Entrando...)
+   ---------------------------------------------------------------- */
+.btn-login--success {
+  background: linear-gradient(135deg, #059669, #10B981) !important;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4) !important;
+}
+
+/* ----------------------------------------------------------------
+   Divisor visual entre seções do formulário
+   ---------------------------------------------------------------- */
+.form-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-5) 0;
+  color: var(--gray-400);
+  font-size: var(--text-xs);
+}
+
+.form-divider::before,
+.form-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--gray-200);
+}
+
+/* ----------------------------------------------------------------
+   Indicador de força de senha (para uso futuro em cadastro)
+   ---------------------------------------------------------------- */
+.senha-forca {
+  display: flex;
+  gap: 4px;
+  margin-top: var(--space-2);
+}
+
+.senha-forca__barra {
+  flex: 1;
+  height: 3px;
+  border-radius: var(--radius-full);
+  background: var(--gray-200);
+  transition: background var(--duration-base) ease;
+}
+
+.senha-forca--fraca   .senha-forca__barra:nth-child(1) { background: #EF4444; }
+.senha-forca--media   .senha-forca__barra:nth-child(-n+2) { background: #F59E0B; }
+.senha-forca--forte   .senha-forca__barra { background: #10B981; }
+
+/* ----------------------------------------------------------------
+   Tooltip de dica (hover nos ícones)
+   ---------------------------------------------------------------- */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--gray-900);
+  color: var(--white);
+  font-size: var(--text-xs);
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) ease;
+  z-index: var(--z-dropdown);
+}
+
+[data-tooltip]:hover::after {
+  opacity: 1;
+}
+
+/* ----------------------------------------------------------------
+   Versão mobile — refinamentos extras
+   ---------------------------------------------------------------- */
+@media (max-width: 900px) {
+  /* Garantir que o card não fique colado nas bordas */
+  .login-card {
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.25),
+      0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+
+  /* Fundo levemente diferente para melhor leitura */
+  body {
+    background: linear-gradient(160deg, var(--blue-950) 0%, var(--blue-900) 100%);
+  }
+}
+
+/* ----------------------------------------------------------------
+   Print — ocultar a tela de login ao imprimir
+   ---------------------------------------------------------------- */
+@media print {
+  body { display: none; }
+}
