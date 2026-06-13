@@ -94,8 +94,8 @@ async function carregarListaCotacoes(termoBusca = "") {
       <td>${escHtml(c.validade || "—")}</td>
       <td class="col-right"><strong>${formatarMoeda(c.valorTotal)}</strong></td>
       <td>${badgeStatus(c.status)}</td>
-      <td class="col-center">
-        <div style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap">
+      <td class="td-actions-col col-center">
+        <div class="td-actions-wrap td-actions-wrap--cotacoes">
           <button class="btn-action btn-action--edit" onclick="window.editarCotacaoById('${c.id}')">
             <svg viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
             Editar
