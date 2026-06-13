@@ -416,4 +416,36 @@
     min-width: auto;
     max-width: 100%;
   }
+
+  /* ----------------------------------------------------------------
+     Dashboard: esconde colunas desktop na tabela "Últimas Cotações"
+     ---------------------------------------------------------------- */
+  #tabelaUltimas .th-data-col,
+  #tabelaUltimas .td-data-col,
+  #tabelaUltimas .th-valor-col,
+  #tabelaUltimas .td-valor-col,
+  #tabelaUltimas .th-actions-col,
+  #tabelaUltimas .td-actions-col {
+    display: none !important;
+  }
+
+  /* Botões de ação na linha de status (mobile dashboard) */
+  .td-actions-mobile {
+    display: flex !important;
+    gap: var(--space-2);
+  }
+
+  /* Página cotações mobile: td de ações vira bloco com botões empilhados */
+  #tabelaCotacoes .td-actions-col {
+    display: block !important;
+    padding: var(--space-2) 0 0 0;
+    border-bottom: none;
+  }
+
+  .td-actions-wrap--cotacoes {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    justify-content: flex-start;
+  }
 }
