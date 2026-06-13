@@ -925,3 +925,6 @@ body {
   gap: 5px;
   flex-wrap: wrap;
 }
+
+/* Esconde botões duplicados mobile na coluna Status (desktop) */
+.td-actions-mobile { display: none; }
