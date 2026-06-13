@@ -145,7 +145,7 @@ export function gerarPDF(cotacao) {
     // ══════════════════════════════════════════════════════
     // 1. CABEÇALHO — faixa azul com cantos superiores arredondados
     // ══════════════════════════════════════════════════════
-    const CAB_H = 48;
+    const CAB_H = 52;
 
     // Gradiente principal
     gradRect(0, 0, PW, CAB_H, [8, 28, 95], [20, 70, 160]);
@@ -160,73 +160,75 @@ export function gerarPDF(cotacao) {
     doc.line(PW/2 - 5, 7, PW/2 - 5, CAB_H - 7);
     doc.setGState(doc.GState({ opacity: 1 }));
 
-    // ── Logo: caixa F ─────────────────────────────────────
-    const LX = MX, LY = 8, LW = 22, LH = 22;
+    // ── Logo: caixa F (igual à imagem de referência) ──────
+    const LX = MX, LY = 8, LW = 24, LH = 28;
 
-    // Brilho de fundo (halo suave)
-    doc.setGState(doc.GState({ opacity: 0.12 }));
-    fill([255, 255, 255]);
-    doc.circle(LX + LW/2, LY + LH/2, LW * 0.9, "F");
-    doc.setGState(doc.GState({ opacity: 1 }));
-
-    // Caixa branca arredondada
+    // Caixa branca arredondada (sem halo)
     fill(C.branco);
-    doc.roundedRect(LX, LY, LW, LH, 3.5, 3.5, "F");
+    doc.roundedRect(LX, LY, LW, LH, 3, 3, "F");
 
-    // Fundo interno azul brand
-    fill([0, 45, 148]);
-    doc.roundedRect(LX+1.5, LY+1.5, LW-3, LH-3, 2.5, 2.5, "F");
+    // Fundo interno azul royal sólido
+    fill([20, 60, 180]);
+    doc.roundedRect(LX + 1.5, LY + 1.5, LW - 3, LH - 3, 2, 2, "F");
 
-    // Letra F branca
+    // Letra F branca grande
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(15);
+    doc.setFontSize(17);
     rgb(C.branco);
-    doc.text("F", LX + LW/2, LY + LH/2 + 3.2, { align:"center" });
+    doc.text("F", LX + LW / 2, LY + LH / 2 + 4, { align: "center" });
 
     // Textos do nome à direita do logo
-    const TX = LX + LW + 5;
+    const TX = LX + LW + 4;
 
+    // "PAPELARIA" pequeno, espaçado, acima
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.setTextColor(190, 215, 255);
-    doc.text("Papelaria", TX, LY + 7);
+    doc.setFontSize(6);
+    doc.setTextColor(200, 220, 255);
+    doc.setCharSpace(1.5);
+    doc.text("PAPELARIA", TX, LY + 7);
+    doc.setCharSpace(0);
 
+    // "Futura" grande e bold
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(15);
+    doc.setFontSize(17);
     rgb(C.branco);
-    doc.text("Futura", TX, LY + 15);
+    doc.text("Futura", TX, LY + 17);
 
+    // "CENTRO" pequeno, espaçado, abaixo
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.5);
-    doc.setTextColor(190, 215, 255);
-    doc.text("C E N T R O", TX, LY + 20.5);
+    doc.setFontSize(6);
+    doc.setTextColor(200, 220, 255);
+    doc.setCharSpace(2);
+    doc.text("C E N T R O", TX, LY + 23);
+    doc.setCharSpace(0);
 
     // ── Dados contato à direita ────────────────────────────
     const DX = PW/2;
 
     // Endereço
-    drawPin(DX + 4, 14, 3.2);
+    drawPin(DX + 4, 12, 3.2);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7.5);
     rgb(C.branco);
-    doc.text("AV. DR. ÉZIO CARNEIRO QD.32 LT31/33", DX + 10, 13);
+    doc.text("AV. DR. ÉZIO CARNEIRO QD.32", DX + 10, 10.5);
+    doc.text("LT31/33", DX + 10, 15);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
     doc.setTextColor(160, 195, 255);
-    doc.text("SETOR AEROPORTO, LUZIÂNIA/GO", DX + 10, 17.5);
+    doc.text("SETOR AEROPORTO, LUZIÂNIA/GO", DX + 10, 19.5);
 
     // Telefone
-    drawPhone(DX + 1.5, 22, 5, 7.5);
+    drawPhone(DX + 1.5, 24, 5, 7.5);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
     rgb(C.branco);
-    doc.text("(61) 99918-4452", DX + 10, 28);
+    doc.text("(61) 99918-4452", DX + 10, 30);
 
     // CNPJ
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
     doc.setTextColor(160, 195, 255);
-    doc.text("CNPJ: 01.064.836/0001-12", DX + 10, 35);
+    doc.text("CNPJ: 01.064.836/0001-12", DX + 10, 40);
 
     // Faixa decorativa inferior no cabeçalho
     doc.setGState(doc.GState({ opacity: 0.15 }));
