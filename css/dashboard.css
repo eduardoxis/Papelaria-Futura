@@ -904,3 +904,24 @@ body {
   .page-header-actions .btn-secondary,
   .page-header-actions .btn-ghost { width: 100%; justify-content: center; }
 }
+
+
+/* ----------------------------------------------------------------
+   Dashboard "Últimas Cotações" — desktop: esconde coluna mobile,
+   mostra colunas desktop; alinha botões à direita
+   ---------------------------------------------------------------- */
+#tabelaUltimas .td-status-actions-row .td-actions-mobile { display: none; }
+#tabelaUltimas .td-actions-col { display: table-cell; }
+#tabelaUltimas .td-actions-col .td-actions-wrap {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* Página cotações — desktop: td de ações centralizado */
+#tabelaCotacoes .td-actions-col .td-actions-wrap--cotacoes {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
