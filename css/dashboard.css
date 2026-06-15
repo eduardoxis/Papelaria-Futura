@@ -907,10 +907,9 @@ body {
 
 
 /* ----------------------------------------------------------------
-   Dashboard "Últimas Cotações" — desktop: esconde coluna mobile,
-   mostra colunas desktop; alinha botões à direita
+   Dashboard "Últimas Cotações" — desktop: alinha botões de ação
+   à direita
    ---------------------------------------------------------------- */
-#tabelaUltimas .td-status-actions-row .td-actions-mobile { display: none; }
 #tabelaUltimas .td-actions-col { display: table-cell; }
 #tabelaUltimas .td-actions-col .td-actions-wrap {
   display: flex;
@@ -925,6 +924,3 @@ body {
   gap: 5px;
   flex-wrap: wrap;
 }
-
-/* Esconde botões duplicados mobile na coluna Status (desktop) */
-.td-actions-mobile { display: none; }
