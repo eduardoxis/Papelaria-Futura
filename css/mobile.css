@@ -425,15 +425,17 @@
   #tabelaUltimas .td-data-col,
   #tabelaUltimas .th-valor-col,
   #tabelaUltimas .td-valor-col,
-  #tabelaUltimas .th-actions-col,
-  #tabelaUltimas .td-actions-col {
+  #tabelaUltimas .th-actions-col {
     display: none !important;
   }
 
-  /* Botões de ação na linha de status (mobile dashboard) */
-  .td-actions-mobile {
-    display: flex !important;
-    gap: var(--space-2);
+  /* Coluna de ações continua visível na tabela "Últimas Cotações",
+     alinhada à direita abaixo do status */
+  #tabelaUltimas .td-actions-col {
+    margin-top: var(--space-2);
+  }
+  #tabelaUltimas .td-actions-col .td-actions-wrap {
+    justify-content: flex-end;
   }
 
   /* Página cotações mobile: td de ações vira bloco com botões empilhados */
