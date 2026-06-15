@@ -3,7 +3,20 @@
 // Usa jsPDF + jsPDF-AutoTable (CDN no dashboard.html)
 // ============================================================
 
-export function gerarPDF(cotacao) {
+// ── Carrega uma imagem (caminho relativo) e converte para base64 ──
+async function carregarImagemBase64(caminho) {
+  const resp = await fetch(caminho);
+  if (!resp.ok) throw new Error(`Falha ao carregar imagem: ${caminho}`);
+  const blob = await resp.blob();
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+export async function gerarPDF(cotacao) {
   try {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
@@ -71,16 +84,6 @@ export function gerarPDF(cotacao) {
       doc.circle(x, y + r * 0.5, r * 0.35, "F");
     }
 
-    // ── Ícone telefone ─────────────────────────────────────
-    function drawPhone(x, y, w, h) {
-      fill(C.azulMedio);
-      doc.roundedRect(x, y, w, h, 1.5, 1.5, "F");
-      fill(C.branco);
-      doc.roundedRect(x+0.8, y+1.2, w-1.6, h-2.8, 1, 1, "F");
-      fill(C.azulMedio);
-      doc.rect(x+0.8, y+1.2, w-1.6, h-4.8, "F");
-    }
-
     // ── Ícone pessoa ───────────────────────────────────────
     function drawPerson(cx, cy, r) {
       fill(C.azulMedio);
@@ -143,98 +146,18 @@ export function gerarPDF(cotacao) {
     }
 
     // ══════════════════════════════════════════════════════
-    // 1. CABEÇALHO — faixa azul com cantos superiores arredondados
+    // 1. CABEÇALHO — imagem do banner Papelaria Futura
     // ══════════════════════════════════════════════════════
-    const CAB_H = 52;
+    const CAB_H = PW * (381 / 1126); // mantém a proporção original da imagem (≈71mm)
 
-    // Gradiente principal
-    gradRect(0, 0, PW, CAB_H, [8, 28, 95], [20, 70, 160]);
-
-    // Cantos superiores arredondados (sobrepõe bordas com branco externo)
-    // Não necessário no PDF em si, mas mantemos visual limpo
-
-    // Linha divisória vertical central (semitransparente)
-    doc.setDrawColor(255, 255, 255);
-    doc.setLineWidth(0.4);
-    doc.setGState(doc.GState({ opacity: 0.25 }));
-    doc.line(PW/2 - 5, 7, PW/2 - 5, CAB_H - 7);
-    doc.setGState(doc.GState({ opacity: 1 }));
-
-    // ── Logo: caixa F (igual à imagem de referência) ──────
-    const LX = MX, LY = 8, LW = 24, LH = 28;
-
-    // Caixa branca arredondada (sem halo)
-    fill(C.branco);
-    doc.roundedRect(LX, LY, LW, LH, 3, 3, "F");
-
-    // Fundo interno azul royal sólido
-    fill([20, 60, 180]);
-    doc.roundedRect(LX + 1.5, LY + 1.5, LW - 3, LH - 3, 2, 2, "F");
-
-    // Letra F branca grande
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(17);
-    rgb(C.branco);
-    doc.text("F", LX + LW / 2, LY + LH / 2 + 4, { align: "center" });
-
-    // Textos do nome à direita do logo
-    const TX = LX + LW + 4;
-
-    // "PAPELARIA" pequeno, espaçado, acima
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(6);
-    doc.setTextColor(200, 220, 255);
-    doc.setCharSpace(1.5);
-    doc.text("PAPELARIA", TX, LY + 7);
-    doc.setCharSpace(0);
-
-    // "Futura" grande e bold
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(17);
-    rgb(C.branco);
-    doc.text("Futura", TX, LY + 17);
-
-    // "CENTRO" pequeno, espaçado, abaixo
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(6);
-    doc.setTextColor(200, 220, 255);
-    doc.setCharSpace(2);
-    doc.text("C E N T R O", TX, LY + 23);
-    doc.setCharSpace(0);
-
-    // ── Dados contato à direita ────────────────────────────
-    const DX = PW/2;
-
-    // Endereço
-    drawPin(DX + 4, 12, 3.2);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    rgb(C.branco);
-    doc.text("AV. DR. ÉZIO CARNEIRO QD.32", DX + 10, 10.5);
-    doc.text("LT31/33", DX + 10, 15);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor(160, 195, 255);
-    doc.text("SETOR AEROPORTO, LUZIÂNIA/GO", DX + 10, 19.5);
-
-    // Telefone
-    drawPhone(DX + 1.5, 24, 5, 7.5);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    rgb(C.branco);
-    doc.text("(61) 99918-4452", DX + 10, 30);
-
-    // CNPJ
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor(160, 195, 255);
-    doc.text("CNPJ: 01.064.836/0001-12", DX + 10, 40);
-
-    // Faixa decorativa inferior no cabeçalho
-    doc.setGState(doc.GState({ opacity: 0.15 }));
-    fill(C.branco);
-    doc.rect(0, CAB_H - 3, PW, 3, "F");
-    doc.setGState(doc.GState({ opacity: 1 }));
+    try {
+      const headerImg = await carregarImagemBase64("img/header-cotacao.jpg");
+      doc.addImage(headerImg, "JPEG", 0, 0, PW, CAB_H);
+    } catch (e) {
+      console.error("Erro ao carregar imagem do cabeçalho:", e);
+      // Fallback: gradiente azul simples caso a imagem não carregue
+      gradRect(0, 0, PW, CAB_H, [8, 28, 95], [20, 70, 160]);
+    }
 
     let Y = CAB_H + 8;
 
@@ -258,7 +181,27 @@ export function gerarPDF(cotacao) {
     // ══════════════════════════════════════════════════════
     // 3. CARD CLIENTE / DATA
     // ══════════════════════════════════════════════════════
-    const CARD_H = 26;
+    const DIV_X = PW/2 + 10;
+
+    // Nome do cliente — ajusta tamanho/quebra para não sobrepor a área da data
+    const nomeCliente = (cotacao.cliente || "—").toUpperCase();
+    const maxNomeWidth = DIV_X - (MX + 20) - 3;
+
+    doc.setFont("helvetica", "bold");
+    let nomeFontSize = 9.5;
+    doc.setFontSize(nomeFontSize);
+    while (doc.getTextWidth(nomeCliente) > maxNomeWidth && nomeFontSize > 6.5) {
+      nomeFontSize -= 0.5;
+      doc.setFontSize(nomeFontSize);
+    }
+
+    let nomeLines = [nomeCliente];
+    if (doc.getTextWidth(nomeCliente) > maxNomeWidth) {
+      nomeLines = doc.splitTextToSize(nomeCliente, maxNomeWidth).slice(0, 2);
+    }
+
+    const nomeExtraH = nomeLines.length > 1 ? 5 : 0;
+    const CARD_H = 26 + nomeExtraH;
 
     // Sombra suave (retângulo ligeiramente deslocado)
     doc.setGState(doc.GState({ opacity: 0.06 }));
@@ -273,7 +216,6 @@ export function gerarPDF(cotacao) {
     doc.roundedRect(MX, Y, CW, CARD_H, 2.5, 2.5, "FD");
 
     // Divisória vertical
-    const DIV_X = PW/2 + 10;
     draw(C.cinzaLinha);
     doc.setLineWidth(0.3);
     doc.line(DIV_X, Y + 3, DIV_X, Y + CARD_H - 3);
@@ -288,19 +230,24 @@ export function gerarPDF(cotacao) {
     doc.text("CLIENTE", MX + 20, Y + 7);
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9.5);
+    doc.setFontSize(nomeFontSize);
     rgb(C.pretoTexto);
-    const nomeCliente = (cotacao.cliente || "—").toUpperCase();
-    doc.text(nomeCliente, MX + 20, Y + 14);
+    if (nomeLines.length > 1) {
+      doc.text(nomeLines[0], MX + 20, Y + 12.5);
+      doc.text(nomeLines[1], MX + 20, Y + 12.5 + nomeExtraH);
+    } else {
+      doc.text(nomeLines[0], MX + 20, Y + 14);
+    }
 
+    const cnpjY = Y + 20.5 + nomeExtraH;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(6.5);
     rgb(C.azulMedio);
-    doc.text("CNPJ:", MX + 20, Y + 20.5);
+    doc.text("CNPJ:", MX + 20, cnpjY);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
     rgb(C.cinzaTexto);
-    doc.text(aplicarCNPJMask(cotacao.cnpj) || "—", MX + 31, Y + 20.5);
+    doc.text(aplicarCNPJMask(cotacao.cnpj) || "—", MX + 31, cnpjY);
 
     // Ícone calendário (lado direito)
     const CX2 = DIV_X + 10;
