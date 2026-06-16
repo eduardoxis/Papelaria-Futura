@@ -1,15 +1,7 @@
-// ============================================================
-// firestore.rules — Regras de segurança do Firestore
-// Cole este conteúdo em: Firebase Console → Firestore → Rules
-// ============================================================
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ----------------------------------------------------------------
-    // Funções auxiliares
-    // ----------------------------------------------------------------
     function estaAutenticado() {
       return request.auth != null;
     }
@@ -23,40 +15,19 @@ service cloud.firestore {
       return estaAutenticado() && request.auth.uid == uid;
     }
 
-    // ----------------------------------------------------------------
-    // Coleção: usuarios
-    // ----------------------------------------------------------------
     match /usuarios/{uid} {
-      // Leitura: próprio usuário ou admin
       allow read: if ehDono(uid) || ehAdmin();
-
-      // Criação: qualquer autenticado (para registro inicial)
       allow create: if estaAutenticado() && request.auth.uid == uid;
-
-      // Atualização: próprio usuário (campos limitados) ou admin
       allow update: if ehDono(uid) || ehAdmin();
-
-      // Exclusão: somente admin
       allow delete: if ehAdmin();
     }
 
-    // ----------------------------------------------------------------
-    // Coleção: cotacoes
-    // ----------------------------------------------------------------
     match /cotacoes/{cotacaoId} {
-      // Leitura: dono da cotação ou admin
-      allow read: if estaAutenticado() &&
-        (resource.data.criadoPor == request.auth.uid || ehAdmin());
-
-      // Criação: qualquer usuário autenticado, deve informar criadoPor
+      allow read: if estaAutenticado();
       allow create: if estaAutenticado() &&
         request.resource.data.criadoPor == request.auth.uid;
-
-      // Atualização: dono ou admin
       allow update: if estaAutenticado() &&
         (resource.data.criadoPor == request.auth.uid || ehAdmin());
-
-      // Exclusão: dono ou admin
       allow delete: if estaAutenticado() &&
         (resource.data.criadoPor == request.auth.uid || ehAdmin());
     }
