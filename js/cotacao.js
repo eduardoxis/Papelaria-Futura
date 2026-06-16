@@ -8,6 +8,7 @@ import {
 } from "./database.js";
 import { badgeStatus, escHtml } from "./dashboard.js";
 import { gerarPDF } from "./pdf.js";
+import { exigirSenhaCotacao } from "./senhaCotacao.js";
 
 let _usuario      = null;
 let _dadosUsuario = null;
@@ -55,14 +56,14 @@ export function iniciarCotacao(usuario, dadosUsuario) {
     const btn = e.target.closest("[data-action]");
     if (!btn) return;
     const { action, id, cliente } = btn.dataset;
-    if (action === "editar")  editarCotacaoById(id);
+    if (action === "editar")  exigirSenhaCotacao(() => editarCotacaoById(id), "Editar Cotação");
     if (action === "pdf")     gerarPDFById(id);
-    if (action === "excluir") excluirCotacaoById(id, cliente);
+    if (action === "excluir") exigirSenhaCotacao(() => excluirCotacaoById(id, cliente), "Excluir Cotação");
   });
 
   // Expor globais para o dashboard.js usar via window.*
-  window.editarCotacaoById  = editarCotacaoById;
-  window.excluirCotacaoById = excluirCotacaoById;
+  window.editarCotacaoById  = (id)          => exigirSenhaCotacao(() => editarCotacaoById(id), "Editar Cotação");
+  window.excluirCotacaoById = (id, cliente) => exigirSenhaCotacao(() => excluirCotacaoById(id, cliente), "Excluir Cotação");
   window.gerarPDFById       = gerarPDFById;
 
   definirValidadePadrao();
