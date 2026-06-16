@@ -27,6 +27,17 @@ export function iniciarDashboard(usuario, dadosUsuario) {
     });
   });
 
+  // ── Event delegation na tabela "Últimas Cotações" ──────────
+  // Escuta cliques em qualquer botão dentro do tbody,
+  // sem depender de onclick inline. Funciona em mobile.
+  document.getElementById("tbodyUltimas")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-action]");
+    if (!btn) return;
+    const { action, id, cliente } = btn.dataset;
+    if (action === "editar") window.editarCotacaoById?.(id);
+    if (action === "pdf")    window.gerarPDFById?.(id);
+  });
+
   // Carga inicial
   carregarDashboard();
 }
@@ -43,13 +54,12 @@ async function carregarDashboard() {
   const resultado = await buscarEstatisticas(uid, isAdmin);
 
   if (!resultado.sucesso) {
-    mostrarToast?.("Erro ao carregar dados.", "error");
+    window.mostrarToast?.("Erro ao carregar dados.", "error");
     return;
   }
 
   const { totalCotacoes, valorTotalGeral, cotacoesMes, ultimas } = resultado;
 
-  // Atualizar cards
   definirEstatisticas(
     totalCotacoes,
     formatarMoeda(valorTotalGeral),
@@ -57,7 +67,6 @@ async function carregarDashboard() {
     new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long" })
   );
 
-  // Tabela de últimas
   renderizarUltimas(ultimas);
 }
 
@@ -89,11 +98,13 @@ function renderizarUltimas(cotacoes) {
       </td>
       <td class="col-right td-actions-col">
         <div class="td-actions-wrap">
-          <button class="btn-action btn-action--edit" onclick="window.editarCotacaoById('${c.id}')">
+          <button class="btn-action btn-action--edit"
+            data-action="editar" data-id="${escHtml(c.id)}">
             <svg viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
             Editar
           </button>
-          <button class="btn-action btn-action--pdf" onclick="window.gerarPDFById('${c.id}')">
+          <button class="btn-action btn-action--pdf"
+            data-action="pdf" data-id="${escHtml(c.id)}">
             <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/></svg>
             PDF
           </button>
