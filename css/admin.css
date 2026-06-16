@@ -77,3 +77,98 @@
   background: #DC2626;
   transform: translateY(-1px);
 }
+
+/* ============================================================
+   Senha Cotação — Card de status
+   ============================================================ */
+.senha-cotacao-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.senha-cotacao-status-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.senha-cotacao-icone {
+  font-size: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.senha-cotacao-status-info strong {
+  display: block;
+  font-size: var(--text-base);
+  color: var(--gray-900);
+  margin-bottom: 2px;
+}
+
+.senha-cotacao-status-info p {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--gray-500);
+}
+
+/* ============================================================
+   Senha Cotação — Modal de verificação
+   ============================================================ */
+.senha-cotacao-modal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.senha-cotacao-desc {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--gray-600);
+  line-height: 1.6;
+}
+
+.senha-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.senha-input-wrap .field-input,
+.senha-input-wrap .field-input--plain {
+  width: 100%;
+  padding-right: 44px;
+}
+
+.btn-toggle-senha {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--gray-400);
+  display: flex;
+  align-items: center;
+  transition: color var(--duration-fast);
+}
+
+.btn-toggle-senha:hover {
+  color: var(--gray-700);
+}
+
+.btn-toggle-senha svg {
+  width: 18px;
+  height: 18px;
+}
+
+.senha-erro {
+  color: #991B1B;
+  font-size: var(--text-sm);
+  background: #FEF2F2;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid #FECACA;
+}
