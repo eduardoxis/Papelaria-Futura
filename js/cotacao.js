@@ -9,7 +9,7 @@ import {
 import { badgeStatus, escHtml } from "./dashboard.js";
 import { gerarPDF } from "./pdf.js";
 
-let _usuario     = null;
+let _usuario      = null;
 let _dadosUsuario = null;
 let _contadorLinhas = 0;
 
@@ -23,7 +23,7 @@ export function iniciarCotacao(usuario, dadosUsuario) {
     if (e.detail.page === "nova-cotacao") prepararNovaCotacao();
   });
 
-  // Máscara CNPJ — 00.000.000/0001-00
+  // Máscara CNPJ
   document.getElementById("cotCnpj")?.addEventListener("input", (e) => {
     let v = e.target.value.replace(/\D/g,"").substring(0,14);
     if (v.length > 12) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})$/,"$1.$2.$3/$4-$5");
@@ -46,18 +46,25 @@ export function iniciarCotacao(usuario, dadosUsuario) {
     carregarListaCotacoes();
   });
   document.getElementById("filtroBusca")?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      const termo = e.target.value.trim();
-      carregarListaCotacoes(termo);
-    }
+    if (e.key === "Enter") carregarListaCotacoes(e.target.value.trim());
   });
 
-  // Expor globais para botões inline das tabelas
-  window.editarCotacaoById = editarCotacaoById;
-  window.excluirCotacaoById = excluirCotacaoById;
-  window.gerarPDFById = gerarPDFById;
+  // ── Event delegation na tabela de cotações ─────────────────
+  // NÃO usa onclick inline — funciona de forma confiável em mobile.
+  document.getElementById("tbodyCotacoes")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-action]");
+    if (!btn) return;
+    const { action, id, cliente } = btn.dataset;
+    if (action === "editar")  editarCotacaoById(id);
+    if (action === "pdf")     gerarPDFById(id);
+    if (action === "excluir") excluirCotacaoById(id, cliente);
+  });
 
-  // Validade padrão: hoje + 7 dias
+  // Expor globais para o dashboard.js usar via window.*
+  window.editarCotacaoById  = editarCotacaoById;
+  window.excluirCotacaoById = excluirCotacaoById;
+  window.gerarPDFById       = gerarPDFById;
+
   definirValidadePadrao();
 }
 
@@ -68,7 +75,7 @@ async function carregarListaCotacoes(termoBusca = "") {
   const tbody = document.getElementById("tbodyCotacoes");
   tbody.innerHTML = `<tr><td colspan="7" class="loading-cell">Carregando...</td></tr>`;
 
-  const isAdmin = _dadosUsuario?.role === "admin";
+  const isAdmin  = _dadosUsuario?.role === "admin";
   const resultado = await listarCotacoes({
     uidUsuario: isAdmin ? null : _usuario.uid,
     cliente:    termoBusca || null
@@ -86,6 +93,7 @@ async function carregarListaCotacoes(termoBusca = "") {
     return;
   }
 
+  // Sem onclick inline — usa data-action + event delegation (acima)
   tbody.innerHTML = cotacoes.map(c => `
     <tr>
       <td><strong>${escHtml(c.cliente || "—")}</strong></td>
@@ -96,15 +104,18 @@ async function carregarListaCotacoes(termoBusca = "") {
       <td>${badgeStatus(c.status)}</td>
       <td class="td-actions-col col-center">
         <div class="td-actions-wrap td-actions-wrap--cotacoes">
-          <button class="btn-action btn-action--edit" onclick="window.editarCotacaoById('${c.id}')">
+          <button class="btn-action btn-action--edit"
+            data-action="editar" data-id="${escHtml(c.id)}">
             <svg viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
             Editar
           </button>
-          <button class="btn-action btn-action--pdf" onclick="window.gerarPDFById('${c.id}')">
+          <button class="btn-action btn-action--pdf"
+            data-action="pdf" data-id="${escHtml(c.id)}">
             <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/></svg>
             PDF
           </button>
-          <button class="btn-action btn-action--delete" onclick="window.excluirCotacaoById('${c.id}', '${escHtml(c.cliente || "")}')">
+          <button class="btn-action btn-action--delete"
+            data-action="excluir" data-id="${escHtml(c.id)}" data-cliente="${escHtml(c.cliente || "")}">
             <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
             Excluir
           </button>
@@ -118,18 +129,15 @@ async function carregarListaCotacoes(termoBusca = "") {
 // FORMULÁRIO DE COTAÇÃO
 // ================================================================
 function prepararNovaCotacao() {
-  // Resetar ID de edição
   document.getElementById("cotacaoEditandoId").value = "";
   document.getElementById("titleFormCotacao").textContent = "Nova Cotação";
 
-  // Limpar campos
   ["cotCliente","cotCnpj","cotObs"].forEach(id => {
     document.getElementById(id).value = "";
   });
   document.getElementById("cotStatus").value = "ativa";
   definirValidadePadrao();
 
-  // Limpar tabela e adicionar 3 linhas em branco
   document.getElementById("tbodyItens").innerHTML = "";
   _contadorLinhas = 0;
   adicionarLinha();
@@ -152,10 +160,9 @@ function definirValidadePadrao() {
 // ================================================================
 function adicionarLinha(dados = {}) {
   _contadorLinhas++;
-  const n      = _contadorLinhas;
-  const tbody  = document.getElementById("tbodyItens");
+  const n     = _contadorLinhas;
+  const tbody = document.getElementById("tbodyItens");
 
-  // Remover placeholder vazio se existir
   const vazio = tbody.querySelector(".excel-empty-row");
   if (vazio) vazio.remove();
 
@@ -194,29 +201,25 @@ function adicionarLinha(dados = {}) {
     </td>
   `;
 
-  // Eventos
   const inputQtd  = tr.querySelector('[data-campo="quantidade"]');
   const inputUnit = tr.querySelector('[data-campo="valorUnitario"]');
   const cellTotal = tr.querySelector('[data-campo="valorTotal"]');
 
   function recalcularLinha() {
-    const qtd  = parsearNumero(inputQtd.value);
-    const unit = parsearMoeda(inputUnit.value);
-    const total = calcularTotal(qtd, unit);
-    cellTotal.textContent = formatarMoeda(total);
+    const qtd   = parsearNumero(inputQtd.value);
+    const unit  = parsearMoeda(inputUnit.value);
+    cellTotal.textContent = formatarMoeda(calcularTotal(qtd, unit));
     atualizarTotalGeral();
   }
 
   inputQtd.addEventListener("input", recalcularLinha);
   inputUnit.addEventListener("input", recalcularLinha);
 
-  // Formatar moeda ao sair do campo
   inputUnit.addEventListener("blur", () => {
     const val = parsearMoeda(inputUnit.value);
     if (val > 0) inputUnit.value = formatarCampoMoeda(val);
   });
 
-  // Focar próximo campo com Tab
   inputQtd.addEventListener("keydown", (e) => {
     if (e.key === "Tab" && !e.shiftKey) {
       e.preventDefault();
@@ -224,14 +227,11 @@ function adicionarLinha(dados = {}) {
     }
   });
 
-  // Remover linha
   tr.querySelector(".btn-remove-row").addEventListener("click", () => {
     tr.remove();
     renumerarLinhas();
     atualizarTotalGeral();
-    if (document.getElementById("tbodyItens").rows.length === 0) {
-      mostrarVazio();
-    }
+    if (document.getElementById("tbodyItens").rows.length === 0) mostrarVazio();
   });
 
   tbody.appendChild(tr);
@@ -239,8 +239,7 @@ function adicionarLinha(dados = {}) {
 }
 
 function mostrarVazio() {
-  const tbody = document.getElementById("tbodyItens");
-  tbody.innerHTML = `
+  document.getElementById("tbodyItens").innerHTML = `
     <tr class="excel-empty-row">
       <td colspan="7" class="excel-empty">
         <div class="excel-empty-icon">📋</div>
@@ -250,8 +249,7 @@ function mostrarVazio() {
 }
 
 function renumerarLinhas() {
-  const rows = document.querySelectorAll("#tbodyItens tr[data-linha]");
-  rows.forEach((tr, i) => {
+  document.querySelectorAll("#tbodyItens tr[data-linha]").forEach((tr, i) => {
     const num = tr.querySelector(".item-num");
     if (num) num.textContent = i + 1;
   });
@@ -273,21 +271,14 @@ function coletarItens() {
   const itens = [];
   document.querySelectorAll("#tbodyItens tr[data-linha]").forEach((tr, idx) => {
     const get = (campo) => tr.querySelector(`[data-campo="${campo}"]`);
-    const descricao   = get("descricao")?.value?.trim()   || "";
-    const marca       = get("marca")?.value?.trim()       || "";
-    const quantidade  = parsearNumero(get("quantidade")?.value) || 0;
-    const valorUnit   = parsearMoeda(get("valorUnitario")?.value) || 0;
-    const valorTotal  = calcularTotal(quantidade, valorUnit);
+    const descricao  = get("descricao")?.value?.trim()   || "";
+    const marca      = get("marca")?.value?.trim()       || "";
+    const quantidade = parsearNumero(get("quantidade")?.value) || 0;
+    const valorUnit  = parsearMoeda(get("valorUnitario")?.value) || 0;
+    const valorTotal = calcularTotal(quantidade, valorUnit);
 
     if (descricao || quantidade || valorUnit) {
-      itens.push({
-        item:        idx + 1,
-        descricao,
-        marca,
-        quantidade,
-        valorUnitario: valorUnit,
-        valorTotal
-      });
+      itens.push({ item: idx + 1, descricao, marca, quantidade, valorUnitario: valorUnit, valorTotal });
     }
   });
   return itens;
@@ -331,13 +322,9 @@ async function salvarCotacao() {
   btnSalvar.textContent = "Salvando...";
 
   const idEditando = document.getElementById("cotacaoEditandoId").value;
-  let resultado;
-
-  if (idEditando) {
-    resultado = await atualizarCotacao(idEditando, dados);
-  } else {
-    resultado = await criarCotacao(dados, _usuario.uid);
-  }
+  const resultado  = idEditando
+    ? await atualizarCotacao(idEditando, dados)
+    : await criarCotacao(dados, _usuario.uid);
 
   btnSalvar.disabled = false;
   btnSalvar.innerHTML = `
@@ -360,8 +347,6 @@ async function salvarCotacao() {
 // ================================================================
 async function editarCotacaoById(id) {
   window.navegar?.("nova-cotacao");
-
-  // Aguardar renderização da página
   await new Promise(r => setTimeout(r, 50));
 
   const resultado = await buscarCotacao(id);
@@ -372,22 +357,19 @@ async function editarCotacaoById(id) {
 
   const c = resultado.dados;
 
-  document.getElementById("cotacaoEditandoId").value  = id;
-  document.getElementById("titleFormCotacao").textContent = "Editar Cotação";
-  document.getElementById("cotCliente").value   = c.cliente   || "";
-  document.getElementById("cotCnpj").value      = c.cnpj      || "";
-  document.getElementById("cotValidade").value  = c.validade  || "";
-  document.getElementById("cotObs").value       = c.observacoes || "";
-  document.getElementById("cotStatus").value    = c.status    || "ativa";
+  document.getElementById("cotacaoEditandoId").value       = id;
+  document.getElementById("titleFormCotacao").textContent  = "Editar Cotação";
+  document.getElementById("cotCliente").value  = c.cliente    || "";
+  document.getElementById("cotCnpj").value     = c.cnpj       || "";
+  document.getElementById("cotValidade").value = c.validade   || "";
+  document.getElementById("cotObs").value      = c.observacoes || "";
+  document.getElementById("cotStatus").value   = c.status     || "ativa";
 
-  // Preencher itens
   document.getElementById("tbodyItens").innerHTML = "";
   _contadorLinhas = 0;
   const itens = c.itens || [];
   if (itens.length === 0) {
-    adicionarLinha();
-    adicionarLinha();
-    adicionarLinha();
+    adicionarLinha(); adicionarLinha(); adicionarLinha();
   } else {
     itens.forEach(item => adicionarLinha(item));
   }
@@ -406,9 +388,14 @@ async function excluirCotacaoById(id, cliente) {
       Você está prestes a excluir permanentemente a cotação de <strong>${escHtml(cliente)}</strong>.
       Esta ação não pode ser desfeita.
     </div>`,
-    `<button class="btn-ghost" onclick="window.fecharModal()">Cancelar</button>
+    `<button class="btn-ghost" id="cancelarExclusao">Cancelar</button>
      <button class="btn-danger" id="confirmarExclusao">Excluir permanentemente</button>`
   );
+
+  // Usa addEventListener em vez de onclick inline no modal também
+  document.getElementById("cancelarExclusao")?.addEventListener("click", () => {
+    window.fecharModal?.();
+  });
 
   document.getElementById("confirmarExclusao")?.addEventListener("click", async () => {
     const resultado = await excluirCotacao(id);
@@ -465,15 +452,12 @@ function parsearNumero(valor) {
 function parsearMoeda(valor) {
   if (typeof valor !== "string") return Number(valor) || 0;
   return parseFloat(
-    valor
-      .replace(/[R$\s]/g, "")
-      .replace(/\./g, "")
-      .replace(",", ".")
+    valor.replace(/[R$\s]/g, "").replace(/\./g, "").replace(",", ".")
   ) || 0;
 }
 
 function calcularTotal(qtd, unit) {
-  return (parsearNumero(qtd) * parsearNumero(unit));
+  return parsearNumero(qtd) * parsearNumero(unit);
 }
 
 function formatarCampoMoeda(valor) {
