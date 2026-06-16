@@ -3,7 +3,8 @@
 // ============================================================
 
 import {
-  listarUsuarios, salvarUsuario, excluirUsuarioFirestore
+  listarUsuarios, salvarUsuario, excluirUsuarioFirestore,
+  salvarSenhaCotacao, senhaCotacaoExiste
 } from "./database.js";
 import {
   createUserWithEmailAndPassword
@@ -26,6 +27,7 @@ export function iniciarAdmin(usuario, dadosUsuario) {
         return;
       }
       carregarUsuarios();
+      carregarCardSenhaCotacao();
     }
   });
 
@@ -271,4 +273,116 @@ function traduzirErro(codigo) {
     "auth/operation-not-allowed":"Operação não permitida."
   };
   return erros[codigo] || "Erro inesperado. Tente novamente.";
+}
+
+// ================================================================
+// SENHA COTAÇÃO
+// ================================================================
+async function carregarCardSenhaCotacao() {
+  const container = document.getElementById("cardSenhaCotacao");
+  if (!container) return;
+
+  const configurada = await senhaCotacaoExiste();
+
+  container.innerHTML = `
+    <div class="senha-cotacao-status">
+      <div class="senha-cotacao-status-info">
+        <span class="senha-cotacao-icone">${configurada ? "🔒" : "⚠️"}</span>
+        <div>
+          <strong>${configurada ? "Senha configurada" : "Nenhuma senha definida"}</strong>
+          <p>${configurada
+            ? "Editar e Excluir cotações exigem autenticação."
+            : "Qualquer usuário pode editar ou excluir cotações sem restrição."
+          }</p>
+        </div>
+      </div>
+      <button class="btn-primary btn-sm" id="btnAlterarSenhaCotacao">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
+        ${configurada ? "Alterar Senha" : "Definir Senha"}
+      </button>
+    </div>
+  `;
+
+  document.getElementById("btnAlterarSenhaCotacao")?.addEventListener("click", abrirModalSenhaCotacao);
+}
+
+function abrirModalSenhaCotacao() {
+  window.abrirModal?.(
+    "🔒 Senha Cotação",
+    `<div class="form-usuario">
+      <p style="font-size:var(--text-sm);color:var(--gray-600);margin:0 0 4px">
+        Defina a senha que será exigida para <strong>Editar</strong> ou <strong>Excluir</strong> qualquer cotação.
+      </p>
+      <div class="field">
+        <label class="field-label" for="adminNovaSenhaCot">Nova Senha *</label>
+        <div class="senha-input-wrap">
+          <input class="field-input--plain" type="password" id="adminNovaSenhaCot" placeholder="Mínimo 6 caracteres" />
+          <button class="btn-toggle-senha" id="btnToggleAdminSenha1" type="button" aria-label="Mostrar">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clip-rule="evenodd"/><path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.064 7 9.542 7 .847 0 1.669-.105 2.454-.303z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label" for="adminConfSenhaCot">Confirmar Senha *</label>
+        <div class="senha-input-wrap">
+          <input class="field-input--plain" type="password" id="adminConfSenhaCot" placeholder="Repita a senha" />
+          <button class="btn-toggle-senha" id="btnToggleAdminSenha2" type="button" aria-label="Mostrar">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clip-rule="evenodd"/><path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.064 7 9.542 7 .847 0 1.669-.105 2.454-.303z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="erroSenhaCotAdmin" style="color:#991B1B;font-size:13px;background:#FEF2F2;
+        padding:10px;border-radius:8px;display:none;border:1px solid #FECACA"></div>
+    </div>`,
+    `<button class="btn-ghost" onclick="window.fecharModal()">Cancelar</button>
+     <button class="btn-primary" id="btnSalvarSenhaCot">Salvar Senha</button>`
+  );
+
+  // Toggles visibilidade
+  ["1","2"].forEach(n => {
+    document.getElementById(`btnToggleAdminSenha${n}`)?.addEventListener("click", () => {
+      const inp = document.getElementById(n === "1" ? "adminNovaSenhaCot" : "adminConfSenhaCot");
+      inp.type = inp.type === "password" ? "text" : "password";
+    });
+  });
+
+  document.getElementById("btnSalvarSenhaCot")?.addEventListener("click", async () => {
+    const nova  = document.getElementById("adminNovaSenhaCot")?.value;
+    const conf  = document.getElementById("adminConfSenhaCot")?.value;
+    const erroEl = document.getElementById("erroSenhaCotAdmin");
+    erroEl.style.display = "none";
+
+    if (!nova || !conf) {
+      erroEl.textContent = "Preencha os dois campos.";
+      erroEl.style.display = "block";
+      return;
+    }
+    if (nova.length < 6) {
+      erroEl.textContent = "A senha deve ter pelo menos 6 caracteres.";
+      erroEl.style.display = "block";
+      return;
+    }
+    if (nova !== conf) {
+      erroEl.textContent = "As senhas não conferem.";
+      erroEl.style.display = "block";
+      return;
+    }
+
+    const btn = document.getElementById("btnSalvarSenhaCot");
+    btn.disabled = true;
+    btn.textContent = "Salvando...";
+
+    const resultado = await salvarSenhaCotacao(nova);
+
+    if (resultado.sucesso) {
+      window.fecharModal?.();
+      window.mostrarToast?.("Senha Cotação salva com sucesso!", "success");
+      carregarCardSenhaCotacao();
+    } else {
+      erroEl.textContent = "Erro ao salvar: " + resultado.erro;
+      erroEl.style.display = "block";
+      btn.disabled = false;
+      btn.textContent = "Salvar Senha";
+    }
+  });
 }
