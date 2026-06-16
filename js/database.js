@@ -229,3 +229,57 @@ export function formatarDataHora(timestamp) {
   const data = timestamp?.toDate?.() || new Date(timestamp);
   return data.toLocaleString("pt-BR");
 }
+
+
+// ================================================================
+// SENHA COTAÇÃO — Proteção de Editar/Excluir
+// ================================================================
+
+const COLECAO_CONFIG = "config";
+const DOC_SENHA_COT  = "senhaCotacao";
+
+async function _hashSenha(senha) {
+  const buf = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(senha)
+  );
+  return Array.from(new Uint8Array(buf))
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+export async function salvarSenhaCotacao(novaSenha) {
+  try {
+    const hash = await _hashSenha(novaSenha);
+    await setDoc(doc(db, COLECAO_CONFIG, DOC_SENHA_COT), {
+      hash,
+      updatedAt: serverTimestamp()
+    });
+    return { sucesso: true };
+  } catch (erro) {
+    console.error("Erro ao salvar senha cotação:", erro);
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
+export async function verificarSenhaCotacao(senha) {
+  try {
+    const snap = await getDoc(doc(db, COLECAO_CONFIG, DOC_SENHA_COT));
+    if (!snap.exists()) return { sucesso: false, semSenha: true };
+    const hash = await _hashSenha(senha);
+    if (hash === snap.data().hash) return { sucesso: true };
+    return { sucesso: false, erro: "Senha incorreta. Tente novamente." };
+  } catch (erro) {
+    console.error("Erro ao verificar senha cotação:", erro);
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
+export async function senhaCotacaoExiste() {
+  try {
+    const snap = await getDoc(doc(db, COLECAO_CONFIG, DOC_SENHA_COT));
+    return snap.exists();
+  } catch {
+    return false;
+  }
+}
