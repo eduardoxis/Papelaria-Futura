@@ -75,10 +75,8 @@ async function carregarListaCotacoes(termoBusca = "") {
   const tbody = document.getElementById("tbodyCotacoes");
   tbody.innerHTML = `<tr><td colspan="7" class="loading-cell">Carregando...</td></tr>`;
 
-  const isAdmin  = _dadosUsuario?.role === "admin";
   const resultado = await listarCotacoes({
-    uidUsuario: isAdmin ? null : _usuario.uid,
-    cliente:    termoBusca || null
+    cliente: termoBusca || null
   });
 
   if (!resultado.sucesso) {
