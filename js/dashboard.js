@@ -2,7 +2,7 @@
 // dashboard.js — Lógica do painel principal
 // ============================================================
 
-import { buscarEstatisticas, formatarMoeda, formatarData } from "./database.js";
+import { buscarEstatisticas, listarCotacoes, formatarMoeda, formatarData } from "./database.js";
 
 let _usuario = null;
 let _dadosUsuario = null;
@@ -48,15 +48,27 @@ async function carregarDashboard() {
   document.getElementById("tbodyUltimas").innerHTML =
     `<tr><td colspan="5" class="loading-cell">Carregando...</td></tr>`;
 
-  // Passa apenasAdmin=true para buscar TODAS as cotações (sem filtro por uid)
-  const resultado = await buscarEstatisticas(null, true);
+  const resultado = await listarCotacoes({ limitQtd: 200 });
 
   if (!resultado.sucesso) {
     window.mostrarToast?.("Erro ao carregar dados.", "error");
+    document.getElementById("tbodyUltimas").innerHTML =
+      `<tr><td colspan="5" class="empty-cell">Erro ao carregar cotações.</td></tr>`;
     return;
   }
 
-  const { totalCotacoes, valorTotalGeral, cotacoesMes, ultimas } = resultado;
+  const cotacoes  = resultado.cotacoes || [];
+  const agora     = new Date();
+  const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
+
+  const totalCotacoes   = cotacoes.length;
+  const valorTotalGeral = cotacoes.reduce((s, c) => s + (Number(c.valorTotal) || 0), 0);
+  const cotacoesMes     = cotacoes.filter(c => {
+    const data = c.dataCriacao?.toDate?.() || new Date(c.dataCriacao || 0);
+    return data >= inicioMes;
+  }).length;
+
+  const ultimas = cotacoes.slice(0, 5);
 
   definirEstatisticas(
     totalCotacoes,
