@@ -43,15 +43,13 @@ export function iniciarDashboard(usuario, dadosUsuario) {
 }
 
 async function carregarDashboard() {
-  const isAdmin = _dadosUsuario?.role === "admin";
-  const uid     = _usuario?.uid;
-
   // Skeleton
   definirEstatisticas("—", "—", "—", "—");
   document.getElementById("tbodyUltimas").innerHTML =
     `<tr><td colspan="5" class="loading-cell">Carregando...</td></tr>`;
 
-  const resultado = await buscarEstatisticas(uid, isAdmin);
+  // Passa apenasAdmin=true para buscar TODAS as cotações (sem filtro por uid)
+  const resultado = await buscarEstatisticas(null, true);
 
   if (!resultado.sucesso) {
     window.mostrarToast?.("Erro ao carregar dados.", "error");
