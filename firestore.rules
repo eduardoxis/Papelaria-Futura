@@ -28,14 +28,3 @@ service cloud.firestore {
         request.resource.data.criadoPor == request.auth.uid;
       allow update: if estaAutenticado() &&
         (resource.data.criadoPor == request.auth.uid || ehAdmin());
-      allow delete: if estaAutenticado() &&
-        (resource.data.criadoPor == request.auth.uid || ehAdmin());
-    }
-
-    match /config/{docId} {
-      allow read:  if estaAutenticado();
-      allow write: if ehAdmin();
-    }
-
-  }
-}
