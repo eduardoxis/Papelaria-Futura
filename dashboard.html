@@ -443,17 +443,32 @@
           </button>
         </div>
 
+        <!-- Filtro por período -->
+        <div class="filter-bar">
+          <div class="filter-periodo">
+            <label class="field-label" style="white-space:nowrap">Data inicial</label>
+            <input type="date" class="filter-input filter-input--date" id="filtroDataInicio" />
+          </div>
+          <div class="filter-periodo">
+            <label class="field-label" style="white-space:nowrap">Data final</label>
+            <input type="date" class="filter-input filter-input--date" id="filtroDataFim" />
+          </div>
+          <button class="btn-secondary" id="btnAplicarFiltro">Filtrar</button>
+          <button class="btn-ghost" id="btnLimparFiltro">Limpar</button>
+          <span class="comissao-contagem" id="comissaoContagem"></span>
+        </div>
+
         <div class="card">
           <div class="table-wrap">
             <table class="data-table">
               <thead>
                 <tr>
-                  <th style="width:40px">#</th>
-                  <th>Vendedor</th>
+                  <th>Cliente</th>
                   <th>Descrição</th>
-                  <th class="col-right">Valor Venda</th>
-                  <th class="col-right">% Comissão</th>
-                  <th class="col-right">Valor Comissão</th>
+                  <th class="col-right">Qntd Folhas</th>
+                  <th class="col-right">Valor</th>
+                  <th>Data</th>
+                  <th>Categoria</th>
                   <th class="col-center">Ações</th>
                 </tr>
               </thead>
@@ -463,7 +478,7 @@
             </table>
           </div>
           <div class="comissao-total-row">
-            <span>Total de Comissões:</span>
+            <span>Total:</span>
             <strong id="comissaoTotalGeral">R$ 0,00</strong>
           </div>
         </div>
