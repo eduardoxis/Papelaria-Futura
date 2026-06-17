@@ -221,3 +221,66 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- Badges de categoria ---- */
+.badge-categoria {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.badge-categoria--dinheiro    { background: #D1FAE5; color: #065F46; }
+.badge-categoria--debito      { background: #DBEAFE; color: #1E40AF; }
+.badge-categoria--credito     { background: #EDE9FE; color: #5B21B6; }
+.badge-categoria--pix         { background: #ECFDF5; color: #047857; }
+.badge-categoria--convenio    { background: #FEF3C7; color: #92400E; }
+.badge-categoria--default     { background: var(--gray-100); color: var(--gray-600); }
+
+/* ---- Filtro de período ---- */
+.filter-periodo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.filter-input--date {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--gray-900);
+  background: var(--white);
+  cursor: pointer;
+}
+
+.filter-input--date:focus {
+  outline: none;
+  border-color: var(--blue-400);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+}
+
+/* ---- Contagem de registros ---- */
+.comissao-contagem {
+  font-size: var(--text-sm);
+  color: var(--gray-500);
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* ---- Responsividade filtros ---- */
+@media (max-width: 640px) {
+  .filter-periodo {
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+  }
+  .filter-input--date {
+    width: 100%;
+  }
+  .comissao-contagem {
+    margin-left: 0;
+  }
+}
