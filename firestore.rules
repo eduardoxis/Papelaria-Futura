@@ -31,5 +31,11 @@ service cloud.firestore {
       allow delete: if estaAutenticado() &&
         (resource.data.criadoPor == request.auth.uid || ehAdmin());
     }
+
+    match /config/{docId} {
+      allow read:  if estaAutenticado();
+      allow write: if ehAdmin();
+    }
+
   }
 }
