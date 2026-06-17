@@ -283,3 +283,148 @@ export async function senhaCotacaoExiste() {
     return false;
   }
 }
+
+
+// ================================================================
+// PLANILHAS DE COMISSÃO
+// ================================================================
+
+const COLECAO_COMISSOES = "comissoes";
+
+// Criar nova planilha de comissão (com senha em hash)
+export async function criarComissao(dados, uidUsuario) {
+  try {
+    const hash = await _hashSenha(dados.senha);
+    const doc_ = {
+      titulo:     dados.titulo,
+      descricao:  dados.descricao || "",
+      senhaHash:  hash,
+      criadoPor:  uidUsuario,
+      dataCriacao: serverTimestamp(),
+      updatedAt:  serverTimestamp()
+    };
+    const ref = await addDoc(collection(db, COLECAO_COMISSOES), doc_);
+    return { sucesso: true, id: ref.id };
+  } catch (erro) {
+    console.error("Erro ao criar comissão:", erro);
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
+// Listar planilhas de comissão
+export async function listarComissoes() {
+  try {
+    const q   = query(collection(db, COLECAO_COMISSOES), orderBy("dataCriacao", "desc"));
+    const snap = await getDocs(q);
+    const comissoes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return { sucesso: true, comissoes };
+  } catch (erro) {
+    console.error("Erro ao listar comissões:", erro);
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
+// Buscar planilha por ID
+export async function buscarComissao(id) {
+  try {
+    const snap = await getDoc(doc(db, COLECAO_COMISSOES, id));
+    if (!snap.exists()) return { sucesso: false, erro: "Planilha não encontrada." };
+    return { sucesso: true, dados: { id: snap.id, ...snap.data() } };
+  } catch (erro) {
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
+// Verificar senha de uma planilha específica
+export async function verificarSenhaComissao(comissaoId, senha) {
+  try {
+    const snap = await getDoc(doc(db, COLECAO_COMISSOES, comissaoId));
+    if (!snap.exists()) return { sucesso: false, erro: "Planilha não encontrada." };
+    const hash = await _hashSenha(senha);
+    if (hash === snap.data().senhaHash) return { sucesso: true };
+    return { sucesso: false, erro: "Senha incorreta. Tente novamente." };
+  } catch (erro) {
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
+// Excluir planilha de comissão
+export async function excluirComissao(id) {
+  try {
+    // Exclui também todos os registros da planilha
+    const registrosSnap = await getDocs(
+      collection(db, COLECAO_COMISSOES, id, "registros")
+    );
+    const deletes = registrosSnap.docs.map(d => deleteDoc(d.ref));
+    await Promise.all(deletes);
+    await deleteDoc(doc(db, COLECAO_COMISSOES, id));
+    return { sucesso: true };
+  } catch (erro) {
+    console.error("Erro ao excluir comissão:", erro);
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
+// Atualizar dados (sem senha) de uma planilha
+export async function atualizarComissao(id, dados) {
+  try {
+    await updateDoc(doc(db, COLECAO_COMISSOES, id), {
+      ...dados,
+      updatedAt: serverTimestamp()
+    });
+    return { sucesso: true };
+  } catch (erro) {
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
+// ---- Registros de uma planilha (subcoleção) ----
+
+export async function adicionarRegistroComissao(comissaoId, dados) {
+  try {
+    const ref = await addDoc(
+      collection(db, COLECAO_COMISSOES, comissaoId, "registros"),
+      { ...dados, dataCriacao: serverTimestamp(), updatedAt: serverTimestamp() }
+    );
+    return { sucesso: true, id: ref.id };
+  } catch (erro) {
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
+export async function listarRegistrosComissao(comissaoId) {
+  try {
+    const q = query(
+      collection(db, COLECAO_COMISSOES, comissaoId, "registros"),
+      orderBy("dataCriacao", "asc")
+    );
+    const snap = await getDocs(q);
+    const registros = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return { sucesso: true, registros };
+  } catch (erro) {
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
+export async function atualizarRegistroComissao(comissaoId, registroId, dados) {
+  try {
+    await updateDoc(
+      doc(db, COLECAO_COMISSOES, comissaoId, "registros", registroId),
+      { ...dados, updatedAt: serverTimestamp() }
+    );
+    return { sucesso: true };
+  } catch (erro) {
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
+export async function excluirRegistroComissao(comissaoId, registroId) {
+  try {
+    await deleteDoc(
+      doc(db, COLECAO_COMISSOES, comissaoId, "registros", registroId)
+    );
+    return { sucesso: true };
+  } catch (erro) {
+    return { sucesso: false, erro: erro.message };
+  }
+}
