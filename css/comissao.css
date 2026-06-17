@@ -1,0 +1,223 @@
+/* ============================================================
+   comissao.css — Planilhas de Comissão
+   ============================================================ */
+
+/* ---- Cards de planilha ---- */
+.comissao-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.comissao-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  transition: box-shadow var(--duration-fast), border-color var(--duration-fast);
+}
+
+.comissao-card:hover {
+  border-color: var(--blue-300);
+  box-shadow: var(--shadow-md);
+}
+
+.comissao-card-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: var(--blue-50, #EFF6FF);
+  color: var(--blue-600, #2563EB);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.comissao-card-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.comissao-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.comissao-card-titulo {
+  display: block;
+  font-size: var(--text-base);
+  color: var(--gray-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.comissao-card-desc {
+  margin: 2px 0 0;
+  font-size: var(--text-sm);
+  color: var(--gray-500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.comissao-card-data {
+  display: block;
+  font-size: 11px;
+  color: var(--gray-400);
+  margin-top: 4px;
+}
+
+.comissao-card-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* ---- Estado vazio ---- */
+.comissao-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-12) var(--space-4);
+  color: var(--gray-400);
+  text-align: center;
+}
+
+.comissao-empty svg {
+  width: 48px;
+  height: 48px;
+  opacity: 0.4;
+}
+
+.comissao-empty p {
+  margin: 0;
+  font-size: var(--text-base);
+}
+
+/* ---- Painel detalhe ---- */
+.comissao-detalhe-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-1);
+}
+
+.comissao-detalhe-header h3 {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+#comissaoDetalheDesc {
+  font-size: var(--text-sm);
+  color: var(--gray-500);
+  margin: 0 0 var(--space-4);
+  display: block;
+}
+
+/* ---- Total geral ---- */
+.comissao-total-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--blue-50, #EFF6FF);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-3);
+}
+
+.comissao-total-row span {
+  font-size: var(--text-sm);
+  color: var(--gray-600);
+  font-weight: 500;
+}
+
+.comissao-total-row strong {
+  font-size: var(--text-xl);
+  color: var(--blue-700, #1D4ED8);
+  font-weight: 700;
+}
+
+/* ---- Botão danger solid ---- */
+.btn-danger-solid {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: #DC2626;
+  color: white;
+  transition: background var(--duration-fast);
+}
+
+.btn-danger-solid:hover {
+  background: #B91C1C;
+}
+
+.btn-danger-solid:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+/* ---- btn-icon danger ---- */
+.btn-icon--danger {
+  color: #DC2626 !important;
+}
+
+.btn-icon--danger:hover {
+  background: #FEF2F2 !important;
+}
+
+/* ---- btn ghost danger ---- */
+.btn-danger {
+  color: #DC2626 !important;
+}
+
+.btn-danger:hover {
+  background: #FEF2F2 !important;
+  color: #B91C1C !important;
+}
+
+/* ---- form-grid 2 colunas ---- */
+.form-grid--2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.form-grid--2 .field--full {
+  grid-column: 1 / -1;
+}
+
+/* ---- Responsividade ---- */
+@media (max-width: 640px) {
+  .comissao-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .comissao-card {
+    flex-wrap: wrap;
+  }
+
+  .comissao-card-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .form-grid--2 {
+    grid-template-columns: 1fr;
+  }
+}
