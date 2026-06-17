@@ -434,13 +434,20 @@
                 <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
               </button>
               <h3 id="comissaoDetalheTitulo">Planilha</h3>
+              <span id="comissaoModoBadge" class="comissao-modo-badge"></span>
             </div>
             <span id="comissaoDetalheDesc"></span>
           </div>
-          <button class="btn-primary" id="btnAdicionarRegistro">
-            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
-            Adicionar Registro
-          </button>
+          <div style="display:flex;gap:var(--space-2);align-items:center">
+            <button class="btn-primary" id="btnAdicionarLinhaComissao" hidden>
+              <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+              Adicionar Linha
+            </button>
+            <button class="btn-primary" id="btnSalvarComissao" hidden>
+              <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Salvar
+            </button>
+          </div>
         </div>
 
         <!-- Filtro por período -->
@@ -458,28 +465,31 @@
           <span class="comissao-contagem" id="comissaoContagem"></span>
         </div>
 
-        <div class="card">
+        <div class="card" style="padding:0;overflow:hidden">
           <div class="table-wrap">
-            <table class="data-table">
+            <table class="excel-table">
               <thead>
                 <tr>
-                  <th>Cliente</th>
-                  <th>Descrição</th>
-                  <th class="col-right">Qntd Folhas</th>
-                  <th class="col-right">Valor</th>
-                  <th>Data</th>
-                  <th>Categoria</th>
-                  <th class="col-center">Ações</th>
+                  <th class="col-item">#</th>
+                  <th class="col-com-cliente">Cliente</th>
+                  <th class="col-com-desc">Descrição</th>
+                  <th class="col-com-folhas">Folhas</th>
+                  <th class="col-com-valor">Valor</th>
+                  <th class="col-com-data">Data</th>
+                  <th class="col-com-cat">Categoria</th>
+                  <th class="col-acao"></th>
                 </tr>
               </thead>
-              <tbody id="tbodyRegistros">
-                <tr><td colspan="7" class="loading-cell">Carregando...</td></tr>
+              <tbody id="tbodyComissao">
+                <tr><td colspan="8" class="loading-cell">Carregando...</td></tr>
               </tbody>
+              <tfoot>
+                <tr class="total-row">
+                  <td colspan="6" class="total-label">VALOR TOTAL</td>
+                  <td colspan="2" class="total-value" id="comissaoTotalGeral">R$ 0,00</td>
+                </tr>
+              </tfoot>
             </table>
-          </div>
-          <div class="comissao-total-row">
-            <span>Total:</span>
-            <strong id="comissaoTotalGeral">R$ 0,00</strong>
           </div>
         </div>
       </div>
