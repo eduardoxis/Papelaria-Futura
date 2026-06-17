@@ -314,9 +314,14 @@ export async function criarComissao(dados, uidUsuario) {
 // Listar planilhas de comissão
 export async function listarComissoes() {
   try {
-    const q   = query(collection(db, COLECAO_COMISSOES), orderBy("dataCriacao", "desc"));
-    const snap = await getDocs(q);
-    const comissoes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const snap = await getDocs(collection(db, COLECAO_COMISSOES));
+    const comissoes = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => {
+        const da = a.dataCriacao?.toDate?.() || new Date(a.dataCriacao || 0);
+        const db_ = b.dataCriacao?.toDate?.() || new Date(b.dataCriacao || 0);
+        return db_ - da;
+      });
     return { sucesso: true, comissoes };
   } catch (erro) {
     console.error("Erro ao listar comissões:", erro);
@@ -394,12 +399,17 @@ export async function adicionarRegistroComissao(comissaoId, dados) {
 
 export async function listarRegistrosComissao(comissaoId) {
   try {
-    const q = query(
-      collection(db, COLECAO_COMISSOES, comissaoId, "registros"),
-      orderBy("dataCriacao", "asc")
+    const snap = await getDocs(
+      collection(db, COLECAO_COMISSOES, comissaoId, "registros")
     );
-    const snap = await getDocs(q);
-    const registros = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const registros = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => {
+        if (a.data && b.data) return a.data.localeCompare(b.data);
+        const da = a.dataCriacao?.toDate?.() || new Date(a.dataCriacao || 0);
+        const db_ = b.dataCriacao?.toDate?.() || new Date(b.dataCriacao || 0);
+        return da - db_;
+      });
     return { sucesso: true, registros };
   } catch (erro) {
     return { sucesso: false, erro: erro.message };
