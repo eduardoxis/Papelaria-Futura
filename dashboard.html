@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="css/dashboard.css" />
   <link rel="stylesheet" href="css/cotacao.css" />
   <link rel="stylesheet" href="css/admin.css" />
+  <link rel="stylesheet" href="css/comissao.css" />
   <link rel="stylesheet" href="css/mobile.css" />
 </head>
 <body>
@@ -58,6 +59,12 @@
         <a href="#" class="nav-item" data-page="nova-cotacao">
           <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
           Nova Cotação
+        </a>
+      </li>
+      <li>
+        <a href="#" class="nav-item" data-page="comissao">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V8z" clip-rule="evenodd"/></svg>
+          Comissão
         </a>
       </li>
       <li class="nav-item-admin" hidden>
@@ -392,6 +399,79 @@
     </section>
 
     <!-- ======================================================== -->
+    <!-- PÁGINA: COMISSÃO                                          -->
+    <!-- ======================================================== -->
+    <section id="page-comissao" class="page" aria-label="Comissão" hidden>
+
+      <!-- Mobile page header -->
+      <div class="mobile-page-header">
+        <h2>Comissão</h2>
+      </div>
+
+      <!-- PAINEL: LISTA DE PLANILHAS -->
+      <div id="comissaoListaPanel">
+        <div class="page-header">
+          <div>
+            <h2 class="page-title">Comissão</h2>
+            <p class="page-subtitle">Gerencie suas planilhas de comissão</p>
+          </div>
+          <button class="btn-primary" id="btnNovaComissao">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+            Nova Planilha
+          </button>
+        </div>
+        <div class="comissao-grid" id="comissaoCards">
+          <p class="loading-cell">Carregando...</p>
+        </div>
+      </div>
+
+      <!-- PAINEL: DETALHE DA PLANILHA -->
+      <div id="comissaoDetalhePanel" hidden>
+        <div class="page-header">
+          <div>
+            <div class="comissao-detalhe-header">
+              <button class="btn-icon" id="btnVoltarComissao" title="Voltar">
+                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+              </button>
+              <h3 id="comissaoDetalheTitulo">Planilha</h3>
+            </div>
+            <span id="comissaoDetalheDesc"></span>
+          </div>
+          <button class="btn-primary" id="btnAdicionarRegistro">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+            Adicionar Registro
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width:40px">#</th>
+                  <th>Vendedor</th>
+                  <th>Descrição</th>
+                  <th class="col-right">Valor Venda</th>
+                  <th class="col-right">% Comissão</th>
+                  <th class="col-right">Valor Comissão</th>
+                  <th class="col-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyRegistros">
+                <tr><td colspan="7" class="loading-cell">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="comissao-total-row">
+            <span>Total de Comissões:</span>
+            <strong id="comissaoTotalGeral">R$ 0,00</strong>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ======================================================== -->
     <!-- PÁGINA: ADMINISTRAÇÃO                                     -->
     <!-- ======================================================== -->
     <section id="page-admin" class="page" aria-label="Administração" hidden>
@@ -489,6 +569,10 @@
     <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
     <span>Cotações</span>
   </a>
+  <a href="#" class="mobile-nav-item" data-page="comissao" id="mobileNavComissao">
+    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V8z" clip-rule="evenodd"/></svg>
+    <span>Comissão</span>
+  </a>
   <a href="#" class="mobile-nav-item nav-item-admin" data-page="admin" id="mobileNavAdmin" hidden>
     <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
     <span>Administração</span>
@@ -508,6 +592,7 @@
   import { iniciarDashboard }            from "./js/dashboard.js";
   import { iniciarCotacao }              from "./js/cotacao.js";
   import { iniciarAdmin }                from "./js/admin.js";
+  import { iniciarComissao }             from "./js/comissao.js";
 
   // ----------------------------------------------------------------
   // Proteção de rota + inicialização
@@ -544,6 +629,7 @@
     iniciarDashboard(usuario, dadosUsuario);
     iniciarCotacao(usuario, dadosUsuario);
     iniciarAdmin(usuario, dadosUsuario);
+    iniciarComissao(usuario, dadosUsuario);
 
     // Navegação
     configurarNavegacao();
@@ -562,6 +648,7 @@
       "dashboard":     "Dashboard",
       "cotacoes":      "Cotações",
       "nova-cotacao":  "Nova Cotação",
+      "comissao":      "Comissão",
       "admin":         "Administração"
     };
 
