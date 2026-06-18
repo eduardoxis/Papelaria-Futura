@@ -285,3 +285,20 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- Modo somente leitura — bloqueia edição ---- */
+.tabela-readonly input,
+.tabela-readonly select,
+.tabela-readonly textarea,
+.tabela-readonly .btn-remove-row {
+  pointer-events: none;
+  user-select: none;
+  cursor: default;
+}
+.tabela-readonly input,
+.tabela-readonly select {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  color: var(--gray-900);
+}
