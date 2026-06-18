@@ -71,8 +71,19 @@ function mostrarPainelDetalhe(comissao, modoEdicao = false) {
   document.getElementById("btnAdicionarLinhaComissao").hidden = !modoEdicao;
   document.getElementById("btnSalvarComissao").hidden         = !modoEdicao;
 
+  // Filtro de período — visível em ambos os modos
+  // Bloquear inputs de filtro em leitura apenas se desejar (mantemos abertos para filtrar visualização)
+  const filtroBar = document.getElementById("comissaoFiltroBar");
+  if (filtroBar) filtroBar.hidden = false;
+
   document.getElementById("filtroDataInicio").value = "";
   document.getElementById("filtroDataFim").value    = "";
+
+  // Marcar tabela como somente leitura via classe
+  const tabela = document.getElementById("tbodyComissao")?.closest("table");
+  if (tabela) {
+    tabela.classList.toggle("tabela-readonly", !modoEdicao);
+  }
 
   carregarRegistros(comissao.id);
 }
@@ -119,26 +130,26 @@ async function carregarListaComissoes() {
           <span class="comissao-card-data">Criada em ${formatarData(c.dataCriacao)}</span>
         </div>
         <div class="comissao-card-actions">
-          <button class="cac-btn cac-btn--blue" data-action="abrir" data-id="${escHtml(c.id)}">
+          <button class="cac-btn cac-btn--blue" data-action="abrir" data-id="${escHtml(c.id)}" style="background:#eef2ff;color:#1e3a8a">
             <svg viewBox="0 0 20 20" fill="currentColor">
               <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
               <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
             </svg>
             <span>Abrir</span>
           </button>
-          <button class="cac-btn cac-btn--blue" data-action="pdf" data-id="${escHtml(c.id)}">
+          <button class="cac-btn cac-btn--blue" data-action="pdf" data-id="${escHtml(c.id)}" style="background:#eef2ff;color:#1e3a8a">
             <svg viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/>
             </svg>
             <span>PDF</span>
           </button>
-          <button class="cac-btn cac-btn--blue" data-action="editar" data-id="${escHtml(c.id)}">
+          <button class="cac-btn cac-btn--blue" data-action="editar" data-id="${escHtml(c.id)}" style="background:#eef2ff;color:#1e3a8a">
             <svg viewBox="0 0 20 20" fill="currentColor">
               <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
             </svg>
             <span>Editar</span>
           </button>
-          <button class="cac-btn cac-btn--red" data-action="excluir-planilha" data-id="${escHtml(c.id)}" data-titulo="${escHtml(c.titulo)}">
+          <button class="cac-btn cac-btn--red" data-action="excluir-planilha" data-id="${escHtml(c.id)}" data-titulo="${escHtml(c.titulo)}" style="background:#fff1f1;color:#b91c1c">
             <svg viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
             </svg>
@@ -207,6 +218,7 @@ async function carregarRegistros(comissaoId) {
 // LINHAS DA TABELA
 // ================================================================
 function adicionarLinhaVazia() {
+  if (!_modoEdicao) return;   // bloqueio modo leitura
   adicionarLinha({});
   document.getElementById("tbodyComissao").lastElementChild?.querySelector("input")?.focus();
 }
