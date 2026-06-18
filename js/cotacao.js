@@ -13,6 +13,7 @@ import { exigirSenhaCotacao } from "./senhaCotacao.js";
 let _usuario      = null;
 let _dadosUsuario = null;
 let _contadorLinhas = 0;
+let _modoSomenteLeitura = false;
 
 export function iniciarCotacao(usuario, dadosUsuario) {
   _usuario      = usuario;
@@ -56,12 +57,14 @@ export function iniciarCotacao(usuario, dadosUsuario) {
     const btn = e.target.closest("[data-action]");
     if (!btn) return;
     const { action, id, cliente } = btn.dataset;
+    if (action === "abrir")   abrirCotacaoSomenteLeitura(id);
     if (action === "editar")  exigirSenhaCotacao(() => editarCotacaoById(id), "Editar Cotação");
     if (action === "pdf")     gerarPDFById(id);
     if (action === "excluir") exigirSenhaCotacao(() => excluirCotacaoById(id, cliente), "Excluir Cotação");
   });
 
   // Expor globais para o dashboard.js usar via window.*
+  window.abrirCotacaoSomenteLeitura = abrirCotacaoSomenteLeitura;
   window.editarCotacaoById  = (id)          => exigirSenhaCotacao(() => editarCotacaoById(id), "Editar Cotação");
   window.excluirCotacaoById = (id, cliente) => exigirSenhaCotacao(() => excluirCotacaoById(id, cliente), "Excluir Cotação");
   window.gerarPDFById       = gerarPDFById;
@@ -103,15 +106,20 @@ async function carregarListaCotacoes(termoBusca = "") {
       <td>${badgeStatus(c.status)}</td>
       <td class="td-actions-col col-center">
         <div class="td-actions-wrap td-actions-wrap--cotacoes">
-          <button class="btn-action btn-action--edit"
-            data-action="editar" data-id="${escHtml(c.id)}">
-            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
-            Editar
+          <button class="btn-action btn-action--view"
+            data-action="abrir" data-id="${escHtml(c.id)}">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+            Abrir
           </button>
           <button class="btn-action btn-action--pdf"
             data-action="pdf" data-id="${escHtml(c.id)}">
             <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd"/></svg>
             PDF
+          </button>
+          <button class="btn-action btn-action--edit"
+            data-action="editar" data-id="${escHtml(c.id)}">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
+            Editar
           </button>
           <button class="btn-action btn-action--delete"
             data-action="excluir" data-id="${escHtml(c.id)}" data-cliente="${escHtml(c.cliente || "")}">
@@ -128,8 +136,11 @@ async function carregarListaCotacoes(termoBusca = "") {
 // FORMULÁRIO DE COTAÇÃO
 // ================================================================
 function prepararNovaCotacao() {
+  restaurarModoEdicao();
   document.getElementById("cotacaoEditandoId").value = "";
   document.getElementById("titleFormCotacao").textContent = "Nova Cotação";
+  const tituloMobile = document.getElementById("titleFormCotacaoMobile");
+  if (tituloMobile) tituloMobile.textContent = "Nova Cotação";
 
   ["cotCliente","cotCnpj","cotObs"].forEach(id => {
     document.getElementById(id).value = "";
@@ -167,24 +178,25 @@ function adicionarLinha(dados = {}) {
 
   const tr = document.createElement("tr");
   tr.dataset.linha = n;
+  const dis = _modoSomenteLeitura ? "disabled" : "";
 
   tr.innerHTML = `
     <td class="col-item"><span class="item-num">${n}</span></td>
     <td class="col-desc">
-      <input class="excel-input" type="text" placeholder="Descrição do produto"
+      <input class="excel-input" type="text" placeholder="Descrição do produto" ${dis}
         data-campo="descricao" value="${escHtml(dados.descricao || "")}" />
     </td>
     <td class="col-marca">
-      <input class="excel-input" type="text" placeholder="Marca"
+      <input class="excel-input" type="text" placeholder="Marca" ${dis}
         data-campo="marca" value="${escHtml(dados.marca || "")}" />
     </td>
     <td class="col-qtd">
-      <input class="excel-input excel-input--center" type="number"
+      <input class="excel-input excel-input--center" type="number" ${dis}
         min="0" step="any" placeholder="0"
         data-campo="quantidade" value="${dados.quantidade ?? ""}" />
     </td>
     <td class="col-unit">
-      <input class="excel-input excel-input--right" type="text"
+      <input class="excel-input excel-input--right" type="text" ${dis}
         placeholder="R$ 0,00"
         data-campo="valorUnitario" value="${dados.valorUnitario ? formatarCampoMoeda(dados.valorUnitario) : ""}" />
     </td>
@@ -192,7 +204,7 @@ function adicionarLinha(dados = {}) {
       ${formatarMoeda(calcularTotal(dados.quantidade, dados.valorUnitario))}
     </td>
     <td class="col-acao">
-      <button class="btn-remove-row" aria-label="Remover linha ${n}">
+      <button class="btn-remove-row" aria-label="Remover linha ${n}" ${_modoSomenteLeitura ? 'style="display:none"' : ""}>
         <svg viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
         </svg>
@@ -339,6 +351,67 @@ async function salvarCotacao() {
   } else {
     window.mostrarToast?.("Erro ao salvar: " + resultado.erro, "error");
   }
+}
+
+// ================================================================
+// ABRIR (SOMENTE LEITURA) — sem exigir senha
+// ================================================================
+async function abrirCotacaoSomenteLeitura(id) {
+  window.navegar?.("nova-cotacao");
+  await new Promise(r => setTimeout(r, 50));
+  _modoSomenteLeitura = true;
+
+  const resultado = await buscarCotacao(id);
+  if (!resultado.sucesso) {
+    window.mostrarToast?.("Cotação não encontrada.", "error");
+    _modoSomenteLeitura = false;
+    return;
+  }
+
+  const c = resultado.dados;
+
+  document.getElementById("cotacaoEditandoId").value      = id;
+  document.getElementById("titleFormCotacao").textContent = "Visualizar Cotação";
+  const tituloMobile = document.getElementById("titleFormCotacaoMobile");
+  if (tituloMobile) tituloMobile.textContent = "Visualizar Cotação";
+
+  ["cotCliente","cotCnpj","cotValidade","cotStatus","cotObs"].forEach(campoId => {
+    const el = document.getElementById(campoId);
+    if (el) el.disabled = true;
+  });
+  document.getElementById("cotCliente").value  = c.cliente     || "";
+  document.getElementById("cotCnpj").value     = c.cnpj        || "";
+  document.getElementById("cotValidade").value = c.validade    || "";
+  document.getElementById("cotObs").value      = c.observacoes || "";
+  document.getElementById("cotStatus").value   = c.status      || "ativa";
+
+  document.getElementById("btnSalvarCotacao")?.setAttribute("hidden", "true");
+  document.getElementById("btnAdicionarLinha")?.setAttribute("hidden", "true");
+
+  document.getElementById("tbodyItens").innerHTML = "";
+  _contadorLinhas = 0;
+  const itens = c.itens || [];
+  if (itens.length === 0) {
+    document.getElementById("tbodyItens").innerHTML =
+      `<tr><td colspan="7" class="empty-cell">Nenhum item nesta cotação.</td></tr>`;
+  } else {
+    itens.forEach(item => adicionarLinha(item));
+  }
+
+  atualizarTotalGeral();
+}
+
+// Restaura o formulário ao modo normal (edição/criação) ao saída da
+// tela de visualização — chamado pela navegação ao trocar de página.
+function restaurarModoEdicao() {
+  if (!_modoSomenteLeitura) return;
+  _modoSomenteLeitura = false;
+  ["cotCliente","cotCnpj","cotValidade","cotStatus","cotObs"].forEach(campoId => {
+    const el = document.getElementById(campoId);
+    if (el) el.disabled = false;
+  });
+  document.getElementById("btnSalvarCotacao")?.removeAttribute("hidden");
+  document.getElementById("btnAdicionarLinha")?.removeAttribute("hidden");
 }
 
 // ================================================================
