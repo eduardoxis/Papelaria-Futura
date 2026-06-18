@@ -2,87 +2,131 @@
    comissao.css — Planilhas de Comissão
    ============================================================ */
 
-/* ---- Cards de planilha ---- */
+/* ---- Grid de cards ---- */
 .comissao-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   margin-top: var(--space-4);
 }
 
+/* ---- Card ---- */
 .comissao-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  background: var(--white);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  padding: 16px 20px;
   border: 1px solid var(--gray-200);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
-  transition: box-shadow var(--duration-fast), border-color var(--duration-fast);
+  transition: box-shadow .15s;
 }
-
 .comissao-card:hover {
-  border-color: var(--blue-300);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 16px rgba(0,0,0,.10);
 }
 
+/* ---- Linha superior do card ---- */
 .comissao-card-top {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: 16px;
 }
 
+/* ---- Ícone do card ---- */
 .comissao-card-icon {
   flex-shrink: 0;
   width: 44px;
   height: 44px;
-  border-radius: var(--radius-md);
-  background: var(--blue-50, #EFF6FF);
-  color: var(--blue-600, #2563EB);
+  border-radius: 8px;
+  background: #e8edff;
+  color: #1e3a8a;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-
 .comissao-card-icon svg {
   width: 22px;
   height: 22px;
 }
 
+/* ---- Texto do card ---- */
 .comissao-card-body {
   flex: 1;
   min-width: 0;
 }
-
 .comissao-card-titulo {
   display: block;
-  font-size: var(--text-base);
+  font-size: 15px;
+  font-weight: 700;
   color: var(--gray-900);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
 .comissao-card-desc {
   margin: 2px 0 0;
-  font-size: var(--text-sm);
+  font-size: 13px;
   color: var(--gray-500);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
 .comissao-card-data {
   display: block;
   font-size: 11px;
   color: var(--gray-400);
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
+/* ================================================================
+   BOTÕES DE AÇÃO — quadrados, ícone em cima, label embaixo
+   ================================================================ */
 .comissao-card-actions {
   display: flex;
-  gap: var(--space-2);
   flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e5e9f2;
+}
+
+.cac-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 58px;
+  height: 52px;
+  border: none;
+  border-right: 1px solid #e5e9f2;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 0;
+  transition: filter .12s;
+}
+.cac-btn:last-child {
+  border-right: none;
+}
+.cac-btn svg {
+  width: 17px;
+  height: 17px;
+}
+.cac-btn:hover {
+  filter: brightness(.93);
+}
+.cac-btn:active {
+  filter: brightness(.87);
+}
+
+/* Azul claro (Abrir, PDF, Editar) */
+.cac-btn--blue {
+  background: #eef2ff;
+  color: #1e3a8a;
+}
+
+/* Vermelho claro (Excluir) */
+.cac-btn--red {
+  background: #fff1f1;
+  color: #b91c1c;
 }
 
 /* ---- Estado vazio ---- */
@@ -95,17 +139,20 @@
   color: var(--gray-400);
   text-align: center;
 }
+.comissao-empty svg { width: 48px; height: 48px; opacity: .4; }
+.comissao-empty p   { margin: 0; font-size: var(--text-base); }
 
-.comissao-empty svg {
-  width: 48px;
-  height: 48px;
-  opacity: 0.4;
+/* ---- Badge de modo ---- */
+.comissao-modo-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 600;
 }
-
-.comissao-empty p {
-  margin: 0;
-  font-size: var(--text-base);
-}
+.comissao-modo-badge--view { background: #DBEAFE; color: #1E40AF; }
+.comissao-modo-badge--edit { background: #EDE9FE; color: #5B21B6; }
 
 /* ---- Painel detalhe ---- */
 .comissao-detalhe-header {
@@ -114,14 +161,12 @@
   gap: var(--space-3);
   margin-bottom: var(--space-1);
 }
-
 .comissao-detalhe-header h3 {
   margin: 0;
   font-size: var(--text-xl);
   font-weight: 700;
   color: var(--gray-900);
 }
-
 #comissaoDetalheDesc {
   font-size: var(--text-sm);
   color: var(--gray-500);
@@ -129,29 +174,62 @@
   display: block;
 }
 
-/* ---- Total geral ---- */
-.comissao-total-row {
+/* ---- Colunas da tabela ---- */
+.col-com-cliente { min-width: 140px; }
+.col-com-desc    { min-width: 160px; }
+.col-com-folhas  { width: 90px;  text-align: center; }
+.col-com-valor   { width: 120px; text-align: right; }
+.col-com-data    { width: 110px; }
+.col-com-cat     { width: 140px; }
+
+/* ---- Select inline ---- */
+.excel-select { appearance: none; cursor: pointer; }
+
+/* ---- Filtro de período ---- */
+.filter-periodo {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  background: var(--blue-50, #EFF6FF);
+  gap: var(--space-2);
+}
+.filter-input--date {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--gray-300);
   border-radius: var(--radius-md);
-  margin-top: var(--space-3);
-}
-
-.comissao-total-row span {
   font-size: var(--text-sm);
-  color: var(--gray-600);
-  font-weight: 500;
+  color: var(--gray-900);
+  background: var(--white);
+  cursor: pointer;
+}
+.filter-input--date:focus {
+  outline: none;
+  border-color: var(--blue-400);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.15);
 }
 
-.comissao-total-row strong {
-  font-size: var(--text-xl);
-  color: var(--blue-700, #1D4ED8);
-  font-weight: 700;
+/* ---- Contagem ---- */
+.comissao-contagem {
+  font-size: var(--text-sm);
+  color: var(--gray-500);
+  margin-left: auto;
+  white-space: nowrap;
 }
+
+/* ---- Badges de categoria ---- */
+.badge-categoria {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.badge-categoria--dinheiro { background: #D1FAE5; color: #065F46; }
+.badge-categoria--debito   { background: #DBEAFE; color: #1E40AF; }
+.badge-categoria--credito  { background: #EDE9FE; color: #5B21B6; }
+.badge-categoria--pix      { background: #ECFDF5; color: #047857; }
+.badge-categoria--convenio { background: #FEF3C7; color: #92400E; }
+.badge-categoria--default  { background: var(--gray-100); color: var(--gray-600); }
 
 /* ---- Botão danger solid ---- */
 .btn-danger-solid {
@@ -168,34 +246,8 @@
   color: white;
   transition: background var(--duration-fast);
 }
-
-.btn-danger-solid:hover {
-  background: #B91C1C;
-}
-
-.btn-danger-solid:disabled {
-  opacity: .6;
-  cursor: not-allowed;
-}
-
-/* ---- btn-icon danger ---- */
-.btn-icon--danger {
-  color: #DC2626 !important;
-}
-
-.btn-icon--danger:hover {
-  background: #FEF2F2 !important;
-}
-
-/* ---- btn ghost danger ---- */
-.btn-danger {
-  color: #DC2626 !important;
-}
-
-.btn-danger:hover {
-  background: #FEF2F2 !important;
-  color: #B91C1C !important;
-}
+.btn-danger-solid:hover    { background: #B91C1C; }
+.btn-danger-solid:disabled { opacity: .6; cursor: not-allowed; }
 
 /* ---- form-grid 2 colunas ---- */
 .form-grid--2 {
@@ -203,81 +255,21 @@
   grid-template-columns: 1fr 1fr;
   gap: var(--space-4);
 }
+.form-grid--2 .field--full { grid-column: 1 / -1; }
 
-.form-grid--2 .field--full {
-  grid-column: 1 / -1;
-}
-
-/* ---- Responsividade ---- */
+/* ================================================================
+   RESPONSIVO
+   ================================================================ */
 @media (max-width: 640px) {
-  .comissao-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .comissao-card {
+  .comissao-card-top {
     flex-wrap: wrap;
   }
-
   .comissao-card-actions {
     width: 100%;
-    justify-content: flex-end;
   }
-
-  .form-grid--2 {
-    grid-template-columns: 1fr;
+  .cac-btn {
+    flex: 1;
   }
-}
-
-/* ---- Badges de categoria ---- */
-.badge-categoria {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 10px;
-  border-radius: var(--radius-full);
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.badge-categoria--dinheiro    { background: #D1FAE5; color: #065F46; }
-.badge-categoria--debito      { background: #DBEAFE; color: #1E40AF; }
-.badge-categoria--credito     { background: #EDE9FE; color: #5B21B6; }
-.badge-categoria--pix         { background: #ECFDF5; color: #047857; }
-.badge-categoria--convenio    { background: #FEF3C7; color: #92400E; }
-.badge-categoria--default     { background: var(--gray-100); color: var(--gray-600); }
-
-/* ---- Filtro de período ---- */
-.filter-periodo {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.filter-input--date {
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--gray-300);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  color: var(--gray-900);
-  background: var(--white);
-  cursor: pointer;
-}
-
-.filter-input--date:focus {
-  outline: none;
-  border-color: var(--blue-400);
-  box-shadow: 0 0 0 3px rgba(59,130,246,.15);
-}
-
-/* ---- Contagem de registros ---- */
-.comissao-contagem {
-  font-size: var(--text-sm);
-  color: var(--gray-500);
-  margin-left: auto;
-  white-space: nowrap;
-}
-
-/* ---- Responsividade filtros ---- */
-@media (max-width: 640px) {
   .filter-periodo {
     flex-direction: column;
     align-items: flex-start;
@@ -289,111 +281,7 @@
   .comissao-contagem {
     margin-left: 0;
   }
-}
-
-/* ---- 4 botões de ação nos cards ---- */
-.comissao-card-actions {
-  display: flex;
-  flex-direction: row;
-  gap: 8px;
-  flex-shrink: 0;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-.btn-icon-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  cursor: pointer;
-  border: 1.5px solid transparent;
-  transition: background var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast);
-  white-space: nowrap;
-  background: var(--white);
-}
-.btn-icon-label svg { width: 15px; height: 15px; flex-shrink: 0; }
-
-.btn-icon-label--view {
-  border-color: var(--gray-300);
-  color: var(--gray-700);
-}
-.btn-icon-label--view:hover {
-  background: var(--gray-100);
-  border-color: var(--gray-400);
-}
-
-.btn-icon-label--pdf {
-  border-color: #6EE7B7;
-  color: #065F46;
-  background: #F0FDF4;
-}
-.btn-icon-label--pdf:hover {
-  background: #D1FAE5;
-}
-
-.btn-icon-label--edit {
-  border-color: var(--blue-300, #93C5FD);
-  color: var(--blue-700, #1D4ED8);
-  background: #EFF6FF;
-}
-.btn-icon-label--edit:hover {
-  background: #DBEAFE;
-}
-
-.btn-icon-label--delete {
-  border-color: #FCA5A5;
-  color: #B91C1C;
-  background: #FFF5F5;
-}
-.btn-icon-label--delete:hover {
-  background: #FEE2E2;
-}
-
-/* ---- Badge de modo (somente leitura / edição) ---- */
-.comissao-modo-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: var(--radius-full);
-  font-size: var(--text-xs);
-  font-weight: 600;
-}
-.comissao-modo-badge--view { background: #DBEAFE; color: #1E40AF; }
-.comissao-modo-badge--edit { background: #EDE9FE; color: #5B21B6; }
-
-/* ---- Colunas da tabela de comissão ---- */
-.col-com-cliente { min-width: 140px; }
-.col-com-desc    { min-width: 160px; }
-.col-com-folhas  { width: 90px;  text-align: center; }
-.col-com-valor   { width: 120px; text-align: right; }
-.col-com-data    { width: 110px; }
-.col-com-cat     { width: 140px; }
-
-/* ---- Select inline ---- */
-.excel-select {
-  appearance: none;
-  cursor: pointer;
-}
-
-/* ---- Divisor interno do card ---- */
-.comissao-card-divider {
-  height: 1px;
-  background: var(--gray-100);
-  margin: 0 calc(-1 * var(--space-4));
-}
-
-/* ---- Responsivo mobile ---- */
-@media (max-width: 640px) {
-  .comissao-card-actions {
-    flex-wrap: wrap;
-  }
-  .btn-icon-label {
-    flex: 1;
-    justify-content: center;
-    min-width: 80px;
+  .form-grid--2 {
+    grid-template-columns: 1fr;
   }
 }
