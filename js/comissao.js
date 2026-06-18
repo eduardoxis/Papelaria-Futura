@@ -486,7 +486,7 @@ async function gerarPDFComissao(id) {
   <table>
     <thead><tr>
       <th>#</th><th>Cliente</th><th>Descrição</th>
-      <th>Folhas</th><th>Valor</th><th>Data</th><th>Categoria</th>
+      <th>Folhas</th><th>Valor</th><th>Data</th><th>Forma de Pagamento</th>
     </tr></thead>
     <tbody>${linhas}</tbody>
     <tfoot><tr class="total-row"><td colspan="4">TOTAL</td><td colspan="3">${formatarMoeda(total)}</td></tr></tfoot>
