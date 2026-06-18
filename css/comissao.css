@@ -315,7 +315,7 @@
   white-space: nowrap;
   background: var(--white);
 }
-.btn-icon-label svg { width: 17px; height: 17px; flex-shrink: 0; }
+.btn-icon-label svg { width: 15px; height: 15px; flex-shrink: 0; }
 
 .btn-icon-label--view {
   border-color: var(--gray-300);
