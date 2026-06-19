@@ -918,10 +918,17 @@ body {
 }
 
 /* Página cotações — desktop: td de ações lado a lado (igual Dashboard) */
+#tabelaCotacoes .td-actions-col {
+  width: 1%;
+  white-space: nowrap;
+}
 #tabelaCotacoes .td-actions-col .td-actions-wrap--cotacoes {
   display: flex;
   justify-content: flex-end;
   gap: 5px;
   flex-wrap: nowrap;
-  min-width: 320px;
+}
+#tabelaCotacoes .td-actions-col .td-actions-wrap--cotacoes .btn-action {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
