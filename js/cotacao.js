@@ -119,7 +119,6 @@ async function carregarListaCotacoes(termoBusca = "", dataInicio = null, dataFim
     <tr>
       <td class="td-cliente-row">
         <strong>${escHtml(c.cliente || "—")}</strong>
-        <strong class="td-valor-mobile">${formatarMoeda(c.valorTotal)}</strong>
       </td>
       <td class="td-data-col">${formatarData(c.dataCriacao)}</td>
       <td class="col-right td-valor-col"><strong>${formatarMoeda(c.valorTotal)}</strong></td>
