@@ -4,14 +4,14 @@
 
 import {
   listarUsuarios, salvarUsuario, excluirUsuarioFirestore,
-  salvarSenhaCotacao, senhaCotacaoExiste
+  salvarSenhaCotacao, senhaCotacaoExiste, listarCotacoes
 } from "./database.js";
 import {
   createUserWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { auth } from "./firebase-config.js";
 import { escHtml } from "./dashboard.js";
-import { formatarData } from "./database.js";
+import { formatarData, formatarDataHora } from "./database.js";
 
 let _dadosUsuario = null;
 
@@ -28,11 +28,33 @@ export function iniciarAdmin(usuario, dadosUsuario) {
       }
       carregarUsuarios();
       carregarCardSenhaCotacao();
+      carregarHistoricoCotacoes();
     }
   });
 
   // Botão novo usuário
   document.getElementById("btnNovoUsuario")?.addEventListener("click", abrirModalNovoUsuario);
+
+  // Histórico de alterações
+  document.getElementById("btnBuscarHistorico")?.addEventListener("click", () => {
+    const termo = document.getElementById("filtroBuscaHistorico").value.trim();
+    carregarHistoricoCotacoes(termo);
+  });
+  document.getElementById("btnLimparBuscaHistorico")?.addEventListener("click", () => {
+    document.getElementById("filtroBuscaHistorico").value = "";
+    carregarHistoricoCotacoes();
+  });
+  document.getElementById("filtroBuscaHistorico")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") carregarHistoricoCotacoes(e.target.value.trim());
+  });
+
+  // Event delegation da tabela de histórico
+  document.getElementById("tbodyHistoricoCotacoes")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-action='ver-historico']");
+    if (!btn) return;
+    const { cliente, historico } = btn.dataset;
+    abrirModalHistorico(cliente, JSON.parse(historico));
+  });
 }
 
 // ================================================================
@@ -385,4 +407,69 @@ function abrirModalSenhaCotacao() {
       btn.textContent = "Salvar Senha";
     }
   });
+}
+
+// ================================================================
+// HISTÓRICO DE ALTERAÇÕES DAS COTAÇÕES
+// ================================================================
+async function carregarHistoricoCotacoes(termoBusca = "") {
+  const tbody = document.getElementById("tbodyHistoricoCotacoes");
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="4" class="loading-cell">Carregando...</td></tr>`;
+
+  const resultado = await listarCotacoes({ cliente: termoBusca || null, limitQtd: 100 });
+
+  if (!resultado.sucesso) {
+    tbody.innerHTML = `<tr><td colspan="4" class="loading-cell">Erro ao carregar histórico.</td></tr>`;
+    return;
+  }
+
+  const { cotacoes } = resultado;
+
+  if (cotacoes.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" class="empty-cell">Nenhuma cotação encontrada.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = cotacoes.map(c => {
+    const historico = Array.isArray(c.historico) ? c.historico : [];
+    const ultima    = historico[historico.length - 1] || null;
+    return `
+    <tr>
+      <td><strong>${escHtml(c.cliente || "—")}</strong></td>
+      <td>${formatarData(c.dataCriacao)}</td>
+      <td>${ultima ? `${escHtml(ultima.usuario || "—")} — ${formatarDataHora(ultima.data)}` : "—"}</td>
+      <td class="col-center">
+        <button class="btn-action btn-action--view" data-action="ver-historico"
+          data-cliente="${escHtml(c.cliente || "—")}"
+          data-historico='${escHtml(JSON.stringify(historico))}'>
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+          Ver histórico
+        </button>
+      </td>
+    </tr>
+  `;
+  }).join("");
+}
+
+function abrirModalHistorico(cliente, historico) {
+  const itens = [...historico].reverse(); // mais recente primeiro
+
+  const listaHtml = itens.length === 0
+    ? `<p class="page-subtitle" style="margin:0">Nenhum registro de alteração para esta cotação.</p>`
+    : `<ul class="historico-lista">
+        ${itens.map(h => `
+          <li class="historico-item">
+            <span class="historico-item-acao">${escHtml(h.acao === "criação" ? "Criou" : "Editou")}</span>
+            <strong>${escHtml(h.usuario || "—")}</strong>
+            <span class="historico-item-data">${formatarDataHora(h.data)}</span>
+          </li>
+        `).join("")}
+      </ul>`;
+
+  window.abrirModal?.(
+    `Histórico — ${escHtml(cliente)}`,
+    listaHtml,
+    `<button class="btn-ghost" onclick="window.fecharModal()">Fechar</button>`
+  );
 }
