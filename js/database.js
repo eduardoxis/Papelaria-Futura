@@ -19,7 +19,8 @@ import {
   startAfter,
   serverTimestamp,
   onSnapshot,
-  Timestamp
+  Timestamp,
+  arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import { db } from "./firebase-config.js";
@@ -40,7 +41,12 @@ export async function criarCotacao(dados, uidUsuario) {
       criadoPor:   uidUsuario,
       dataCriacao: serverTimestamp(),
       updatedAt:   serverTimestamp(),
-      status:      dados.status || "ativa"
+      status:      dados.status || "ativa",
+      historico: [{
+        usuario: dados.funcionario || "—",
+        data:    new Date().toISOString(),
+        acao:    "criação"
+      }]
     };
 
     const docRef = await addDoc(collection(db, COLECAO_COTACOES), cotacao);
@@ -58,7 +64,12 @@ export async function atualizarCotacao(id, dados) {
   try {
     await updateDoc(doc(db, COLECAO_COTACOES, id), {
       ...dados,
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
+      historico: arrayUnion({
+        usuario: dados.funcionario || "—",
+        data:    new Date().toISOString(),
+        acao:    "edição"
+      })
     });
     return { sucesso: true };
   } catch (erro) {
