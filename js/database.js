@@ -86,18 +86,41 @@ export async function buscarCotacao(id) {
 // ----------------------------------------------------------------
 // Listar cotações — com filtros opcionais
 // ----------------------------------------------------------------
-export async function listarCotacoes({ uidUsuario = null, cliente = null, limitQtd = 50 } = {}) {
+export async function listarCotacoes({ uidUsuario = null, cliente = null, dataInicio = null, dataFim = null, limitQtd = 50 } = {}) {
   try {
     let q = collection(db, COLECAO_COTACOES);
     const restricoes = [orderBy("dataCriacao", "desc"), limit(limitQtd)];
 
     if (uidUsuario) restricoes.unshift(where("criadoPor", "==", uidUsuario));
-    if (cliente)    restricoes.unshift(where("cliente", ">=", cliente), where("cliente", "<=", cliente + "\uf8ff"));
+
+    // Filtro por intervalo de datas (mutuamente exclusivo com filtro de cliente
+    // na query do Firestore, pois não é possível usar inequações em dois campos
+    // diferentes na mesma consulta sem índice composto).
+    if (dataInicio || dataFim) {
+      if (dataInicio) {
+        const inicio = new Date(dataInicio); inicio.setHours(0, 0, 0, 0);
+        restricoes.unshift(where("dataCriacao", ">=", Timestamp.fromDate(inicio)));
+      }
+      if (dataFim) {
+        const fim = new Date(dataFim); fim.setHours(23, 59, 59, 999);
+        restricoes.unshift(where("dataCriacao", "<=", Timestamp.fromDate(fim)));
+      }
+    } else if (cliente) {
+      restricoes.unshift(where("cliente", ">=", cliente), where("cliente", "<=", cliente + "\uf8ff"));
+    }
 
     q = query(q, ...restricoes);
     const snapshot = await getDocs(q);
 
-    const cotacoes = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    let cotacoes = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Se houver filtro de data E de cliente ao mesmo tempo, aplica o de cliente
+    // localmente (já que a query do Firestore só pôde usar o de data).
+    if ((dataInicio || dataFim) && cliente) {
+      const termo = cliente.toLowerCase();
+      cotacoes = cotacoes.filter(c => (c.cliente || "").toLowerCase().includes(termo));
+    }
+
     return { sucesso: true, cotacoes };
   } catch (erro) {
     console.error("Erro ao listar cotações:", erro);
