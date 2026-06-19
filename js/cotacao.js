@@ -41,7 +41,9 @@ export function iniciarCotacao(usuario, dadosUsuario) {
   document.getElementById("btnGerarPDF")?.addEventListener("click", () => gerarPDFDaTela());
   document.getElementById("btnBuscarCotacoes")?.addEventListener("click", () => {
     const termo = document.getElementById("filtroBusca").value.trim();
-    carregarListaCotacoes(termo);
+    const dataInicio = document.getElementById("cotFiltroDataInicio").value || null;
+    const dataFim    = document.getElementById("cotFiltroDataFim").value || null;
+    carregarListaCotacoes(termo, dataInicio, dataFim);
   });
   document.getElementById("btnLimparBusca")?.addEventListener("click", () => {
     document.getElementById("filtroBusca").value = "";
@@ -49,6 +51,19 @@ export function iniciarCotacao(usuario, dadosUsuario) {
   });
   document.getElementById("filtroBusca")?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") carregarListaCotacoes(e.target.value.trim());
+  });
+
+  // Busca por intervalo de datas
+  document.getElementById("btnAplicarFiltroDataCotacoes")?.addEventListener("click", () => {
+    const termo     = document.getElementById("filtroBusca").value.trim();
+    const dataInicio = document.getElementById("cotFiltroDataInicio").value || null;
+    const dataFim    = document.getElementById("cotFiltroDataFim").value || null;
+    carregarListaCotacoes(termo, dataInicio, dataFim);
+  });
+  document.getElementById("btnLimparFiltroDataCotacoes")?.addEventListener("click", () => {
+    document.getElementById("cotFiltroDataInicio").value = "";
+    document.getElementById("cotFiltroDataFim").value = "";
+    carregarListaCotacoes(document.getElementById("filtroBusca").value.trim());
   });
 
   // ── Event delegation na tabela de cotações ─────────────────
@@ -75,12 +90,15 @@ export function iniciarCotacao(usuario, dadosUsuario) {
 // ================================================================
 // LISTA DE COTAÇÕES
 // ================================================================
-async function carregarListaCotacoes(termoBusca = "") {
+async function carregarListaCotacoes(termoBusca = "", dataInicio = null, dataFim = null) {
   const tbody = document.getElementById("tbodyCotacoes");
   tbody.innerHTML = `<tr><td colspan="7" class="loading-cell">Carregando...</td></tr>`;
 
   const resultado = await listarCotacoes({
-    cliente: termoBusca || null
+    cliente: termoBusca || null,
+    dataInicio,
+    dataFim,
+    limitQtd: (dataInicio || dataFim) ? 500 : 50
   });
 
   if (!resultado.sucesso) {
