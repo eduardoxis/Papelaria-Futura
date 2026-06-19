@@ -93,7 +93,7 @@ export function iniciarCotacao(usuario, dadosUsuario) {
 // ================================================================
 async function carregarListaCotacoes(termoBusca = "", dataInicio = null, dataFim = null) {
   const tbody = document.getElementById("tbodyCotacoes");
-  tbody.innerHTML = `<tr><td colspan="7" class="loading-cell">Carregando...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="5" class="loading-cell">Carregando...</td></tr>`;
 
   const resultado = await listarCotacoes({
     cliente: termoBusca || null,
@@ -103,26 +103,29 @@ async function carregarListaCotacoes(termoBusca = "", dataInicio = null, dataFim
   });
 
   if (!resultado.sucesso) {
-    tbody.innerHTML = `<tr><td colspan="7" class="loading-cell">Erro ao carregar cotações.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="loading-cell">Erro ao carregar cotações.</td></tr>`;
     return;
   }
 
   const { cotacoes } = resultado;
 
   if (cotacoes.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty-cell">Nenhuma cotação encontrada.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" class="empty-cell">Nenhuma cotação encontrada.</td></tr>`;
     return;
   }
 
   // Sem onclick inline — usa data-action + event delegation (acima)
   tbody.innerHTML = cotacoes.map(c => `
     <tr>
-      <td><strong>${escHtml(c.cliente || "—")}</strong></td>
-      <td>${escHtml(c.cnpj || "—")}</td>
-      <td>${formatarData(c.dataCriacao)}</td>
-      <td>${escHtml(c.validade || "—")}</td>
-      <td class="col-right"><strong>${formatarMoeda(c.valorTotal)}</strong></td>
-      <td>${badgeStatus(c.status)}</td>
+      <td class="td-cliente-row">
+        <strong>${escHtml(c.cliente || "—")}</strong>
+        <strong class="td-valor-mobile">${formatarMoeda(c.valorTotal)}</strong>
+      </td>
+      <td class="td-data-col">${formatarData(c.dataCriacao)}</td>
+      <td class="col-right td-valor-col"><strong>${formatarMoeda(c.valorTotal)}</strong></td>
+      <td class="td-status-actions-row">
+        ${badgeStatus(c.status)}
+      </td>
       <td class="td-actions-col col-center">
         <div class="td-actions-wrap td-actions-wrap--cotacoes">
           <button class="btn-action btn-action--view"
