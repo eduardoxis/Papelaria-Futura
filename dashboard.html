@@ -274,6 +274,20 @@
         <button class="btn-ghost" id="btnLimparBusca">Limpar</button>
       </div>
 
+      <!-- Filtro por período -->
+      <div class="filter-bar">
+        <div class="filter-periodo">
+          <label class="field-label" style="white-space:nowrap">Data inicial</label>
+          <input type="date" class="filter-input filter-input--date" id="cotFiltroDataInicio" />
+        </div>
+        <div class="filter-periodo">
+          <label class="field-label" style="white-space:nowrap">Data final</label>
+          <input type="date" class="filter-input filter-input--date" id="cotFiltroDataFim" />
+        </div>
+        <button class="btn-secondary" id="btnAplicarFiltroDataCotacoes">Filtrar</button>
+        <button class="btn-ghost" id="btnLimparFiltroDataCotacoes">Limpar</button>
+      </div>
+
       <div class="card">
         <div class="table-wrap">
           <table class="data-table" id="tabelaCotacoes">
