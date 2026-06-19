@@ -14,6 +14,7 @@ let _usuario      = null;
 let _dadosUsuario = null;
 let _contadorLinhas = 0;
 let _modoSomenteLeitura = false;
+let _funcionarioCotacaoAtual = null; // nome de quem realmente criou/editou a cotação carregada
 
 export function iniciarCotacao(usuario, dadosUsuario) {
   _usuario      = usuario;
@@ -155,6 +156,7 @@ async function carregarListaCotacoes(termoBusca = "", dataInicio = null, dataFim
 // ================================================================
 function prepararNovaCotacao() {
   restaurarModoEdicao();
+  _funcionarioCotacaoAtual = null;
   document.getElementById("cotacaoEditandoId").value = "";
   document.getElementById("titleFormCotacao").textContent = "Nova Cotação";
   const tituloMobile = document.getElementById("titleFormCotacaoMobile");
@@ -322,7 +324,7 @@ function coletarDadosCotacao() {
   const itens    = coletarItens();
   const valorTotal = itens.reduce((s, i) => s + i.valorTotal, 0);
 
-  return { cliente, cnpj, validade, observacoes: obs, status, itens, valorTotal };
+  return { cliente, cnpj, validade, observacoes: obs, status, itens, valorTotal, funcionario: nomeFuncionarioLogado() };
 }
 
 // ================================================================
@@ -387,6 +389,7 @@ async function abrirCotacaoSomenteLeitura(id) {
   }
 
   const c = resultado.dados;
+  _funcionarioCotacaoAtual = c.funcionario || null;
 
   document.getElementById("cotacaoEditandoId").value      = id;
   document.getElementById("titleFormCotacao").textContent = "Visualizar Cotação";
@@ -446,6 +449,7 @@ async function editarCotacaoById(id) {
   }
 
   const c = resultado.dados;
+  _funcionarioCotacaoAtual = c.funcionario || null;
 
   document.getElementById("cotacaoEditandoId").value       = id;
   document.getElementById("titleFormCotacao").textContent  = "Editar Cotação";
@@ -517,7 +521,11 @@ function gerarPDFDaTela() {
     window.mostrarToast?.("Adicione ao menos um item.", "warning");
     return;
   }
-  dados.funcionario = nomeFuncionarioLogado();
+  // Só usa o usuário logado como "elaborado por" se for uma cotação nova
+  // (ainda não salva). Se já existe (visualizando/editando), mantém o
+  // nome de quem realmente criou/editou pela última vez via salvarCotacao.
+  const idEditando = document.getElementById("cotacaoEditandoId").value;
+  dados.funcionario = idEditando ? (_funcionarioCotacaoAtual || "—") : nomeFuncionarioLogado();
   gerarPDF(dados);
 }
 
@@ -528,7 +536,9 @@ async function gerarPDFById(id) {
     return;
   }
   const dados = resultado.dados;
-  dados.funcionario = nomeFuncionarioLogado();
+  // Mantém o elaborador real já salvo na cotação — apenas baixar/abrir o
+  // PDF não deve mudar quem aparece como responsável.
+  dados.funcionario = dados.funcionario || "—";
   gerarPDF(dados);
 }
 
