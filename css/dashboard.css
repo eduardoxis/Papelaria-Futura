@@ -958,10 +958,6 @@ body {
   border-color: var(--blue-200);
   color: var(--blue-500);
 }
-#btnToggleValores svg[hidden],
-#btnToggleValores svg.icon-oculto {
-  display: none !important;
-}
 
 /* Quando o body tem .valores-ocultos, todo elemento .valor-protegido
    tem seu texto trocado visualmente por bolinhas, sem alterar o DOM
