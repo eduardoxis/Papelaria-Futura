@@ -117,7 +117,7 @@ async function carregarListaCotacoes(termoBusca = "", dataInicio = null, dataFim
   // Sem onclick inline — usa data-action + event delegation (acima)
   tbody.innerHTML = cotacoes.map(c => `
     <tr>
-      <td class="td-cliente-row">
+      <td class="td-cliente-row" title="${escHtml(c.cliente || "—")}">
         <strong>${escHtml(c.cliente || "—")}</strong>
       </td>
       <td class="td-data-col">${formatarData(c.dataCriacao)}</td>
