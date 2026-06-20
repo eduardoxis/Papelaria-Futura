@@ -814,6 +814,8 @@
       btn.title = ocultar ? "Mostrar valores" : "Ocultar valores";
       iconAberto.hidden  = ocultar;
       iconFechado.hidden = !ocultar;
+      iconAberto.classList.toggle("icon-oculto", ocultar);
+      iconFechado.classList.toggle("icon-oculto", !ocultar);
     }
 
     // Restaura preferência salva
