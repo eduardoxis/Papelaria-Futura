@@ -932,3 +932,22 @@ body {
   flex-shrink: 0;
   white-space: nowrap;
 }
+
+/* Página cotações — coluna Cliente: largura limitada e nome truncado
+   com reticências, para o badge de Status não ficar colado nos
+   botões de Ações */
+#tabelaCotacoes .td-cliente-row {
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#tabelaCotacoes .td-cliente-row strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#tabelaCotacoes .td-status-actions-row {
+  padding-right: var(--space-6);
+}
