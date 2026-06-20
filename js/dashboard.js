@@ -101,10 +101,10 @@ function renderizarUltimas(cotacoes) {
     <tr>
       <td class="td-cliente-row">
         <strong>${escHtml(c.cliente || "—")}</strong>
-        <strong class="td-valor-mobile">${formatarMoeda(c.valorTotal)}</strong>
+        <strong class="td-valor-mobile valor-protegido">${formatarMoeda(c.valorTotal)}</strong>
       </td>
       <td class="td-data-col">${formatarData(c.dataCriacao)}</td>
-      <td class="col-right td-valor-col"><strong>${formatarMoeda(c.valorTotal)}</strong></td>
+      <td class="col-right td-valor-col"><strong class="valor-protegido">${formatarMoeda(c.valorTotal)}</strong></td>
       <td class="td-status-actions-row">
         ${badgeStatus(c.status)}
       </td>
