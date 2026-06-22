@@ -982,3 +982,24 @@ body.valores-ocultos .col-right .valor-protegido::after,
 body.valores-ocultos .td-valor-col .valor-protegido::after {
   justify-content: flex-end;
 }
+
+
+/* ----------------------------------------------------------------
+   Filtro por período (data inicial / data final)
+   Usado em Cotações e Comissão
+   ---------------------------------------------------------------- */
+.filter-periodo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.filter-input--date {
+  padding-left: var(--space-3);
+  width: auto;
+}
+
+/* Botão olho — variante de ícone hidden */
+#btnToggleValores svg[hidden] {
+  display: none !important;
+}
