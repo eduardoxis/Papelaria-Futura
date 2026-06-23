@@ -1,6 +1,6 @@
 // ============================================================
 // pdf.js — Gerador de Cotação PDF — Papelaria Futura Centro
-// Usa jsPDF + jsPDF-AutoTable (CDN no dashboard.html)
+// Usa jsPDF + jsPDF-AutoTable (CDN no index.html)
 // ============================================================
 
 // ── Carrega uma imagem (caminho relativo) e converte para base64 ──
