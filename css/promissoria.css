@@ -1,0 +1,86 @@
+/* ============================================================
+   promissoria.css — Estilos da aba Promissórias
+   Papelaria Futura
+   ============================================================ */
+
+/* ── Botões de ação na tabela ──────────────────────────────── */
+.actions-cell {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-table-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  color: var(--gray-500);
+  flex-shrink: 0;
+}
+
+.btn-table-action svg {
+  width: 16px;
+  height: 16px;
+}
+
+.btn-table-action--view:hover {
+  background: var(--blue-50, #EFF6FF);
+  color: var(--blue-600);
+  border-color: var(--blue-200, #BFDBFE);
+}
+
+.btn-table-action--delete:hover {
+  background: #FEE2E2;
+  color: #DC2626;
+  border-color: #FECACA;
+}
+
+/* ── Painel de detalhes do cliente ─────────────────────────── */
+#painelDetalhesClienteProm .card {
+  margin-bottom: var(--space-5);
+}
+
+#painelDetalhesClienteProm .card:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Card header com título + badge contador ────────────────── */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.card-section-title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+/* ── Stat card valor menor (telas menores) ──────────────────── */
+.stat-card__value--sm {
+  font-size: clamp(1rem, 2.5vw, 1.25rem) !important;
+  word-break: break-all;
+}
+
+/* ── Responsivo — filtros empilhados no mobile ──────────────── */
+@media (max-width: 640px) {
+  #painelListaClientesProm .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #painelListaClientesProm .filter-bar input,
+  #painelListaClientesProm .filter-bar select {
+    width: 100%;
+  }
+}
