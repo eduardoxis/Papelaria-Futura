@@ -39,6 +39,11 @@ export function iniciarPromissoria(usuario, dadosUsuario) {
   // Botão novo cliente
   document.getElementById("btnNovoClienteProm")?.addEventListener("click", abrirModalNovoCliente);
 
+  // Abas Clientes / Dashboard
+  document.getElementById("tabPromClientes")?.addEventListener("click", () => trocarAbaProm("clientes"));
+  document.getElementById("tabPromDashboard")?.addEventListener("click", () => trocarAbaProm("dashboard"));
+  document.getElementById("btnAtualizarDashProm")?.addEventListener("click", carregarDashboardProm);
+
   // Filtros da listagem
   document.getElementById("btnBuscarProm")?.addEventListener("click", () => {
     const termo = document.getElementById("filtroBuscaProm").value.trim();
@@ -105,8 +110,28 @@ export function iniciarPromissoria(usuario, dadosUsuario) {
 
 // ── Navegação interna ────────────────────────────────────────
 function mostrarPainel(painel) {
-  document.getElementById("painelListaClientesProm").hidden  = painel !== "lista";
+  document.getElementById("painelListaClientesProm").hidden   = painel !== "lista";
   document.getElementById("painelDetalhesClienteProm").hidden = painel !== "detalhes";
+  document.getElementById("painelDashboardProm").hidden       = painel !== "dashboard";
+}
+
+// ── Abas Clientes / Dashboard ─────────────────────────────────
+function trocarAbaProm(aba) {
+  const tabClientes  = document.getElementById("tabPromClientes");
+  const tabDashboard = document.getElementById("tabPromDashboard");
+
+  tabClientes.classList.toggle("prom-tab--active", aba === "clientes");
+  tabDashboard.classList.toggle("prom-tab--active", aba === "dashboard");
+  tabClientes.setAttribute("aria-selected", aba === "clientes");
+  tabDashboard.setAttribute("aria-selected", aba === "dashboard");
+
+  if (aba === "dashboard") {
+    mostrarPainel("dashboard");
+    carregarDashboardProm();
+  } else {
+    mostrarPainel("lista");
+    carregarListaClientes();
+  }
 }
 
 // ── Carregamento inicial da página ───────────────────────────
@@ -167,6 +192,263 @@ async function carregarIndicadores() {
   } catch (err) {
     console.error("Erro ao carregar indicadores:", err);
   }
+}
+
+// ============================================================
+// DASHBOARD — gráficos (estilo Power BI) com dados da Promissória
+// ============================================================
+
+// Paleta de cores no estilo Power BI
+const PROM_CORES = {
+  azul:     "#118DFF",
+  azulEsc:  "#002D94",
+  verde:    "#10B981",
+  amarelo:  "#F2C80F",
+  vermelho: "#E54957",
+  roxo:     "#7C3AED",
+  cinza:    "#94A3B8",
+  laranja:  "#FD625E"
+};
+
+const _promCharts = {}; // guarda instâncias do Chart.js para destruir/recriar
+
+function _destruirChart(id) {
+  if (_promCharts[id]) {
+    _promCharts[id].destroy();
+    delete _promCharts[id];
+  }
+}
+
+async function carregarDashboardProm() {
+  if (typeof Chart === "undefined") {
+    console.error("Chart.js não carregado.");
+    return;
+  }
+
+  const el = id => document.getElementById(id);
+  ["dashIndVendido","dashIndRecebido","dashIndAberto","dashIndTicket","dashIndInadimplencia"].forEach(i => {
+    const e = el(i); if (e) e.textContent = "—";
+  });
+
+  try {
+    const [clientesSnap, comprasSnap, pagamentosSnap] = await Promise.all([
+      getDocs(collection(db, COL_CLIENTES)),
+      getDocs(collection(db, COL_COMPRAS)),
+      getDocs(collection(db, COL_PAGAMENTOS))
+    ]);
+
+    const hoje = new Date();
+
+    const compras = [];
+    comprasSnap.forEach(d => compras.push({ id: d.id, ...d.data() }));
+
+    const pagamentos = [];
+    pagamentosSnap.forEach(d => pagamentos.push({ id: d.id, ...d.data() }));
+
+    const clientes = [];
+    clientesSnap.forEach(d => clientes.push({ id: d.id, ...d.data() }));
+
+    // ── KPIs ──────────────────────────────────────────────────
+    const totalVendido   = compras.reduce((s, c) => s + (c.valor || 0), 0);
+    const totalRecebido  = pagamentos.reduce((s, p) => s + (p.valor || 0), 0);
+    const totalAberto    = Math.max(0, totalVendido - totalRecebido);
+    const ticketMedio    = compras.length ? totalVendido / compras.length : 0;
+
+    // ── Situação por cliente (para inadimplência e gráfico de pizza) ──
+    const saldoPorCliente = {};
+    compras.forEach(c => {
+      if (!saldoPorCliente[c.clienteId]) saldoPorCliente[c.clienteId] = { compras: 0, pagamentos: 0, vencido: false };
+      saldoPorCliente[c.clienteId].compras += c.valor || 0;
+      if (c.vencimento) {
+        const venc = c.vencimento.toDate?.() || new Date(c.vencimento);
+        if (venc < hoje) saldoPorCliente[c.clienteId].vencido = true;
+      }
+    });
+    pagamentos.forEach(p => {
+      if (!saldoPorCliente[p.clienteId]) saldoPorCliente[p.clienteId] = { compras: 0, pagamentos: 0, vencido: false };
+      saldoPorCliente[p.clienteId].pagamentos += p.valor || 0;
+    });
+
+    let quitados = 0, pendentes = 0, atrasados = 0;
+    clientes.forEach(c => {
+      const s = saldoPorCliente[c.id] || { compras: 0, pagamentos: 0, vencido: false };
+      const saldo = s.compras - s.pagamentos;
+      if (saldo <= 0) quitados++;
+      else if (s.vencido) atrasados++;
+      else pendentes++;
+    });
+
+    const inadimplencia = clientes.length ? (atrasados / clientes.length) * 100 : 0;
+
+    if (el("dashIndVendido"))      el("dashIndVendido").textContent      = formatarMoeda(totalVendido);
+    if (el("dashIndRecebido"))     el("dashIndRecebido").textContent     = formatarMoeda(totalRecebido);
+    if (el("dashIndAberto"))       el("dashIndAberto").textContent       = formatarMoeda(totalAberto);
+    if (el("dashIndTicket"))       el("dashIndTicket").textContent       = formatarMoeda(ticketMedio);
+    if (el("dashIndInadimplencia")) el("dashIndInadimplencia").textContent = inadimplencia.toFixed(1) + "%";
+
+    // ── Gráfico 1: Vendas x Recebimentos (últimos 6 meses) ─────
+    const meses6 = _ultimosMeses(6);
+    const vendasPorMes6 = meses6.map(m => _somaPorMes(compras, "dataCompra", m));
+    const recebPorMes6  = meses6.map(m => _somaPorMes(pagamentos, "dataPagamento", m));
+
+    _destruirChart("chartEvolucao");
+    _promCharts.chartEvolucao = new Chart(el("chartEvolucao"), {
+      type: "bar",
+      data: {
+        labels: meses6.map(m => m.label),
+        datasets: [
+          { label: "Vendido",   data: vendasPorMes6, backgroundColor: PROM_CORES.azul,  borderRadius: 4 },
+          { label: "Recebido",  data: recebPorMes6,  backgroundColor: PROM_CORES.verde, borderRadius: 4 }
+        ]
+      },
+      options: _opcoesBase({
+        scales: {
+          y: { beginAtZero: true, ticks: { callback: v => formatarMoeda(v) } }
+        }
+      })
+    });
+
+    // ── Gráfico 2: Situação dos clientes (donut) ───────────────
+    _destruirChart("chartSituacao");
+    _promCharts.chartSituacao = new Chart(el("chartSituacao"), {
+      type: "doughnut",
+      data: {
+        labels: ["Quitado", "Pendente", "Atrasado"],
+        datasets: [{
+          data: [quitados, pendentes, atrasados],
+          backgroundColor: [PROM_CORES.verde, PROM_CORES.amarelo, PROM_CORES.vermelho],
+          borderWidth: 0
+        }]
+      },
+      options: _opcoesBase({ cutout: "65%", scales: undefined })
+    });
+
+    // ── Gráfico 3: Recebimentos por forma de pagamento (pizza) ──
+    const porForma = {};
+    pagamentos.forEach(p => {
+      const f = p.forma || "Não informado";
+      porForma[f] = (porForma[f] || 0) + (p.valor || 0);
+    });
+    const formasLabels = Object.keys(porForma);
+    const formasValores = formasLabels.map(f => porForma[f]);
+
+    _destruirChart("chartFormaPagamento");
+    _promCharts.chartFormaPagamento = new Chart(el("chartFormaPagamento"), {
+      type: "pie",
+      data: {
+        labels: formasLabels.length ? formasLabels : ["Sem dados"],
+        datasets: [{
+          data: formasValores.length ? formasValores : [1],
+          backgroundColor: [PROM_CORES.azul, PROM_CORES.verde, PROM_CORES.amarelo, PROM_CORES.roxo, PROM_CORES.laranja, PROM_CORES.cinza],
+          borderWidth: 0
+        }]
+      },
+      options: _opcoesBase({ scales: undefined })
+    });
+
+    // ── Gráfico 4: Top 10 clientes por saldo devedor (barra horizontal) ──
+    const nomePorId = {};
+    clientes.forEach(c => nomePorId[c.id] = c.nome || "—");
+
+    const devedores = Object.entries(saldoPorCliente)
+      .map(([id, s]) => ({ nome: nomePorId[id] || "—", saldo: s.compras - s.pagamentos }))
+      .filter(d => d.saldo > 0)
+      .sort((a, b) => b.saldo - a.saldo)
+      .slice(0, 10);
+
+    _destruirChart("chartTopDevedores");
+    _promCharts.chartTopDevedores = new Chart(el("chartTopDevedores"), {
+      type: "bar",
+      data: {
+        labels: devedores.map(d => d.nome),
+        datasets: [{ label: "Saldo Devedor", data: devedores.map(d => d.saldo), backgroundColor: PROM_CORES.vermelho, borderRadius: 4 }]
+      },
+      options: _opcoesBase({
+        indexAxis: "y",
+        scales: {
+          x: { beginAtZero: true, ticks: { callback: v => formatarMoeda(v) } }
+        }
+      })
+    });
+
+    // ── Gráfico 5: Novas compras por mês (últimos 12 meses) ─────
+    const meses12 = _ultimosMeses(12);
+    const comprasPorMes12 = meses12.map(m => _contagemPorMes(compras, "dataCompra", m));
+
+    _destruirChart("chartComprasMes");
+    _promCharts.chartComprasMes = new Chart(el("chartComprasMes"), {
+      type: "line",
+      data: {
+        labels: meses12.map(m => m.label),
+        datasets: [{
+          label: "Compras",
+          data: comprasPorMes12,
+          borderColor: PROM_CORES.azulEsc,
+          backgroundColor: "rgba(0,45,148,0.1)",
+          tension: 0.35,
+          fill: true,
+          pointRadius: 3
+        }]
+      },
+      options: _opcoesBase({
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+      })
+    });
+
+  } catch (err) {
+    console.error("Erro ao carregar dashboard:", err);
+    window.mostrarToast?.("Erro ao carregar dashboard.", "error");
+  }
+}
+
+// Opções padrão dos gráficos (visual clean, estilo Power BI)
+function _opcoesBase(extra = {}) {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 11 } } },
+      tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label || ctx.label}: ${formatarMoeda(ctx.raw)}` } }
+    },
+    ...extra
+  };
+}
+
+// Gera os últimos N meses (mais antigo → mais recente) com label "mmm/aa"
+function _ultimosMeses(n) {
+  const hoje = new Date();
+  const lista = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+    lista.push({
+      ano: d.getFullYear(),
+      mes: d.getMonth(),
+      label: d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }).replace(".", "")
+    });
+  }
+  return lista;
+}
+
+function _somaPorMes(lista, campoData, mesRef) {
+  return lista.reduce((soma, item) => {
+    const data = item[campoData]?.toDate?.() || (item[campoData] ? new Date(item[campoData]) : null);
+    if (!data) return soma;
+    if (data.getFullYear() === mesRef.ano && data.getMonth() === mesRef.mes) {
+      return soma + (item.valor || 0);
+    }
+    return soma;
+  }, 0);
+}
+
+function _contagemPorMes(lista, campoData, mesRef) {
+  return lista.reduce((cont, item) => {
+    const data = item[campoData]?.toDate?.() || (item[campoData] ? new Date(item[campoData]) : null);
+    if (!data) return cont;
+    if (data.getFullYear() === mesRef.ano && data.getMonth() === mesRef.mes) {
+      return cont + 1;
+    }
+    return cont;
+  }, 0);
 }
 
 // ── Listagem de clientes ─────────────────────────────────────
