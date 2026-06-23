@@ -1,5 +1,5 @@
 // ============================================================
-// dashboard.js — Lógica do painel principal
+// index.js — Lógica do painel principal
 // ============================================================
 
 import { buscarEstatisticas, listarCotacoes, formatarMoeda, formatarData } from "./database.js";
