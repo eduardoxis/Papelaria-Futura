@@ -27,18 +27,18 @@ export async function verificarAdmin(uid) {
 // ── Logout ─────────────────────────────────────────────────────
 export async function logoutUsuario() {
   await signOut(auth).catch(() => {});
-  window.location.href = "/index.html";
+  window.location.href = "/login.html";
 }
 
 // ── Proteção de rota ───────────────────────────────────────────
 // Chama callbackAutenticado(usuario, dadosUsuario) se logado,
-// senão redireciona para /index.html. Sem onAuthStateChanged —
+// senão redireciona para /login.html. Sem onAuthStateChanged —
 // usa authStateReady() que resolve uma única vez, sem emitir null.
 export function protegerRota(callbackAutenticado) {
   auth.authStateReady().then(async () => {
     const usuario = auth.currentUser;
     if (!usuario) {
-      window.location.href = "/index.html";
+      window.location.href = "/login.html";
       return;
     }
     const dados = await buscarDadosUsuario(usuario.uid);
