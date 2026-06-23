@@ -10,7 +10,7 @@ import {
   createUserWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { auth } from "./firebase-config.js";
-import { escHtml } from "./dashboard.js";
+import { escHtml } from "./index.js";
 import { formatarData, formatarDataHora } from "./database.js";
 
 let _dadosUsuario = null;
