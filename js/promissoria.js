@@ -896,22 +896,55 @@ async function exportarRelatorio() {
   } catch (err) { console.error(err); window.mostrarToast?.("Erro ao exportar.", "error"); }
 }
 
-// ── Importação CSV ───────────────────────────────────────────
+// ── Importação CSV / XLSX ────────────────────────────────────
 async function importarCSV(file) {
-  const texto = await file.text();
-  const linhas = texto.split(/\r?\n/).filter(l => l.trim());
+  let linhasRaw = []; // array de arrays de strings
 
-  if (linhas.length < 2) {
-    window.mostrarToast?.("CSV vazio ou inválido.", "error");
+  try {
+    const ext = file.name.split(".").pop().toLowerCase();
+
+    if (ext === "xlsx" || ext === "xls") {
+      // ── Leitura via SheetJS ──────────────────────────────
+      if (!window.XLSX) {
+        window.mostrarToast?.("Biblioteca XLSX ainda carregando, tente novamente.", "error");
+        return;
+      }
+      const buffer = await file.arrayBuffer();
+      const wb     = window.XLSX.read(buffer, { type: "array", cellDates: true });
+      const ws     = wb.Sheets[wb.SheetNames[0]];
+      const dados  = window.XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+      linhasRaw    = dados.map(row => row.map(cel => {
+        if (cel instanceof Date) {
+          // Formatar datas como DD/MM/YYYY para o parser já existente
+          const d = cel;
+          return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
+        }
+        return String(cel ?? "").trim();
+      }));
+    } else {
+      // ── Leitura de CSV puro ──────────────────────────────
+      const texto = await file.text();
+      const sep   = texto.split("\n")[0].includes(";") ? ";" : ",";
+      linhasRaw   = texto
+        .split(/\r?\n/)
+        .filter(l => l.trim())
+        .map(l => l.split(sep).map(v => v.trim().replace(/^"|"$/g, "")));
+    }
+  } catch (err) {
+    console.error("Erro ao ler arquivo:", err);
+    window.mostrarToast?.("Erro ao ler o arquivo. Verifique o formato.", "error");
     return;
   }
 
-  // Detectar separador (ponto-e-vírgula ou vírgula)
-  const sep = linhas[0].includes(";") ? ";" : ",";
-  const cabecalho = linhas[0].split(sep).map(c => c.trim().toUpperCase().replace(/\s+/g, " "));
+  if (linhasRaw.length < 2) {
+    window.mostrarToast?.("Arquivo vazio ou inválido.", "error");
+    return;
+  }
 
-  // Mapear colunas pelo cabeçalho (suporta formato da planilha e formato do exportarRelatorio)
-  const col = (nomes) => {
+  // ── Mapear colunas pelo cabeçalho ────────────────────────
+  const cabecalho = linhasRaw[0].map(c => String(c).toUpperCase().replace(/\s+/g, " ").trim());
+
+  const col = (...nomes) => {
     for (const n of nomes) {
       const idx = cabecalho.findIndex(c => c.includes(n));
       if (idx !== -1) return idx;
@@ -919,43 +952,40 @@ async function importarCSV(file) {
     return -1;
   };
 
-  const iNome       = col(["NOME"]);
-  const iTelefone   = col(["TELEFONE", "FONE", "CELULAR"]);
-  const iCompra1    = col(["COMPRA 1"]);
-  const iDataC1     = col(["DATA COMPRA 1"]);
-  const iCompra2    = col(["COMPRA 2", "COMPRA  2"]);
-  const iDataC2     = col(["DATA COMPRA 2", "DATA COMPRA  2"]);
-  const iCompra3    = col(["COMPRA 3"]);
-  const iDataC3     = col(["DATA COMPRA 3", "DATA COMPRA  3"]);
-  const iCompra4    = col(["COMPRA 4"]);
-  const iDataC4     = col(["DATA COMPRA 4", "DATA COMPRA  4"]);
-  const iCompra5    = col(["COMPRA 5", "COMPRA  5"]);
-  const iDataC5     = col(["DATA COMPRA 5", "DATA COMPRA  5"]);
-  const iVencimento = col(["DATA VENCIMENTO", "VENCIMENTO"]);
-  const iPago       = col(["VALOR PAGO", "TOTAL PAGO"]);
-  const iDataPag    = col(["DATA PAGAMENTO"]);
+  const iNome       = col("NOME");
+  const iTelefone   = col("TELEFONE", "FONE", "CELULAR");
+  const iCompra1    = col("COMPRA 1");
+  const iDataC1     = col("DATA COMPRA 1");
+  const iCompra2    = col("COMPRA 2", "COMPRA  2");
+  const iDataC2     = col("DATA COMPRA 2", "DATA COMPRA  2");
+  const iCompra3    = col("COMPRA 3");
+  const iDataC3     = col("DATA COMPRA 3", "DATA COMPRA  3");
+  const iCompra4    = col("COMPRA 4");
+  const iDataC4     = col("DATA COMPRA 4", "DATA COMPRA  4");
+  const iCompra5    = col("COMPRA 5", "COMPRA  5");
+  const iDataC5     = col("DATA COMPRA 5", "DATA COMPRA  5");
+  const iVencimento = col("DATA VENCIMENTO", "VENCIMENTO");
+  const iPago       = col("VALOR PAGO", "TOTAL PAGO");
+  const iDataPag    = col("DATA PAGAMENTO");
 
   if (iNome === -1) {
-    window.mostrarToast?.("Coluna NOME não encontrada no CSV.", "error");
+    window.mostrarToast?.("Coluna NOME não encontrada. Verifique o arquivo.", "error");
     return;
   }
 
-  // Mostrar modal de prévia e confirmação
-  const dadosLinhas = linhas.slice(1).map(l => {
-    const c = l.split(sep).map(v => v.trim().replace(/^"|"$/g, ""));
-    return c;
-  }).filter(c => c[iNome]);
+  const dadosLinhas = linhasRaw.slice(1).filter(c => String(c[iNome] || "").trim());
 
   if (!dadosLinhas.length) {
-    window.mostrarToast?.("Nenhum cliente encontrado no CSV.", "error");
+    window.mostrarToast?.("Nenhum cliente encontrado no arquivo.", "error");
     return;
   }
 
+  // ── Modal de prévia ──────────────────────────────────────
   const body = `
     <div style="margin-bottom:var(--space-4)">
       <p style="font-size:var(--text-sm);color:var(--gray-600);margin-bottom:var(--space-3)">
-        Foram encontrados <strong>${dadosLinhas.length} cliente(s)</strong> no arquivo. 
-        Clientes com o mesmo nome serão ignorados (não duplicados).
+        Foram encontrados <strong>${dadosLinhas.length} cliente(s)</strong> no arquivo.
+        Clientes com o mesmo nome já cadastrados serão ignorados.
       </p>
       <div style="max-height:260px;overflow-y:auto;border:1px solid var(--gray-200);border-radius:var(--radius-md)">
         <table style="width:100%;border-collapse:collapse;font-size:var(--text-xs)">
@@ -963,22 +993,20 @@ async function importarCSV(file) {
             <tr>
               <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--gray-600);border-bottom:1px solid var(--gray-200)">Nome</th>
               <th style="padding:8px 12px;text-align:right;font-weight:600;color:var(--gray-600);border-bottom:1px solid var(--gray-200)">Compras</th>
-              <th style="padding:8px 12px;text-align:right;font-weight:600;color:var(--gray-600);border-bottom:1px solid var(--gray-200)">Valor Total</th>
-              <th style="padding:8px 12px;text-align:right;font-weight:600;color:var(--gray-600);border-bottom:1px solid var(--gray-200)">Valor Pago</th>
+              <th style="padding:8px 12px;text-align:right;font-weight:600;color:var(--gray-600);border-bottom:1px solid var(--gray-200)">Total</th>
+              <th style="padding:8px 12px;text-align:right;font-weight:600;color:var(--gray-600);border-bottom:1px solid var(--gray-200)">Pago</th>
             </tr>
           </thead>
           <tbody>
-            ${dadosLinhas.map((c, i) => {
-              const nome = c[iNome] || "—";
-              const compras = [
-                [iCompra1, iDataC1], [iCompra2, iDataC2], [iCompra3, iDataC3],
-                [iCompra4, iDataC4], [iCompra5, iDataC5]
-              ].filter(([iv]) => iv !== -1 && parseFloat(c[iv]) > 0);
-              const totalComprado = compras.reduce((s, [iv]) => s + (parseFloat(c[iv]) || 0), 0);
-              const totalPago = iPago !== -1 ? (parseFloat(c[iPago]) || 0) : 0;
+            ${dadosLinhas.map(c => {
+              const nome = String(c[iNome] || "").trim();
+              const pares = [[iCompra1,iDataC1],[iCompra2,iDataC2],[iCompra3,iDataC3],[iCompra4,iDataC4],[iCompra5,iDataC5]];
+              const comprasValidas = pares.filter(([iv]) => iv !== -1 && parseFloat(c[iv]) > 0);
+              const totalComprado  = comprasValidas.reduce((s,[iv]) => s + (parseFloat(c[iv]) || 0), 0);
+              const totalPago      = iPago !== -1 ? (parseFloat(c[iPago]) || 0) : 0;
               return `<tr style="border-bottom:1px solid var(--gray-100)">
                 <td style="padding:7px 12px;color:var(--gray-800)">${escHtml(nome)}</td>
-                <td style="padding:7px 12px;text-align:right;color:var(--gray-600)">${compras.length}</td>
+                <td style="padding:7px 12px;text-align:right;color:var(--gray-600)">${comprasValidas.length}</td>
                 <td style="padding:7px 12px;text-align:right;color:var(--gray-700)">${formatarMoeda(totalComprado)}</td>
                 <td style="padding:7px 12px;text-align:right;color:#059669">${formatarMoeda(totalPago)}</td>
               </tr>`;
@@ -992,7 +1020,7 @@ async function importarCSV(file) {
     <button class="btn-ghost" id="btnCancelarModalProm">Cancelar</button>
     <button class="btn-primary" id="btnConfirmarImportacao">Importar ${dadosLinhas.length} cliente(s)</button>`;
 
-  abrirModal("Importar CSV — Prévia", body, footer);
+  abrirModal("Importar — Prévia", body, footer);
 
   document.getElementById("btnCancelarModalProm").onclick = fecharModal;
   document.getElementById("btnConfirmarImportacao").onclick = async () => {
@@ -1002,46 +1030,33 @@ async function importarCSV(file) {
 
     let importados = 0, ignorados = 0, erros = 0;
 
-    // Buscar clientes existentes para evitar duplicatas
     const existentesSnap = await getDocs(collection(db, COL_CLIENTES));
     const nomesExistentes = new Set();
     existentesSnap.forEach(d => nomesExistentes.add((d.data().nome || "").toUpperCase().trim()));
 
     for (const c of dadosLinhas) {
-      const nome = (c[iNome] || "").trim();
+      const nome = String(c[iNome] || "").trim();
       if (!nome) continue;
 
-      if (nomesExistentes.has(nome.toUpperCase())) {
-        ignorados++;
-        continue;
-      }
+      if (nomesExistentes.has(nome.toUpperCase())) { ignorados++; continue; }
 
       try {
-        // Criar cliente
         const clienteRef = await addDoc(collection(db, COL_CLIENTES), {
           nome,
-          telefone:    iTelefone !== -1 ? (c[iTelefone] || "").trim() : "",
+          telefone:    iTelefone !== -1 ? String(c[iTelefone] || "").trim() : "",
           observacoes: "",
           criadoEm:    serverTimestamp()
         });
 
-        const clienteId = clienteRef.id;
-
-        // Registrar compras
-        const pares = [
-          [iCompra1, iDataC1], [iCompra2, iDataC2], [iCompra3, iDataC3],
-          [iCompra4, iDataC4], [iCompra5, iDataC5]
-        ];
-
-        const vencimento = iVencimento !== -1 && c[iVencimento]
-          ? parseDateCSV(c[iVencimento])
-          : null;
+        const clienteId  = clienteRef.id;
+        const vencimento = iVencimento !== -1 && c[iVencimento] ? parseDateCSV(String(c[iVencimento])) : null;
+        const pares      = [[iCompra1,iDataC1],[iCompra2,iDataC2],[iCompra3,iDataC3],[iCompra4,iDataC4],[iCompra5,iDataC5]];
 
         for (const [iv, id] of pares) {
           if (iv === -1) continue;
           const valor = parseFloat(c[iv]);
           if (!valor || valor <= 0) continue;
-          const dataCompra = id !== -1 && c[id] ? parseDateCSV(c[id]) : new Date();
+          const dataCompra = id !== -1 && c[id] ? parseDateCSV(String(c[id])) : new Date();
           await addDoc(collection(db, COL_COMPRAS), {
             clienteId,
             valor,
@@ -1052,19 +1067,16 @@ async function importarCSV(file) {
           });
         }
 
-        // Registrar pagamento se houver
         if (iPago !== -1) {
           const valorPago = parseFloat(c[iPago]);
           if (valorPago > 0) {
-            const dataPag = iDataPag !== -1 && c[iDataPag]
-              ? parseDateCSV(c[iDataPag])
-              : new Date();
+            const dataPag = iDataPag !== -1 && c[iDataPag] ? parseDateCSV(String(c[iDataPag])) : new Date();
             await addDoc(collection(db, COL_PAGAMENTOS), {
               clienteId,
               valor:         valorPago,
               dataPagamento: Timestamp.fromDate(dataPag || new Date()),
               forma:         "Importado",
-              observacoes:   "Importado via CSV",
+              observacoes:   "Importado via planilha",
               criadoEm:      serverTimestamp()
             });
           }
@@ -1073,14 +1085,20 @@ async function importarCSV(file) {
         nomesExistentes.add(nome.toUpperCase());
         importados++;
       } catch (err) {
-        console.error("Erro ao importar linha:", nome, err);
+        console.error("Erro ao importar:", nome, err);
         erros++;
       }
+
+      // Atualizar texto do botão com progresso
+      const total = dadosLinhas.length;
+      const feito = importados + ignorados + erros;
+      const btnAtual = document.getElementById("btnConfirmarImportacao");
+      if (btnAtual) btnAtual.textContent = `Importando... (${feito}/${total})`;
     }
 
     fecharModal();
     window.mostrarToast?.(
-      `Importação concluída: ${importados} importado(s), ${ignorados} ignorado(s)${erros ? `, ${erros} erro(s)` : ""}.`,
+      `Importação concluída: ${importados} importado(s), ${ignorados} ignorado(s)${erros ? `, ${erros} com erro` : ""}.`,
       importados > 0 ? "success" : "error"
     );
     carregarListaClientes();
