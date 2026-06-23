@@ -93,6 +93,14 @@ export function iniciarPromissoria(usuario, dadosUsuario) {
   // Botões de relatório/exportação
   document.getElementById("btnExportarProm")?.addEventListener("click", exportarRelatorio);
   document.getElementById("btnImprimirProm")?.addEventListener("click", imprimirRelatorio);
+  document.getElementById("btnImportarCsvProm")?.addEventListener("click", () => {
+    document.getElementById("inputImportarCsvProm").click();
+  });
+  document.getElementById("inputImportarCsvProm")?.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) importarCSV(file);
+    e.target.value = ""; // reset para permitir reimportar mesmo arquivo
+  });
 }
 
 // ── Navegação interna ────────────────────────────────────────
@@ -886,6 +894,211 @@ async function exportarRelatorio() {
     URL.revokeObjectURL(url);
     window.mostrarToast?.("Relatório exportado!", "success");
   } catch (err) { console.error(err); window.mostrarToast?.("Erro ao exportar.", "error"); }
+}
+
+// ── Importação CSV ───────────────────────────────────────────
+async function importarCSV(file) {
+  const texto = await file.text();
+  const linhas = texto.split(/\r?\n/).filter(l => l.trim());
+
+  if (linhas.length < 2) {
+    window.mostrarToast?.("CSV vazio ou inválido.", "error");
+    return;
+  }
+
+  // Detectar separador (ponto-e-vírgula ou vírgula)
+  const sep = linhas[0].includes(";") ? ";" : ",";
+  const cabecalho = linhas[0].split(sep).map(c => c.trim().toUpperCase().replace(/\s+/g, " "));
+
+  // Mapear colunas pelo cabeçalho (suporta formato da planilha e formato do exportarRelatorio)
+  const col = (nomes) => {
+    for (const n of nomes) {
+      const idx = cabecalho.findIndex(c => c.includes(n));
+      if (idx !== -1) return idx;
+    }
+    return -1;
+  };
+
+  const iNome       = col(["NOME"]);
+  const iTelefone   = col(["TELEFONE", "FONE", "CELULAR"]);
+  const iCompra1    = col(["COMPRA 1"]);
+  const iDataC1     = col(["DATA COMPRA 1"]);
+  const iCompra2    = col(["COMPRA 2", "COMPRA  2"]);
+  const iDataC2     = col(["DATA COMPRA 2", "DATA COMPRA  2"]);
+  const iCompra3    = col(["COMPRA 3"]);
+  const iDataC3     = col(["DATA COMPRA 3", "DATA COMPRA  3"]);
+  const iCompra4    = col(["COMPRA 4"]);
+  const iDataC4     = col(["DATA COMPRA 4", "DATA COMPRA  4"]);
+  const iCompra5    = col(["COMPRA 5", "COMPRA  5"]);
+  const iDataC5     = col(["DATA COMPRA 5", "DATA COMPRA  5"]);
+  const iVencimento = col(["DATA VENCIMENTO", "VENCIMENTO"]);
+  const iPago       = col(["VALOR PAGO", "TOTAL PAGO"]);
+  const iDataPag    = col(["DATA PAGAMENTO"]);
+
+  if (iNome === -1) {
+    window.mostrarToast?.("Coluna NOME não encontrada no CSV.", "error");
+    return;
+  }
+
+  // Mostrar modal de prévia e confirmação
+  const dadosLinhas = linhas.slice(1).map(l => {
+    const c = l.split(sep).map(v => v.trim().replace(/^"|"$/g, ""));
+    return c;
+  }).filter(c => c[iNome]);
+
+  if (!dadosLinhas.length) {
+    window.mostrarToast?.("Nenhum cliente encontrado no CSV.", "error");
+    return;
+  }
+
+  const body = `
+    <div style="margin-bottom:var(--space-4)">
+      <p style="font-size:var(--text-sm);color:var(--gray-600);margin-bottom:var(--space-3)">
+        Foram encontrados <strong>${dadosLinhas.length} cliente(s)</strong> no arquivo. 
+        Clientes com o mesmo nome serão ignorados (não duplicados).
+      </p>
+      <div style="max-height:260px;overflow-y:auto;border:1px solid var(--gray-200);border-radius:var(--radius-md)">
+        <table style="width:100%;border-collapse:collapse;font-size:var(--text-xs)">
+          <thead style="position:sticky;top:0;background:#F8FAFC">
+            <tr>
+              <th style="padding:8px 12px;text-align:left;font-weight:600;color:var(--gray-600);border-bottom:1px solid var(--gray-200)">Nome</th>
+              <th style="padding:8px 12px;text-align:right;font-weight:600;color:var(--gray-600);border-bottom:1px solid var(--gray-200)">Compras</th>
+              <th style="padding:8px 12px;text-align:right;font-weight:600;color:var(--gray-600);border-bottom:1px solid var(--gray-200)">Valor Total</th>
+              <th style="padding:8px 12px;text-align:right;font-weight:600;color:var(--gray-600);border-bottom:1px solid var(--gray-200)">Valor Pago</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${dadosLinhas.map((c, i) => {
+              const nome = c[iNome] || "—";
+              const compras = [
+                [iCompra1, iDataC1], [iCompra2, iDataC2], [iCompra3, iDataC3],
+                [iCompra4, iDataC4], [iCompra5, iDataC5]
+              ].filter(([iv]) => iv !== -1 && parseFloat(c[iv]) > 0);
+              const totalComprado = compras.reduce((s, [iv]) => s + (parseFloat(c[iv]) || 0), 0);
+              const totalPago = iPago !== -1 ? (parseFloat(c[iPago]) || 0) : 0;
+              return `<tr style="border-bottom:1px solid var(--gray-100)">
+                <td style="padding:7px 12px;color:var(--gray-800)">${escHtml(nome)}</td>
+                <td style="padding:7px 12px;text-align:right;color:var(--gray-600)">${compras.length}</td>
+                <td style="padding:7px 12px;text-align:right;color:var(--gray-700)">${formatarMoeda(totalComprado)}</td>
+                <td style="padding:7px 12px;text-align:right;color:#059669">${formatarMoeda(totalPago)}</td>
+              </tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+
+  const footer = `
+    <button class="btn-ghost" id="btnCancelarModalProm">Cancelar</button>
+    <button class="btn-primary" id="btnConfirmarImportacao">Importar ${dadosLinhas.length} cliente(s)</button>`;
+
+  abrirModal("Importar CSV — Prévia", body, footer);
+
+  document.getElementById("btnCancelarModalProm").onclick = fecharModal;
+  document.getElementById("btnConfirmarImportacao").onclick = async () => {
+    const btn = document.getElementById("btnConfirmarImportacao");
+    btn.disabled = true;
+    btn.textContent = "Importando...";
+
+    let importados = 0, ignorados = 0, erros = 0;
+
+    // Buscar clientes existentes para evitar duplicatas
+    const existentesSnap = await getDocs(collection(db, COL_CLIENTES));
+    const nomesExistentes = new Set();
+    existentesSnap.forEach(d => nomesExistentes.add((d.data().nome || "").toUpperCase().trim()));
+
+    for (const c of dadosLinhas) {
+      const nome = (c[iNome] || "").trim();
+      if (!nome) continue;
+
+      if (nomesExistentes.has(nome.toUpperCase())) {
+        ignorados++;
+        continue;
+      }
+
+      try {
+        // Criar cliente
+        const clienteRef = await addDoc(collection(db, COL_CLIENTES), {
+          nome,
+          telefone:    iTelefone !== -1 ? (c[iTelefone] || "").trim() : "",
+          observacoes: "",
+          criadoEm:    serverTimestamp()
+        });
+
+        const clienteId = clienteRef.id;
+
+        // Registrar compras
+        const pares = [
+          [iCompra1, iDataC1], [iCompra2, iDataC2], [iCompra3, iDataC3],
+          [iCompra4, iDataC4], [iCompra5, iDataC5]
+        ];
+
+        const vencimento = iVencimento !== -1 && c[iVencimento]
+          ? parseDateCSV(c[iVencimento])
+          : null;
+
+        for (const [iv, id] of pares) {
+          if (iv === -1) continue;
+          const valor = parseFloat(c[iv]);
+          if (!valor || valor <= 0) continue;
+          const dataCompra = id !== -1 && c[id] ? parseDateCSV(c[id]) : new Date();
+          await addDoc(collection(db, COL_COMPRAS), {
+            clienteId,
+            valor,
+            dataCompra:  Timestamp.fromDate(dataCompra || new Date()),
+            vencimento:  vencimento ? Timestamp.fromDate(vencimento) : null,
+            observacoes: "",
+            criadoEm:    serverTimestamp()
+          });
+        }
+
+        // Registrar pagamento se houver
+        if (iPago !== -1) {
+          const valorPago = parseFloat(c[iPago]);
+          if (valorPago > 0) {
+            const dataPag = iDataPag !== -1 && c[iDataPag]
+              ? parseDateCSV(c[iDataPag])
+              : new Date();
+            await addDoc(collection(db, COL_PAGAMENTOS), {
+              clienteId,
+              valor:         valorPago,
+              dataPagamento: Timestamp.fromDate(dataPag || new Date()),
+              forma:         "Importado",
+              observacoes:   "Importado via CSV",
+              criadoEm:      serverTimestamp()
+            });
+          }
+        }
+
+        nomesExistentes.add(nome.toUpperCase());
+        importados++;
+      } catch (err) {
+        console.error("Erro ao importar linha:", nome, err);
+        erros++;
+      }
+    }
+
+    fecharModal();
+    window.mostrarToast?.(
+      `Importação concluída: ${importados} importado(s), ${ignorados} ignorado(s)${erros ? `, ${erros} erro(s)` : ""}.`,
+      importados > 0 ? "success" : "error"
+    );
+    carregarListaClientes();
+    carregarIndicadores();
+  };
+}
+
+function parseDateCSV(valor) {
+  if (!valor) return null;
+  // Formato DD/MM/YYYY
+  const dmY = valor.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (dmY) return new Date(parseInt(dmY[3]), parseInt(dmY[2]) - 1, parseInt(dmY[1]));
+  // Formato YYYY-MM-DD
+  const Ymd = valor.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if (Ymd) return new Date(parseInt(Ymd[1]), parseInt(Ymd[2]) - 1, parseInt(Ymd[3]));
+  // Tentar Date nativo
+  const d = new Date(valor);
+  return isNaN(d) ? null : d;
 }
 
 // ── Helpers ──────────────────────────────────────────────────
