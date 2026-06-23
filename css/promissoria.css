@@ -84,3 +84,75 @@
     width: 100%;
   }
 }
+
+/* ── Abas Clientes / Dashboard ──────────────────────────────── */
+.prom-tabs {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.prom-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px var(--space-4);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--gray-500);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  margin-bottom: -1px;
+}
+
+.prom-tab svg {
+  width: 16px;
+  height: 16px;
+}
+
+.prom-tab:hover {
+  color: var(--gray-800);
+}
+
+.prom-tab--active {
+  color: var(--blue-600);
+  border-bottom-color: var(--blue-600);
+}
+
+/* ── Grade de gráficos do dashboard (estilo Power BI) ───────── */
+.prom-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-5);
+}
+
+.prom-chart-card {
+  padding: var(--space-5);
+}
+
+.prom-chart-card--lg {
+  grid-column: span 2;
+}
+
+.prom-chart-card .card-header {
+  padding: 0 0 var(--space-4) 0;
+  border-bottom: none;
+}
+
+.prom-chart-wrap {
+  position: relative;
+  height: 260px;
+}
+
+.prom-chart-wrap--lg {
+  height: 320px;
+}
+
+@media (max-width: 900px) {
+  .prom-charts-grid { grid-template-columns: 1fr; }
+  .prom-chart-card--lg { grid-column: span 1; }
+}
