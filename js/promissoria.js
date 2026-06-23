@@ -296,24 +296,28 @@ async function abrirPainelCliente(clienteId) {
 
     let pagamentos = [];
     let totalPago  = 0;
+    const pagoPorCompra = {};
     pagamentosSnap.forEach(d => {
       const p = { id: d.id, ...d.data() };
       totalPago += p.valor || 0;
+      if (p.compraId) pagoPorCompra[p.compraId] = (pagoPorCompra[p.compraId] || 0) + (p.valor || 0);
       pagamentos.push(p);
     });
 
     let saldo = totalComprado - totalPago;
 
-    // Calcular juros sobre compras atrasadas
+    // Calcular juros sobre compras atrasadas + saldo individual de cada compra
     let totalJuros = 0;
     compras = compras.map(c => {
-      if (!c.vencimento) return { ...c, juros: 0, valorComJuros: c.valor };
+      const pagoCompra  = pagoPorCompra[c.id] || 0;
+      const saldoCompra = Math.max(0, (c.valor || 0) - pagoCompra);
+      if (!c.vencimento) return { ...c, juros: 0, valorComJuros: c.valor, pagoCompra, saldoCompra };
       const venc = c.vencimento.toDate?.() || new Date(c.vencimento);
-      if (venc >= hoje) return { ...c, juros: 0, valorComJuros: c.valor };
+      if (venc >= hoje) return { ...c, juros: 0, valorComJuros: c.valor, pagoCompra, saldoCompra };
       const mesesAtraso = Math.max(0, Math.floor((hoje - venc) / (30.44 * 24 * 3600 * 1000)));
       const juros = (c.valor || 0) * JUROS_MENSAL * mesesAtraso;
       totalJuros += juros;
-      return { ...c, juros, valorComJuros: (c.valor || 0) + juros, mesesAtraso };
+      return { ...c, juros, valorComJuros: (c.valor || 0) + juros, mesesAtraso, pagoCompra, saldoCompra };
     });
 
     const saldoComJuros = Math.max(0, saldo + totalJuros);
@@ -418,6 +422,8 @@ async function abrirPainelCliente(clienteId) {
                   <th>Vencimento</th>
                   <th>Juros</th>
                   <th>Total c/ Juros</th>
+                  <th>Pago</th>
+                  <th>Saldo</th>
                   <th>Status</th>
                   <th>Obs.</th>
                   <th class="col-center">Ações</th>
@@ -425,7 +431,7 @@ async function abrirPainelCliente(clienteId) {
               </thead>
               <tbody>
                 ${compras.length === 0
-                  ? `<tr><td colspan="8" class="empty-cell">Nenhuma compra registrada.</td></tr>`
+                  ? `<tr><td colspan="10" class="empty-cell">Nenhuma compra registrada.</td></tr>`
                   : compras.map(c => {
                     const venc = c.vencimento ? (c.vencimento.toDate?.() || new Date(c.vencimento)) : null;
                     const atrasada = venc && venc < hoje;
@@ -437,6 +443,8 @@ async function abrirPainelCliente(clienteId) {
                         <td>${venc ? formatarDataLocal(c.vencimento) : "—"}</td>
                         <td>${c.juros > 0 ? `<span style="color:#DC2626">${formatarMoeda(c.juros)}</span>` : "—"}</td>
                         <td>${c.juros > 0 ? `<strong style="color:#DC2626">${formatarMoeda(c.valorComJuros)}</strong>` : formatarMoeda(c.valor)}</td>
+                        <td>${c.pagoCompra > 0 ? `<span style="color:var(--color-success)">${formatarMoeda(c.pagoCompra)}</span>` : "—"}</td>
+                        <td>${c.saldoCompra > 0 ? `<strong style="color:var(--color-danger)">${formatarMoeda(c.saldoCompra)}</strong>` : `<span style="color:var(--color-success)">Quitado</span>`}</td>
                         <td>${c.juros > 0 ? badgeSituacao("Atrasado") : (venc ? badgeSituacao("Pendente") : "—")}</td>
                         <td style="max-width:140px;white-space:normal;font-size:var(--text-xs);color:var(--gray-500)">${escHtml(c.observacoes || "")}</td>
                         <td class="col-center">
@@ -463,20 +471,25 @@ async function abrirPainelCliente(clienteId) {
                 <tr>
                   <th>Data do Pagamento</th>
                   <th>Valor Pago</th>
+                  <th>Compra Relacionada</th>
                   <th>Forma</th>
                   <th>Observações</th>
                 </tr>
               </thead>
               <tbody>
                 ${pagamentos.length === 0
-                  ? `<tr><td colspan="4" class="empty-cell">Nenhum pagamento registrado.</td></tr>`
-                  : pagamentos.map(p => `
+                  ? `<tr><td colspan="5" class="empty-cell">Nenhum pagamento registrado.</td></tr>`
+                  : pagamentos.map(p => {
+                    const compraRel = p.compraId ? compras.find(c => c.id === p.compraId) : null;
+                    return `
                     <tr>
                       <td>${formatarDataLocal(p.dataPagamento)}</td>
                       <td><strong style="color:var(--color-success)">${formatarMoeda(p.valor)}</strong></td>
+                      <td style="font-size:var(--text-xs);color:var(--gray-500)">${compraRel ? `Compra de ${formatarDataLocal(compraRel.dataCompra)}` : "Crédito geral"}</td>
                       <td>${escHtml(p.forma || "—")}</td>
                       <td style="font-size:var(--text-xs);color:var(--gray-500)">${escHtml(p.observacoes || "")}</td>
-                    </tr>`).join("")}
+                    </tr>`;
+                  }).join("")}
               </tbody>
             </table>
           </div>
@@ -544,6 +557,22 @@ async function salvarNovoCliente() {
   }
 }
 
+let _compraRowSeq = 0;
+
+function linhaCompraHtml(hojeStr, vencStr) {
+  const rid = `cr${++_compraRowSeq}`;
+  return `
+    <div class="compra-row" data-row-id="${rid}" style="display:grid;grid-template-columns:1fr 1fr 1fr 1.6fr 32px;gap:8px;align-items:center;margin-bottom:8px">
+      <input type="number" class="compra-valor field-input--plain" placeholder="0,00" min="0.01" step="0.01" />
+      <input type="date" class="compra-data field-input--plain" value="${hojeStr}" />
+      <input type="date" class="compra-venc field-input--plain" value="${vencStr}" />
+      <input type="text" class="compra-obs field-input--plain" placeholder="Descrição da compra..." />
+      <button type="button" class="btn-table-action btn-table-action--delete btn-remove-compra-row" title="Remover esta compra">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+      </button>
+    </div>`;
+}
+
 function abrirModalNovaCompra(clienteId) {
   if (!clienteId) return;
   const hoje = new Date();
@@ -553,76 +582,139 @@ function abrirModalNovaCompra(clienteId) {
 
   const body = `
     <div class="form-usuario">
-      <div>
-        <label class="field-label">Valor da Compra (R$) *</label>
-        <input type="number" id="mCompraValor" class="field-input--plain" placeholder="0,00" min="0.01" step="0.01" />
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1.6fr 32px;gap:8px;margin-bottom:2px">
+        <label class="field-label">Valor (R$) *</label>
+        <label class="field-label">Data *</label>
+        <label class="field-label">Vencimento</label>
+        <label class="field-label">Obs.</label>
+        <span></span>
       </div>
-      <div>
-        <label class="field-label">Data da Compra *</label>
-        <input type="date" id="mCompraData" class="field-input--plain" value="${hojeStr}" />
-      </div>
-      <div>
-        <label class="field-label">Data de Vencimento</label>
-        <input type="date" id="mCompraVenc" class="field-input--plain" value="${vencStr}" />
-      </div>
-      <div>
-        <label class="field-label">Observações</label>
-        <input type="text" id="mCompraObs" class="field-input--plain" placeholder="Descrição da compra..." />
-      </div>
+      <div id="comprasRowsContainer">${linhaCompraHtml(hojeStr, vencStr)}</div>
+      <button type="button" class="btn-ghost" id="btnAddCompraRow" style="font-size:var(--text-sm)">+ Adicionar outra compra</button>
+      <p style="font-size:var(--text-xs);color:var(--gray-500);margin-top:8px">Você pode lançar quantas compras quiser de uma vez. Linhas em branco são ignoradas.</p>
     </div>`;
 
   const footer = `
     <button class="btn-ghost" id="btnCancelarModalProm">Cancelar</button>
-    <button class="btn-primary" id="btnSalvarNovaCompra">Registrar Compra</button>`;
+    <button class="btn-primary" id="btnSalvarNovaCompra">Registrar Compra(s)</button>`;
 
   abrirModal("Nova Compra", body, footer);
 
+  const container = document.getElementById("comprasRowsContainer");
+
+  document.getElementById("btnAddCompraRow").onclick = () => {
+    container.insertAdjacentHTML("beforeend", linhaCompraHtml(hojeStr, vencStr));
+  };
+
+  container.addEventListener("click", (e) => {
+    const btn = e.target.closest(".btn-remove-compra-row");
+    if (!btn) return;
+    const rows = container.querySelectorAll(".compra-row");
+    if (rows.length > 1) {
+      btn.closest(".compra-row").remove();
+    } else {
+      rows[0].querySelectorAll("input").forEach(i => { if (i.type !== "date") i.value = ""; });
+    }
+  });
+
   document.getElementById("btnCancelarModalProm").onclick = fecharModal;
   document.getElementById("btnSalvarNovaCompra").onclick = () => salvarNovaCompra(clienteId);
-  document.getElementById("mCompraValor").focus();
+  container.querySelector(".compra-valor").focus();
 }
 
 async function salvarNovaCompra(clienteId) {
-  const valor = parseFloat(document.getElementById("mCompraValor").value);
-  const dataStr = document.getElementById("mCompraData").value;
-  const vencStr = document.getElementById("mCompraVenc").value;
+  const linhas = Array.from(document.querySelectorAll("#comprasRowsContainer .compra-row"));
 
-  if (!valor || valor <= 0) { window.mostrarToast?.("Informe um valor válido.", "error"); return; }
-  if (!dataStr) { window.mostrarToast?.("Informe a data da compra.", "error"); return; }
+  const compras = [];
+  for (const linha of linhas) {
+    const valor = parseFloat(linha.querySelector(".compra-valor").value);
+    const dataStr = linha.querySelector(".compra-data").value;
+    const vencStr = linha.querySelector(".compra-venc").value;
+    const obs = linha.querySelector(".compra-obs").value.trim();
+    if (!valor && !obs) continue; // linha em branco, ignora
+    if (!valor || valor <= 0) { window.mostrarToast?.("Informe um valor válido em todas as compras preenchidas.", "error"); return; }
+    if (!dataStr) { window.mostrarToast?.("Informe a data em todas as compras preenchidas.", "error"); return; }
+    compras.push({ valor, dataStr, vencStr, obs });
+  }
+
+  if (!compras.length) { window.mostrarToast?.("Adicione ao menos uma compra.", "error"); return; }
 
   const btn = document.getElementById("btnSalvarNovaCompra");
   btn.disabled = true; btn.textContent = "Salvando...";
 
   try {
-    await addDoc(collection(db, COL_COMPRAS), {
+    await Promise.all(compras.map(c => addDoc(collection(db, COL_COMPRAS), {
       clienteId,
-      valor,
-      dataCompra:  Timestamp.fromDate(new Date(dataStr + "T12:00:00")),
-      vencimento:  vencStr ? Timestamp.fromDate(new Date(vencStr + "T23:59:59")) : null,
-      observacoes: document.getElementById("mCompraObs").value.trim(),
+      valor: c.valor,
+      dataCompra:  Timestamp.fromDate(new Date(c.dataStr + "T12:00:00")),
+      vencimento:  c.vencStr ? Timestamp.fromDate(new Date(c.vencStr + "T23:59:59")) : null,
+      observacoes: c.obs,
       criadoEm:    serverTimestamp()
-    });
+    })));
     fecharModal();
-    window.mostrarToast?.("Compra registrada com sucesso!", "success");
+    window.mostrarToast?.(`${compras.length} compra(s) registrada(s) com sucesso!`, "success");
     abrirPainelCliente(clienteId);
     carregarIndicadores();
   } catch (err) {
     console.error(err);
-    window.mostrarToast?.("Erro ao registrar compra.", "error");
-    btn.disabled = false; btn.textContent = "Registrar Compra";
+    window.mostrarToast?.("Erro ao registrar compra(s).", "error");
+    btn.disabled = false; btn.textContent = "Registrar Compra(s)";
   }
 }
 
-function abrirModalNovoPagamento(clienteId) {
+async function abrirModalNovoPagamento(clienteId) {
   if (!clienteId) return;
   const hojeStr = new Date().toISOString().split("T")[0];
 
-  const body = `
+  const body = `<div class="form-usuario"><p class="loading-cell" style="padding:16px 0">Carregando compras em aberto...</p></div>`;
+  const footer = `
+    <button class="btn-ghost" id="btnCancelarModalProm">Cancelar</button>
+    <button class="btn-primary" id="btnSalvarNovoPagamento">Registrar Pagamento</button>`;
+  abrirModal("Registrar Pagamento", body, footer);
+  document.getElementById("btnCancelarModalProm").onclick = fecharModal;
+
+  let comprasAbertas = [];
+  try {
+    const [comprasSnap, pagamentosSnap] = await Promise.all([
+      getDocs(query(collection(db, COL_COMPRAS), where("clienteId", "==", clienteId), orderBy("dataCompra", "asc"))),
+      getDocs(query(collection(db, COL_PAGAMENTOS), where("clienteId", "==", clienteId)))
+    ]);
+
+    const pagoPorCompra = {};
+    pagamentosSnap.forEach(d => {
+      const p = d.data();
+      if (p.compraId) pagoPorCompra[p.compraId] = (pagoPorCompra[p.compraId] || 0) + (p.valor || 0);
+    });
+
+    comprasSnap.forEach(d => {
+      const c = { id: d.id, ...d.data() };
+      const pago = pagoPorCompra[c.id] || 0;
+      const saldo = Math.round(((c.valor || 0) - pago) * 100) / 100;
+      if (saldo > 0.004) comprasAbertas.push({ ...c, pago, saldo });
+    });
+  } catch (err) {
+    console.error("Erro ao buscar compras em aberto:", err);
+  }
+
+  const listaHtml = comprasAbertas.length === 0
+    ? `<p style="font-size:var(--text-sm);color:var(--gray-500);padding:8px 0">Este cliente não possui compras em aberto. O pagamento será registrado como crédito geral.</p>`
+    : `
+      <label class="field-label">Compras a abater (desmarque para não incluir)</label>
+      <div id="listaComprasPagamento" style="max-height:220px;overflow-y:auto;margin-bottom:var(--space-3)">
+        ${comprasAbertas.map(c => `
+          <label style="display:flex;align-items:center;gap:10px;padding:8px;border:1px solid var(--gray-200);border-radius:var(--radius-md);margin-bottom:6px">
+            <input type="checkbox" class="pag-check" data-compra-id="${c.id}" data-max="${c.saldo}" checked style="width:16px;height:16px;flex:none" />
+            <div style="flex:1;min-width:0">
+              <div style="font-size:var(--text-sm);font-weight:600;color:var(--gray-800)">Compra de ${formatarDataLocal(c.dataCompra)} ${c.observacoes ? `· ${escHtml(c.observacoes)}` : ""}</div>
+              <div style="font-size:var(--text-xs);color:var(--gray-500)">Valor: ${formatarMoeda(c.valor)} · Saldo em aberto: ${formatarMoeda(c.saldo)}</div>
+            </div>
+            <input type="number" class="pag-valor field-input--plain" data-compra-id="${c.id}" style="width:110px;flex:none" min="0" step="0.01" max="${c.saldo}" value="${c.saldo.toFixed(2)}" />
+          </label>`).join("")}
+      </div>`;
+
+  const novoBody = `
     <div class="form-usuario">
-      <div>
-        <label class="field-label">Valor do Pagamento (R$) *</label>
-        <input type="number" id="mPagValor" class="field-input--plain" placeholder="0,00" min="0.01" step="0.01" />
-      </div>
+      ${listaHtml}
       <div>
         <label class="field-label">Data do Pagamento *</label>
         <input type="date" id="mPagData" class="field-input--plain" value="${hojeStr}" />
@@ -642,38 +734,87 @@ function abrirModalNovoPagamento(clienteId) {
         <label class="field-label">Observações</label>
         <input type="text" id="mPagObs" class="field-input--plain" placeholder="Informações do pagamento..." />
       </div>
+      ${comprasAbertas.length > 0 ? `<div style="text-align:right;font-size:var(--text-sm);color:var(--gray-600);padding-top:4px;border-top:1px solid var(--gray-100)">Total a pagar: <strong id="mPagTotalPreview" style="color:var(--color-success)">—</strong></div>` : `
+      <div>
+        <label class="field-label">Valor do Pagamento (R$) *</label>
+        <input type="number" id="mPagValorGeral" class="field-input--plain" placeholder="0,00" min="0.01" step="0.01" />
+      </div>`}
     </div>`;
 
-  const footer = `
-    <button class="btn-ghost" id="btnCancelarModalProm">Cancelar</button>
-    <button class="btn-primary" id="btnSalvarNovoPagamento">Registrar Pagamento</button>`;
+  // Substitui o corpo do modal já aberto (agora que os dados chegaram)
+  const modalEl = document.getElementById("modalBody");
+  if (modalEl) {
+    modalEl.innerHTML = novoBody;
+  } else {
+    abrirModal("Registrar Pagamento", novoBody, footer);
+    document.getElementById("btnCancelarModalProm").onclick = fecharModal;
+  }
 
-  abrirModal("Registrar Pagamento", body, footer);
+  const atualizarPreview = () => {
+    const totalEl = document.getElementById("mPagTotalPreview");
+    if (!totalEl) return;
+    let total = 0;
+    document.querySelectorAll(".pag-check:checked").forEach(chk => {
+      const valInput = document.querySelector(`.pag-valor[data-compra-id="${chk.dataset.compraId}"]`);
+      total += parseFloat(valInput?.value) || 0;
+    });
+    totalEl.textContent = formatarMoeda(total);
+  };
 
-  document.getElementById("btnCancelarModalProm").onclick = fecharModal;
-  document.getElementById("btnSalvarNovoPagamento").onclick = () => salvarNovoPagamento(clienteId);
-  document.getElementById("mPagValor").focus();
+  document.querySelectorAll(".pag-check").forEach(chk => {
+    chk.addEventListener("change", () => {
+      const valInput = document.querySelector(`.pag-valor[data-compra-id="${chk.dataset.compraId}"]`);
+      if (valInput) valInput.disabled = !chk.checked;
+      atualizarPreview();
+    });
+  });
+  document.querySelectorAll(".pag-valor").forEach(inp => inp.addEventListener("input", atualizarPreview));
+  atualizarPreview();
+
+  document.getElementById("btnSalvarNovoPagamento").onclick = () => salvarNovoPagamento(clienteId, comprasAbertas.length > 0);
+  document.getElementById("mPagData")?.focus();
 }
 
-async function salvarNovoPagamento(clienteId) {
-  const valor = parseFloat(document.getElementById("mPagValor").value);
+async function salvarNovoPagamento(clienteId, temComprasAbertas) {
   const dataStr = document.getElementById("mPagData").value;
+  const forma   = document.getElementById("mPagForma").value;
+  const obs     = document.getElementById("mPagObs").value.trim();
 
-  if (!valor || valor <= 0) { window.mostrarToast?.("Informe um valor válido.", "error"); return; }
   if (!dataStr) { window.mostrarToast?.("Informe a data do pagamento.", "error"); return; }
+
+  const lancamentos = [];
+
+  if (temComprasAbertas) {
+    const checks = Array.from(document.querySelectorAll(".pag-check:checked"));
+    for (const chk of checks) {
+      const compraId = chk.dataset.compraId;
+      const max = parseFloat(chk.dataset.max) || 0;
+      const valInput = document.querySelector(`.pag-valor[data-compra-id="${compraId}"]`);
+      const valor = parseFloat(valInput?.value);
+      if (!valor || valor <= 0) continue;
+      if (valor > max + 0.01) { window.mostrarToast?.("O valor a abater não pode ser maior que o saldo da compra.", "error"); return; }
+      lancamentos.push({ compraId, valor });
+    }
+    if (!lancamentos.length) { window.mostrarToast?.("Selecione ao menos uma compra com valor para abater.", "error"); return; }
+  } else {
+    const valor = parseFloat(document.getElementById("mPagValorGeral")?.value);
+    if (!valor || valor <= 0) { window.mostrarToast?.("Informe um valor válido.", "error"); return; }
+    lancamentos.push({ compraId: null, valor });
+  }
 
   const btn = document.getElementById("btnSalvarNovoPagamento");
   btn.disabled = true; btn.textContent = "Salvando...";
 
   try {
-    await addDoc(collection(db, COL_PAGAMENTOS), {
+    await Promise.all(lancamentos.map(l => addDoc(collection(db, COL_PAGAMENTOS), {
       clienteId,
-      valor,
+      compraId:      l.compraId || null,
+      valor:         l.valor,
       dataPagamento: Timestamp.fromDate(new Date(dataStr + "T12:00:00")),
-      forma:         document.getElementById("mPagForma").value,
-      observacoes:   document.getElementById("mPagObs").value.trim(),
+      forma,
+      observacoes:   obs,
       criadoEm:      serverTimestamp()
-    });
+    })));
     fecharModal();
     window.mostrarToast?.("Pagamento registrado com sucesso!", "success");
     abrirPainelCliente(clienteId);
