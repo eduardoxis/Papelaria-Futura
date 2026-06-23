@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="css/cotacao.css" />
   <link rel="stylesheet" href="css/admin.css" />
   <link rel="stylesheet" href="css/comissao.css" />
+  <link rel="stylesheet" href="css/promissoria.css" />
   <link rel="stylesheet" href="css/mobile.css" />
 </head>
 <body>
@@ -71,6 +72,12 @@
         <a href="#" class="nav-item" data-page="admin">
           <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
           Administração
+        </a>
+      </li>
+      <li class="nav-item-admin" hidden>
+        <a href="#" class="nav-item" data-page="promissoria">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+          Promissórias
         </a>
       </li>
     </ul>
@@ -510,6 +517,140 @@
     </section>
 
     <!-- ======================================================== -->
+    <!-- PÁGINA: PROMISSÓRIAS (somente admin)                     -->
+    <!-- ======================================================== -->
+    <section id="page-promissoria" class="page" aria-label="Promissórias" hidden>
+
+      <!-- Mobile page header -->
+      <div class="mobile-page-header">
+        <h2>Promissórias</h2>
+      </div>
+
+      <!-- ── PAINEL: LISTA DE CLIENTES ─────────────────────────── -->
+      <div id="painelListaClientesProm">
+
+        <!-- Indicadores financeiros -->
+        <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:var(--space-6)">
+          <div class="stat-card stat-card--blue">
+            <div class="stat-card__icon">
+              <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4z" clip-rule="evenodd"/></svg>
+            </div>
+            <div class="stat-card__body">
+              <span class="stat-card__label">Total Vendido</span>
+              <strong class="stat-card__value stat-card__value--sm" id="indTotalVendido">—</strong>
+            </div>
+          </div>
+          <div class="stat-card stat-card--green">
+            <div class="stat-card__icon">
+              <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"/></svg>
+            </div>
+            <div class="stat-card__body">
+              <span class="stat-card__label">Total Recebido</span>
+              <strong class="stat-card__value stat-card__value--sm" id="indTotalRecebido">—</strong>
+            </div>
+          </div>
+          <div class="stat-card stat-card--gold">
+            <div class="stat-card__icon">
+              <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+            </div>
+            <div class="stat-card__body">
+              <span class="stat-card__label">Total em Aberto</span>
+              <strong class="stat-card__value stat-card__value--sm" id="indTotalAberto">—</strong>
+            </div>
+          </div>
+          <div class="stat-card" style="border-color:#FECACA">
+            <div class="stat-card__icon" style="background:#FEE2E2;color:#DC2626">
+              <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+            </div>
+            <div class="stat-card__body">
+              <span class="stat-card__label">Inadimplentes</span>
+              <strong class="stat-card__value stat-card__value--sm" id="indInadimplentes" style="color:#DC2626">—</strong>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__icon">
+              <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+            </div>
+            <div class="stat-card__body">
+              <span class="stat-card__label">Total de Clientes</span>
+              <strong class="stat-card__value stat-card__value--sm" id="indClientesTotal">—</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cabeçalho + ações -->
+        <div class="page-header">
+          <div>
+            <h2 class="page-title">Promissórias</h2>
+            <p class="page-subtitle">Controle de crédito e pagamentos de clientes</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <button class="btn-secondary" id="btnExportarProm">
+              <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+              Exportar CSV
+            </button>
+            <button class="btn-secondary" id="btnImprimirProm">
+              <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px"><path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a1 1 0 001 1h8a1 1 0 001-1v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a1 1 0 00-1-1H6a1 1 0 00-1 1zm2 0h6v3H7V4zm-1 9v-1h8v1H6zm8-4a1 1 0 11-2 0 1 1 0 012 0z" clip-rule="evenodd"/></svg>
+              Imprimir
+            </button>
+            <button class="btn-primary" id="btnNovoClienteProm">
+              <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+              Novo Cliente
+            </button>
+          </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="filter-bar">
+          <input type="text" id="filtroBuscaProm" class="filter-input" placeholder="Buscar por nome ou telefone..." style="flex:1;min-width:180px" />
+          <select id="filtroStatusProm" class="filter-input" style="min-width:140px">
+            <option value="todos">Todas as situações</option>
+            <option value="pendente">Pendente</option>
+            <option value="atrasado">Atrasado</option>
+            <option value="quitado">Quitado</option>
+          </select>
+          <button class="btn-secondary" id="btnBuscarProm">Buscar</button>
+          <button class="btn-ghost" id="btnLimparBuscaProm">Limpar</button>
+        </div>
+
+        <!-- Tabela de clientes -->
+        <div class="card" style="padding:0;overflow:hidden">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th class="col-center">Compras</th>
+                  <th>Total Comprado</th>
+                  <th>Total Pago</th>
+                  <th>Saldo Devedor</th>
+                  <th>Situação</th>
+                  <th class="col-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyClientesProm">
+                <tr><td colspan="7" class="loading-cell">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div><!-- /painelListaClientesProm -->
+
+      <!-- ── PAINEL: DETALHES DO CLIENTE ───────────────────────── -->
+      <div id="painelDetalhesClienteProm" hidden>
+        <div style="margin-bottom:var(--space-4)">
+          <button class="btn-ghost" id="btnVoltarListaProm" style="display:inline-flex;align-items:center;gap:6px;font-size:var(--text-sm)">
+            <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+            Voltar à lista
+          </button>
+        </div>
+        <!-- Conteúdo renderizado dinamicamente pelo JS -->
+      </div><!-- /painelDetalhesClienteProm -->
+
+    </section>
+
+    <!-- ======================================================== -->
     <!-- PÁGINA: ADMINISTRAÇÃO                                     -->
     <!-- ======================================================== -->
     <section id="page-admin" class="page" aria-label="Administração" hidden>
@@ -642,6 +783,10 @@
     <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V8z" clip-rule="evenodd"/></svg>
     <span>Comissão</span>
   </a>
+  <a href="#" class="mobile-nav-item nav-item-admin" data-page="promissoria" id="mobileNavPromissoria" hidden>
+    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+    <span>Promissórias</span>
+  </a>
   <a href="#" class="mobile-nav-item nav-item-admin" data-page="admin" id="mobileNavAdmin" hidden>
     <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
     <span>Administração</span>
@@ -662,6 +807,7 @@
   import { iniciarCotacao }              from "./js/cotacao.js";
   import { iniciarAdmin }                from "./js/admin.js";
   import { iniciarComissao }             from "./js/comissao.js";
+  import { iniciarPromissoria }          from "./js/promissoria.js";
 
   // ----------------------------------------------------------------
   // Proteção de rota + inicialização
@@ -699,6 +845,7 @@
     iniciarCotacao(usuario, dadosUsuario);
     iniciarAdmin(usuario, dadosUsuario);
     iniciarComissao(usuario, dadosUsuario);
+    if (isAdmin) iniciarPromissoria(usuario, dadosUsuario);
 
     // Navegação
     configurarNavegacao();
@@ -718,7 +865,8 @@
       "cotacoes":      "Cotações",
       "nova-cotacao":  "Nova Cotação",
       "comissao":      "Comissão",
-      "admin":         "Administração"
+      "admin":         "Administração",
+      "promissoria":   "Promissórias"
     };
 
     function navegar(pageId) {
