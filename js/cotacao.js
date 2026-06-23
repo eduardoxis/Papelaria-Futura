@@ -6,7 +6,7 @@ import {
   criarCotacao, atualizarCotacao, listarCotacoes,
   excluirCotacao, buscarCotacao, formatarMoeda, formatarData
 } from "./database.js";
-import { badgeStatus, escHtml } from "./dashboard.js";
+import { badgeStatus, escHtml } from "./index.js";
 import { gerarPDF } from "./pdf.js";
 import { exigirSenhaCotacao } from "./senhaCotacao.js";
 
@@ -79,7 +79,7 @@ export function iniciarCotacao(usuario, dadosUsuario) {
     if (action === "excluir") exigirSenhaCotacao(() => excluirCotacaoById(id, cliente), "Excluir Cotação");
   });
 
-  // Expor globais para o dashboard.js usar via window.*
+  // Expor globais para o index.js usar via window.*
   window.abrirCotacaoSomenteLeitura = abrirCotacaoSomenteLeitura;
   window.editarCotacaoById  = (id)          => exigirSenhaCotacao(() => editarCotacaoById(id), "Editar Cotação");
   window.excluirCotacaoById = (id, cliente) => exigirSenhaCotacao(() => excluirCotacaoById(id, cliente), "Excluir Cotação");
