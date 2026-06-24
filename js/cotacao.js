@@ -16,6 +16,13 @@ let _contadorLinhas = 0;
 let _modoSomenteLeitura = false;
 let _funcionarioCotacaoAtual = null; // nome de quem realmente criou/editou a cotação carregada
 
+// Paginação da lista de cotações
+const COTACOES_POR_PAGINA = 30;
+let _cotFiltroAtual   = { termoBusca: "", dataInicio: null, dataFim: null };
+let _cotPaginaCursor  = null;
+let _cotTemMais       = false;
+let _cotCarregandoMais = false;
+
 export function iniciarCotacao(usuario, dadosUsuario) {
   _usuario      = usuario;
   _dadosUsuario = dadosUsuario;
@@ -53,6 +60,8 @@ export function iniciarCotacao(usuario, dadosUsuario) {
   document.getElementById("filtroBusca")?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") carregarListaCotacoes(e.target.value.trim());
   });
+
+  document.getElementById("btnCarregarMaisCotacoes")?.addEventListener("click", carregarMaisCotacoes);
 
   // Busca por intervalo de datas
   document.getElementById("btnAplicarFiltroDataCotacoes")?.addEventListener("click", () => {
@@ -95,27 +104,87 @@ async function carregarListaCotacoes(termoBusca = "", dataInicio = null, dataFim
   const tbody = document.getElementById("tbodyCotacoes");
   tbody.innerHTML = `<tr><td colspan="5" class="loading-cell">Carregando...</td></tr>`;
 
+  _cotFiltroAtual  = { termoBusca, dataInicio, dataFim };
+  _cotPaginaCursor = null;
+  _cotTemMais      = false;
+
   const resultado = await listarCotacoes({
     cliente: termoBusca || null,
     dataInicio,
     dataFim,
-    limitQtd: (dataInicio || dataFim) ? 500 : 50
+    limitQtd: COTACOES_POR_PAGINA
   });
 
   if (!resultado.sucesso) {
     tbody.innerHTML = `<tr><td colspan="5" class="loading-cell">Erro ao carregar cotações.</td></tr>`;
+    atualizarBotaoCarregarMais();
     return;
   }
 
-  const { cotacoes } = resultado;
+  const { cotacoes, proximoCursor, temMais } = resultado;
+  _cotPaginaCursor = proximoCursor;
+  _cotTemMais      = !!temMais;
 
   if (cotacoes.length === 0) {
     tbody.innerHTML = `<tr><td colspan="5" class="empty-cell">Nenhuma cotação encontrada.</td></tr>`;
+    atualizarBotaoCarregarMais();
     return;
   }
 
-  // Sem onclick inline — usa data-action + event delegation (acima)
-  tbody.innerHTML = cotacoes.map(c => `
+  tbody.innerHTML = cotacoes.map(linhaCotacaoHtml).join("");
+  atualizarBotaoCarregarMais();
+}
+
+// ----------------------------------------------------------------
+// Carregar mais — busca a próxima página (mesmo filtro atual) e
+// acrescenta as linhas no final da tabela, sem recarregar tudo.
+// ----------------------------------------------------------------
+async function carregarMaisCotacoes() {
+  if (_cotCarregandoMais || !_cotTemMais) return;
+  _cotCarregandoMais = true;
+
+  const btn = document.getElementById("btnCarregarMaisCotacoes");
+  if (btn) { btn.disabled = true; btn.textContent = "Carregando..."; }
+
+  const { termoBusca, dataInicio, dataFim } = _cotFiltroAtual;
+
+  const resultado = await listarCotacoes({
+    cliente: termoBusca || null,
+    dataInicio,
+    dataFim,
+    limitQtd: COTACOES_POR_PAGINA,
+    cursor: _cotPaginaCursor
+  });
+
+  _cotCarregandoMais = false;
+
+  if (!resultado.sucesso) {
+    window.mostrarToast?.("Erro ao carregar mais cotações.", "error");
+    if (btn) { btn.disabled = false; btn.textContent = "Carregar mais"; }
+    return;
+  }
+
+  const { cotacoes, proximoCursor, temMais } = resultado;
+  _cotPaginaCursor = proximoCursor;
+  _cotTemMais      = !!temMais;
+
+  const tbody = document.getElementById("tbodyCotacoes");
+  tbody.insertAdjacentHTML("beforeend", cotacoes.map(linhaCotacaoHtml).join(""));
+
+  atualizarBotaoCarregarMais();
+}
+
+function atualizarBotaoCarregarMais() {
+  const wrap = document.getElementById("wrapCarregarMaisCotacoes");
+  const btn  = document.getElementById("btnCarregarMaisCotacoes");
+  if (!wrap || !btn) return;
+  wrap.style.display = _cotTemMais ? "flex" : "none";
+  btn.disabled = false;
+  btn.textContent = "Carregar mais";
+}
+
+function linhaCotacaoHtml(c) {
+  return `
     <tr>
       <td class="td-cliente-row" title="${escHtml(c.cliente || "—")}">
         <strong>${escHtml(c.cliente || "—")}</strong>
@@ -150,7 +219,7 @@ async function carregarListaCotacoes(termoBusca = "", dataInicio = null, dataFim
         </div>
       </td>
     </tr>
-  `).join("");
+  `;
 }
 
 // ================================================================
