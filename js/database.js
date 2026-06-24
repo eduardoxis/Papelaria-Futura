@@ -100,9 +100,9 @@ export async function buscarCotacao(id) {
 export async function listarCotacoes({ uidUsuario = null, cliente = null, dataInicio = null, dataFim = null, limitQtd = 50 } = {}) {
   try {
     let q = collection(db, COLECAO_COTACOES);
-    const restricoes = [orderBy("dataCriacao", "desc"), limit(limitQtd)];
+    const restricoes = [];
 
-    if (uidUsuario) restricoes.unshift(where("criadoPor", "==", uidUsuario));
+    if (uidUsuario) restricoes.push(where("criadoPor", "==", uidUsuario));
 
     // Filtro por intervalo de datas (mutuamente exclusivo com filtro de cliente
     // na query do Firestore, pois não é possível usar inequações em dois campos
@@ -110,14 +110,24 @@ export async function listarCotacoes({ uidUsuario = null, cliente = null, dataIn
     if (dataInicio || dataFim) {
       if (dataInicio) {
         const inicio = new Date(dataInicio); inicio.setHours(0, 0, 0, 0);
-        restricoes.unshift(where("dataCriacao", ">=", Timestamp.fromDate(inicio)));
+        restricoes.push(where("dataCriacao", ">=", Timestamp.fromDate(inicio)));
       }
       if (dataFim) {
         const fim = new Date(dataFim); fim.setHours(23, 59, 59, 999);
-        restricoes.unshift(where("dataCriacao", "<=", Timestamp.fromDate(fim)));
+        restricoes.push(where("dataCriacao", "<=", Timestamp.fromDate(fim)));
       }
+      restricoes.push(orderBy("dataCriacao", "desc"));
+      restricoes.push(limit(limitQtd));
     } else if (cliente) {
-      restricoes.unshift(where("cliente", ">=", cliente), where("cliente", "<=", cliente + "\uf8ff"));
+      // Range em "cliente" não pode ser combinado com orderBy("dataCriacao")
+      // sem um índice composto. Para evitar depender desse índice, ordenamos
+      // pelo próprio campo do filtro e reordenamos por data no cliente (JS).
+      restricoes.push(where("cliente", ">=", cliente), where("cliente", "<=", cliente + "\uf8ff"));
+      restricoes.push(orderBy("cliente"));
+      restricoes.push(limit(limitQtd));
+    } else {
+      restricoes.push(orderBy("dataCriacao", "desc"));
+      restricoes.push(limit(limitQtd));
     }
 
     q = query(q, ...restricoes);
@@ -130,6 +140,17 @@ export async function listarCotacoes({ uidUsuario = null, cliente = null, dataIn
     if ((dataInicio || dataFim) && cliente) {
       const termo = cliente.toLowerCase();
       cotacoes = cotacoes.filter(c => (c.cliente || "").toLowerCase().includes(termo));
+    }
+
+    // Quando ordenamos por "cliente" (filtro de nome sem filtro de data),
+    // reordena o resultado final por data de criação (mais recente primeiro)
+    // para manter a mesma ordem de exibição usada no restante do app.
+    if (cliente && !(dataInicio || dataFim)) {
+      cotacoes.sort((a, b) => {
+        const ta = a.dataCriacao?.toMillis ? a.dataCriacao.toMillis() : 0;
+        const tb = b.dataCriacao?.toMillis ? b.dataCriacao.toMillis() : 0;
+        return tb - ta;
+      });
     }
 
     return { sucesso: true, cotacoes };
