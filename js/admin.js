@@ -15,6 +15,13 @@ import { formatarData, formatarDataHora } from "./database.js";
 
 let _dadosUsuario = null;
 
+// Paginação do Histórico de Alterações
+const HISTORICO_POR_PAGINA = 50;
+let _histFiltroAtual    = "";
+let _histPaginaCursor   = null;
+let _histTemMais        = false;
+let _histCarregandoMais = false;
+
 export function iniciarAdmin(usuario, dadosUsuario) {
   _dadosUsuario = dadosUsuario;
 
@@ -47,6 +54,7 @@ export function iniciarAdmin(usuario, dadosUsuario) {
   document.getElementById("filtroBuscaHistorico")?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") carregarHistoricoCotacoes(e.target.value.trim());
   });
+  document.getElementById("btnCarregarMaisHistorico")?.addEventListener("click", carregarMaisHistorico);
 
   // Event delegation da tabela de histórico
   document.getElementById("tbodyHistoricoCotacoes")?.addEventListener("click", (e) => {
@@ -417,24 +425,81 @@ async function carregarHistoricoCotacoes(termoBusca = "") {
   if (!tbody) return;
   tbody.innerHTML = `<tr><td colspan="4" class="loading-cell">Carregando...</td></tr>`;
 
-  const resultado = await listarCotacoes({ cliente: termoBusca || null, limitQtd: 100 });
+  _histFiltroAtual  = termoBusca;
+  _histPaginaCursor = null;
+  _histTemMais      = false;
+
+  const resultado = await listarCotacoes({ cliente: termoBusca || null, limitQtd: HISTORICO_POR_PAGINA });
 
   if (!resultado.sucesso) {
     tbody.innerHTML = `<tr><td colspan="4" class="loading-cell">Erro ao carregar histórico.</td></tr>`;
+    atualizarBotaoCarregarMaisHistorico();
     return;
   }
 
-  const { cotacoes } = resultado;
+  const { cotacoes, proximoCursor, temMais } = resultado;
+  _histPaginaCursor = proximoCursor;
+  _histTemMais      = !!temMais;
 
   if (cotacoes.length === 0) {
     tbody.innerHTML = `<tr><td colspan="4" class="empty-cell">Nenhuma cotação encontrada.</td></tr>`;
+    atualizarBotaoCarregarMaisHistorico();
     return;
   }
 
-  tbody.innerHTML = cotacoes.map(c => {
-    const historico = Array.isArray(c.historico) ? c.historico : [];
-    const ultima    = historico[historico.length - 1] || null;
-    return `
+  tbody.innerHTML = cotacoes.map(linhaHistoricoHtml).join("");
+  atualizarBotaoCarregarMaisHistorico();
+}
+
+// ----------------------------------------------------------------
+// Carregar mais — próxima página do histórico (mesmo filtro atual)
+// ----------------------------------------------------------------
+async function carregarMaisHistorico() {
+  if (_histCarregandoMais || !_histTemMais) return;
+  _histCarregandoMais = true;
+
+  const btn = document.getElementById("btnCarregarMaisHistorico");
+  if (btn) { btn.disabled = true; btn.textContent = "Carregando..."; }
+
+  const resultado = await listarCotacoes({
+    cliente: _histFiltroAtual || null,
+    limitQtd: HISTORICO_POR_PAGINA,
+    cursor: _histPaginaCursor
+  });
+
+  _histCarregandoMais = false;
+
+  if (!resultado.sucesso) {
+    window.mostrarToast?.("Erro ao carregar mais histórico.", "error");
+    if (btn) { btn.disabled = false; btn.textContent = "Carregar mais"; }
+    return;
+  }
+
+  const { cotacoes, proximoCursor, temMais } = resultado;
+  _histPaginaCursor = proximoCursor;
+  _histTemMais      = !!temMais;
+
+  document.getElementById("tbodyHistoricoCotacoes").insertAdjacentHTML(
+    "beforeend",
+    cotacoes.map(linhaHistoricoHtml).join("")
+  );
+
+  atualizarBotaoCarregarMaisHistorico();
+}
+
+function atualizarBotaoCarregarMaisHistorico() {
+  const wrap = document.getElementById("wrapCarregarMaisHistorico");
+  const btn  = document.getElementById("btnCarregarMaisHistorico");
+  if (!wrap || !btn) return;
+  wrap.style.display = _histTemMais ? "flex" : "none";
+  btn.disabled = false;
+  btn.textContent = "Carregar mais";
+}
+
+function linhaHistoricoHtml(c) {
+  const historico = Array.isArray(c.historico) ? c.historico : [];
+  const ultima    = historico[historico.length - 1] || null;
+  return `
     <tr>
       <td><strong>${escHtml(c.cliente || "—")}</strong></td>
       <td>${formatarData(c.dataCriacao)}</td>
@@ -449,7 +514,6 @@ async function carregarHistoricoCotacoes(termoBusca = "") {
       </td>
     </tr>
   `;
-  }).join("");
 }
 
 function abrirModalHistorico(cliente, historico) {
