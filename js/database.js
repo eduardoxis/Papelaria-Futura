@@ -119,12 +119,11 @@ export async function listarCotacoes({ uidUsuario = null, cliente = null, dataIn
       restricoes.push(orderBy("dataCriacao", "desc"));
       restricoes.push(limit(limitQtd));
     } else if (cliente) {
-      // Range em "cliente" não pode ser combinado com orderBy("dataCriacao")
-      // sem um índice composto. Para evitar depender desse índice, ordenamos
-      // pelo próprio campo do filtro e reordenamos por data no cliente (JS).
-      restricoes.push(where("cliente", ">=", cliente), where("cliente", "<=", cliente + "\uf8ff"));
-      restricoes.push(orderBy("cliente"));
-      restricoes.push(limit(limitQtd));
+      // Busca por cliente feita no JS (case-insensitive) em vez de range no
+      // Firestore — o Firestore só suporta range "começa com" sensível a
+      // maiúsculas/minúsculas, então buscar "flora" não encontraria "Flora".
+      restricoes.push(orderBy("dataCriacao", "desc"));
+      restricoes.push(limit(500));
     } else {
       restricoes.push(orderBy("dataCriacao", "desc"));
       restricoes.push(limit(limitQtd));
@@ -135,22 +134,11 @@ export async function listarCotacoes({ uidUsuario = null, cliente = null, dataIn
 
     let cotacoes = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
 
-    // Se houver filtro de data E de cliente ao mesmo tempo, aplica o de cliente
-    // localmente (já que a query do Firestore só pôde usar o de data).
-    if ((dataInicio || dataFim) && cliente) {
+    // Aplica o filtro de cliente localmente, sem diferenciar maiúsculas/minúsculas
+    // (cobre tanto o caso "cliente sozinho" quanto "cliente + data").
+    if (cliente) {
       const termo = cliente.toLowerCase();
       cotacoes = cotacoes.filter(c => (c.cliente || "").toLowerCase().includes(termo));
-    }
-
-    // Quando ordenamos por "cliente" (filtro de nome sem filtro de data),
-    // reordena o resultado final por data de criação (mais recente primeiro)
-    // para manter a mesma ordem de exibição usada no restante do app.
-    if (cliente && !(dataInicio || dataFim)) {
-      cotacoes.sort((a, b) => {
-        const ta = a.dataCriacao?.toMillis ? a.dataCriacao.toMillis() : 0;
-        const tb = b.dataCriacao?.toMillis ? b.dataCriacao.toMillis() : 0;
-        return tb - ta;
-      });
     }
 
     return { sucesso: true, cotacoes };
