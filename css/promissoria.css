@@ -68,8 +68,15 @@
 
 /* ── Stat card valor menor (telas menores) ──────────────────── */
 .stat-card__value--sm {
-  font-size: clamp(1rem, 2.5vw, 1.25rem) !important;
-  word-break: break-all;
+  font-size: clamp(0.95rem, 2.2vw, 1.25rem) !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stat-card__body {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 /* ── Responsivo — filtros empilhados no mobile ──────────────── */
