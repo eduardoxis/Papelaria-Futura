@@ -1,159 +1,329 @@
 /* ============================================================
-   comissao.css — Estilos exclusivos da página de Comissão
+   cotacao.css — Mini Excel e formulário de cotação
    ============================================================ */
 
 /* ----------------------------------------------------------------
-   Grid de cards de planilhas
+   Form grid
    ---------------------------------------------------------------- */
-.comissao-grid {
+.form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--space-5);
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-5) var(--space-6);
+}
+
+.field--full {
+  grid-column: 1 / -1;
+}
+
+.field-input--plain {
+  width: 100%;
+  height: 42px;
+  padding: 0 var(--space-4);
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  background: var(--gray-050);
+  color: var(--gray-900);
+  font-size: var(--text-sm);
+  outline: none;
+  transition:
+    border-color var(--duration-fast) ease,
+    background var(--duration-fast) ease,
+    box-shadow var(--duration-fast) ease;
+}
+
+.field-input--plain:focus {
+  border-color: var(--blue-400);
+  background: var(--white);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+}
+
+.field-input--plain::placeholder {
+  color: var(--gray-400);
+}
+
+.field-textarea {
+  height: auto;
+  resize: vertical;
+  padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
+  line-height: 1.5;
 }
 
 /* ----------------------------------------------------------------
-   Card individual de planilha
+   Mini Excel — Wrapper
    ---------------------------------------------------------------- */
-.comissao-card {
-  background: var(--white);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--gray-100);
-  box-shadow: var(--shadow-sm);
-  padding: var(--space-5);
-  transition: box-shadow var(--duration-fast) ease, transform var(--duration-fast) ease;
-}
-.comissao-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-}
-
-.comissao-card-top {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: var(--space-3);
-}
-
-.comissao-card-icon {
-  width: 44px;
-  height: 44px;
-  flex-shrink: 0;
+.excel-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   border-radius: var(--radius-md);
-  background: var(--blue-100);
-  color: var(--blue-600);
+  border: 1px solid var(--gray-200);
+  margin-top: var(--space-1);
+}
+
+/* ----------------------------------------------------------------
+   Tabela Excel
+   ---------------------------------------------------------------- */
+.excel-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  min-width: 700px;
+}
+
+/* Cabeçalho azul */
+.excel-table thead tr {
+  background: linear-gradient(135deg, var(--blue-700) 0%, var(--blue-600) 100%);
+}
+
+.excel-table th {
+  padding: 12px var(--space-4);
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: rgba(255,255,255,0.9);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+}
+
+/* Larguras das colunas */
+.col-item  { width: 48px; text-align: center; }
+.col-desc  { min-width: 220px; }
+.col-marca { min-width: 120px; }
+.col-qtd   { width: 80px; text-align: center; }
+.col-unit  { width: 130px; text-align: right; }
+.col-total { width: 130px; text-align: right; }
+.col-acao  { width: 44px; text-align: center; }
+
+/* Células */
+.excel-table td {
+  padding: 0;
+  border-bottom: 1px solid var(--gray-100);
+  vertical-align: middle;
+}
+
+.excel-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.excel-table tbody tr {
+  transition: background var(--duration-fast) ease;
+}
+
+.excel-table tbody tr:hover {
+  background: var(--blue-050);
+}
+
+.excel-table tbody tr:nth-child(even) {
+  background: var(--gray-050);
+}
+
+.excel-table tbody tr:nth-child(even):hover {
+  background: var(--blue-050);
+}
+
+/* Número do item */
+.item-num {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-.comissao-card-icon svg {
-  width: 22px;
-  height: 22px;
+  height: 100%;
+  padding: var(--space-3);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--blue-500);
 }
 
-.comissao-card-body {
-  flex: 1;
-  min-width: 0;
+/* Inputs dentro da tabela */
+.excel-input {
+  width: 100%;
+  height: 46px;
+  padding: 0 var(--space-3);
+  background: transparent;
+  border: none;
+  border-left: 1px solid transparent;
+  font-size: var(--text-sm);
+  color: var(--gray-800);
+  outline: none;
+  font-family: var(--font-body);
+  transition:
+    background var(--duration-fast) ease,
+    border-color var(--duration-fast) ease;
+}
+
+.excel-input:focus {
+  background: #EFF6FF;
+  border-left-color: var(--blue-400);
+}
+
+.excel-input::placeholder {
+  color: var(--gray-400);
+}
+
+/* Input numérico — centralizado */
+.excel-input--center {
+  text-align: center;
+}
+
+/* Input de valor — alinhado à direita */
+.excel-input--right {
+  text-align: right;
+}
+
+/* Célula de valor total — somente leitura */
+.cell-total {
+  padding: 0 var(--space-4);
+  text-align: right;
+  font-weight: 700;
+  color: var(--blue-700);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+/* Botão excluir linha */
+.btn-remove-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 46px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--gray-400);
+  transition: color var(--duration-fast) ease, background var(--duration-fast) ease;
+}
+
+.btn-remove-row:hover {
+  color: #E53E3E;
+  background: #FFF5F5;
+}
+
+.btn-remove-row svg {
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+
+/* ----------------------------------------------------------------
+   Rodapé — Total Geral
+   ---------------------------------------------------------------- */
+.excel-table tfoot .total-row {
+  background: linear-gradient(135deg, var(--blue-950) 0%, var(--blue-900) 100%);
+}
+
+.total-label {
+  padding: var(--space-4) var(--space-5) !important;
+  text-align: right !important;
+  font-size: var(--text-xs) !important;
+  font-weight: 700 !important;
+  color: rgba(255,255,255,0.7) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+}
+
+.total-value {
+  padding: var(--space-4) var(--space-5) !important;
+  text-align: right !important;
+  font-family: var(--font-display) !important;
+  font-size: var(--text-xl) !important;
+  font-weight: 800 !important;
+  color: var(--white) !important;
+  white-space: nowrap !important;
+}
+
+/* ----------------------------------------------------------------
+   Linha de adição (placeholder quando vazia)
+   ---------------------------------------------------------------- */
+.excel-empty {
+  text-align: center;
+  padding: var(--space-8) !important;
+  color: var(--gray-400);
+}
+
+.excel-empty-icon {
+  font-size: 2rem;
+  margin-bottom: var(--space-2);
+}
+
+/* ----------------------------------------------------------------
+   Field label e wrapper — desktop
+   ---------------------------------------------------------------- */
+.field {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-}
-
-.comissao-card-titulo {
-  font-family: var(--font-display);
-  font-size: var(--text-base);
-  font-weight: 700;
-  color: var(--gray-900);
-}
-
-.comissao-card-desc {
-  font-size: var(--text-sm);
-  color: var(--gray-500);
-}
-
-.comissao-card-data {
-  font-size: var(--text-xs);
-  color: var(--gray-400);
-}
-
-/* ----------------------------------------------------------------
-   Ações do card
-   ---------------------------------------------------------------- */
-.comissao-card-actions {
-  width: 100%;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
-}
-
-.cac-btn {
-  display: flex;
-  align-items: center;
   gap: 6px;
-  border: none;
-  border-radius: var(--radius-md);
-  padding: 6px var(--space-3);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  cursor: pointer;
-  transition: filter var(--duration-fast) ease;
-}
-.cac-btn:hover { filter: brightness(0.95); }
-.cac-btn svg { width: 14px; height: 14px; }
-
-/* ----------------------------------------------------------------
-   Estado vazio
-   ---------------------------------------------------------------- */
-.comissao-empty {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: var(--space-8);
-  color: var(--gray-400);
-}
-.comissao-empty svg {
-  width: 48px;
-  height: 48px;
-  margin: 0 auto var(--space-3);
-  color: var(--gray-300);
-}
-.comissao-empty p {
-  margin-bottom: var(--space-4);
-  color: var(--gray-500);
 }
 
-/* ----------------------------------------------------------------
-   Cabeçalho do detalhe da planilha
-   ---------------------------------------------------------------- */
-.comissao-detalhe-header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.comissao-modo-badge {
-  font-size: var(--text-xs);
-  font-weight: 600;
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-sm);
-  background: var(--blue-100);
-  color: var(--blue-600);
-}
-
-.comissao-contagem {
+.field-label {
   font-size: var(--text-sm);
-  color: var(--gray-500);
+  font-weight: 600;
+  color: var(--gray-700);
 }
 
 /* ----------------------------------------------------------------
-   Filtro de data — largura dos inputs
+   Botão Gerar PDF — destaque azul primário
    ---------------------------------------------------------------- */
-.filter-periodo {
-  display: flex;
-  align-items: center;
+#btnGerarPDF {
   gap: var(--space-2);
 }
 
-.filter-input--date {
-  padding-left: var(--space-3);
-  width: auto;
+#btnGerarPDF svg { width: 16px; height: 16px; }
+
+/* ----------------------------------------------------------------
+   Desktop: grid 2 colunas para o form
+   ---------------------------------------------------------------- */
+@media (min-width: 768px) {
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-5) var(--space-6);
+  }
+
+  /* Validade e Status ficam lado a lado na segunda linha */
+  #cotValidade,
+  #cotStatus { width: 100%; }
+
+  /* Observações ocupa linha inteira */
+  .field--full { grid-column: 1 / -1; }
+
+  /* Tabela — coluna # mais estreita no desktop */
+  .col-item { width: 52px; }
+  .col-desc { min-width: 0; } /* flex grow via table-layout */
+}
+
+/* ----------------------------------------------------------------
+   Responsividade do formulário — mobile
+   ---------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .field--full {
+    grid-column: 1;
+  }
+}
+
+/* ----------------------------------------------------------------
+   Rodapé da tabela — célula de ação no total
+   ---------------------------------------------------------------- */
+.total-row-acao {
+  background: linear-gradient(135deg, var(--blue-950) 0%, var(--blue-900) 100%);
+  border: none;
+  width: 44px;
+}
+
+/* ----------------------------------------------------------------
+   Lista de cotações — botão "Carregar mais" (paginação)
+   ---------------------------------------------------------------- */
+.carregar-mais-wrap {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-4);
+  border-top: 1px solid var(--gray-100);
+}
+
+.carregar-mais-wrap .btn-ghost:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
