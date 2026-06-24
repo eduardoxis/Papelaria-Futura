@@ -66,8 +66,11 @@
   color: var(--gray-800);
 }
 
-/* ── Stat card valor menor (telas menores) ──────────────────── */
+/* ── Garantia extra: nunca deixa conteúdo sair do card ──────── */
+.stat-card { overflow: hidden; }
 .stat-card__value--sm {
+  display: block;
+  width: 100%;
   font-size: clamp(0.95rem, 2.2vw, 1.25rem) !important;
   white-space: nowrap;
   overflow: hidden;
@@ -77,6 +80,7 @@
 .stat-card__body {
   min-width: 0;
   flex: 1 1 auto;
+  overflow: hidden;
 }
 
 /* ── Responsivo — filtros empilhados no mobile ──────────────── */
