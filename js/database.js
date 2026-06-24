@@ -95,53 +95,107 @@ export async function buscarCotacao(id) {
 }
 
 // ----------------------------------------------------------------
-// Listar cotações — com filtros opcionais
+// Listar cotações — com filtros opcionais e paginação por cursor.
+//
+// Compatível com chamadas antigas (sem `cursor`): continua devolvendo
+// só `{ sucesso, cotacoes }`, agora também com `proximoCursor`/`temMais`
+// (que quem não usa paginação simplesmente ignora).
+//
+// Para paginar de verdade: chame de novo passando `cursor: proximoCursor`
+// da resposta anterior — ele continua exatamente de onde parou.
 // ----------------------------------------------------------------
-export async function listarCotacoes({ uidUsuario = null, cliente = null, dataInicio = null, dataFim = null, limitQtd = 50 } = {}) {
+export async function listarCotacoes({
+  uidUsuario = null,
+  cliente = null,
+  dataInicio = null,
+  dataFim = null,
+  limitQtd = 50,
+  cursor = null
+} = {}) {
   try {
-    let q = collection(db, COLECAO_COTACOES);
-    const restricoes = [];
+    const temFiltroData = !!(dataInicio || dataFim);
 
-    if (uidUsuario) restricoes.push(where("criadoPor", "==", uidUsuario));
+    function montarRestricoesBase() {
+      const restricoes = [];
+      if (uidUsuario) restricoes.push(where("criadoPor", "==", uidUsuario));
 
-    // Filtro por intervalo de datas (mutuamente exclusivo com filtro de cliente
-    // na query do Firestore, pois não é possível usar inequações em dois campos
-    // diferentes na mesma consulta sem índice composto).
-    if (dataInicio || dataFim) {
-      if (dataInicio) {
-        const inicio = new Date(dataInicio); inicio.setHours(0, 0, 0, 0);
-        restricoes.push(where("dataCriacao", ">=", Timestamp.fromDate(inicio)));
-      }
-      if (dataFim) {
-        const fim = new Date(dataFim); fim.setHours(23, 59, 59, 999);
-        restricoes.push(where("dataCriacao", "<=", Timestamp.fromDate(fim)));
+      if (temFiltroData) {
+        if (dataInicio) {
+          const inicio = new Date(dataInicio); inicio.setHours(0, 0, 0, 0);
+          restricoes.push(where("dataCriacao", ">=", Timestamp.fromDate(inicio)));
+        }
+        if (dataFim) {
+          const fim = new Date(dataFim); fim.setHours(23, 59, 59, 999);
+          restricoes.push(where("dataCriacao", "<=", Timestamp.fromDate(fim)));
+        }
       }
       restricoes.push(orderBy("dataCriacao", "desc"));
-      restricoes.push(limit(limitQtd));
-    } else if (cliente) {
-      // Busca por cliente feita no JS (case-insensitive) em vez de range no
-      // Firestore — o Firestore só suporta range "começa com" sensível a
-      // maiúsculas/minúsculas, então buscar "flora" não encontraria "Flora".
-      restricoes.push(orderBy("dataCriacao", "desc"));
-      restricoes.push(limit(500));
-    } else {
-      restricoes.push(orderBy("dataCriacao", "desc"));
-      restricoes.push(limit(limitQtd));
+      return restricoes;
     }
 
-    q = query(q, ...restricoes);
-    const snapshot = await getDocs(q);
-
-    let cotacoes = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-
-    // Aplica o filtro de cliente localmente, sem diferenciar maiúsculas/minúsculas
-    // (cobre tanto o caso "cliente sozinho" quanto "cliente + data").
+    // ── Busca por cliente ──────────────────────────────────────
+    // O filtro de texto é feito no JS (case-insensitive — o Firestore só
+    // suporta range "começa com" sensível a maiúsculas/minúsculas). Por
+    // isso buscamos em lotes do Firestore e vamos filtrando até juntar
+    // `limitQtd` resultados (ou até a coleção acabar), em vez de buscar
+    // tudo de uma vez.
     if (cliente) {
       const termo = cliente.toLowerCase();
-      cotacoes = cotacoes.filter(c => (c.cliente || "").toLowerCase().includes(termo));
+      const TAMANHO_LOTE = 150;
+      const MAX_LOTES = 6; // protege contra escanear a coleção inteira numa chamada só
+
+      let cotacoes = [];
+      let cursorAtual = cursor;
+      let ultimoDocBruto = null;
+      let chegouAoFim = false;
+
+      for (let lote = 0; lote < MAX_LOTES; lote++) {
+        const restricoes = montarRestricoesBase();
+        restricoes.push(limit(TAMANHO_LOTE));
+        if (cursorAtual) restricoes.push(startAfter(cursorAtual));
+
+        const snapshot = await getDocs(query(collection(db, COLECAO_COTACOES), ...restricoes));
+
+        if (snapshot.empty) { chegouAoFim = true; break; }
+
+        ultimoDocBruto = snapshot.docs[snapshot.docs.length - 1];
+        cursorAtual = ultimoDocBruto;
+
+        const encontrados = snapshot.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(c => (c.cliente || "").toLowerCase().includes(termo));
+
+        cotacoes.push(...encontrados);
+
+        if (snapshot.docs.length < TAMANHO_LOTE) { chegouAoFim = true; break; }
+        if (cotacoes.length >= limitQtd) break;
+      }
+
+      return {
+        sucesso: true,
+        cotacoes,
+        proximoCursor: chegouAoFim ? null : ultimoDocBruto,
+        temMais: !chegouAoFim
+      };
     }
 
-    return { sucesso: true, cotacoes };
+    // ── Sem filtro de cliente ──────────────────────────────────
+    // Pede 1 documento extra só pra saber se existe próxima página,
+    // sem precisar de uma consulta de contagem separada.
+    const restricoes = montarRestricoesBase();
+    restricoes.push(limit(limitQtd + 1));
+    if (cursor) restricoes.push(startAfter(cursor));
+
+    const snapshot = await getDocs(query(collection(db, COLECAO_COTACOES), ...restricoes));
+    const docsPagina = snapshot.docs.slice(0, limitQtd);
+    const temMais = snapshot.docs.length > limitQtd;
+
+    return {
+      sucesso: true,
+      cotacoes: docsPagina.map(d => ({ id: d.id, ...d.data() })),
+      proximoCursor: temMais ? docsPagina[docsPagina.length - 1] : null,
+      temMais
+    };
   } catch (erro) {
     console.error("Erro ao listar cotações:", erro);
     return { sucesso: false, erro: erro.message };
