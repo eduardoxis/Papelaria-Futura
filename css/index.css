@@ -49,6 +49,12 @@ body {
   flex-shrink: 0;
 }
 .sidebar-logo-icon svg { width: 100%; height: 100%; }
+.sidebar-logo-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 11px;
+}
 
 .sidebar-logo-text {
   display: flex;
