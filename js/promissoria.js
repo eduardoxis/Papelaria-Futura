@@ -21,13 +21,6 @@ const JUROS_MENSAL     = 0.02;
 
 let _dadosUsuario = null;
 
-// Paginação (client-side) da lista de clientes — os dados já vêm
-// todos agregados de uma vez (compras/pagamentos), então a página
-// só controla quantas linhas ficam visíveis na tabela.
-const PROM_CLIENTES_POR_PAGINA = 25;
-let _promClientesFiltrados = [];
-let _promClientesVisiveis  = PROM_CLIENTES_POR_PAGINA;
-
 // ── Inicialização ───────────────────────────────────────────
 export function iniciarPromissoria(usuario, dadosUsuario) {
   _dadosUsuario = dadosUsuario;
@@ -62,11 +55,6 @@ export function iniciarPromissoria(usuario, dadosUsuario) {
     document.getElementById("filtroBuscaProm").value = "";
     document.getElementById("filtroStatusProm").value = "todos";
     carregarListaClientes();
-  });
-
-  document.getElementById("btnCarregarMaisProm")?.addEventListener("click", () => {
-    _promClientesVisiveis += PROM_CLIENTES_POR_PAGINA;
-    renderizarTabelaClientesProm();
   });
 
   document.getElementById("filtroBuscaProm")?.addEventListener("keydown", (e) => {
@@ -526,31 +514,12 @@ async function carregarListaClientes(busca = "", filtroStatus = "todos") {
 
     if (!clientes.length) {
       tbody.innerHTML = `<tr><td colspan="7" class="empty-cell">Nenhum cliente encontrado.</td></tr>`;
-      const wrapVazio = document.getElementById("wrapCarregarMaisProm");
-      if (wrapVazio) wrapVazio.style.display = "none";
       return;
     }
 
-    _promClientesFiltrados = clientes;
-    _promClientesVisiveis  = PROM_CLIENTES_POR_PAGINA;
-    renderizarTabelaClientesProm();
-
-  } catch (err) {
-    console.error("Erro ao carregar clientes:", err);
-    tbody.innerHTML = `<tr><td colspan="7" class="empty-cell">Erro ao carregar dados.</td></tr>`;
-  }
-}
-
-// ── Renderiza a fatia visível dos clientes filtrados + botão "Carregar mais" ──
-function renderizarTabelaClientesProm() {
-  const tbody = document.getElementById("tbodyClientesProm");
-  if (!tbody) return;
-
-  const visiveis = _promClientesFiltrados.slice(0, _promClientesVisiveis);
-
-  tbody.innerHTML = visiveis.map(c => {
-    const badge = badgeSituacao(c.situacao);
-    return `
+    tbody.innerHTML = clientes.map(c => {
+      const badge = badgeSituacao(c.situacao);
+      return `
         <tr>
           <td><strong>${escHtml(c.nome)}</strong>${c.telefone ? `<br><span style="font-size:var(--text-xs);color:var(--gray-500)">${escHtml(c.telefone)}</span>` : ""}</td>
           <td class="col-center">${c.qtdCompras}</td>
@@ -569,12 +538,11 @@ function renderizarTabelaClientesProm() {
             </div>
           </td>
         </tr>`;
-  }).join("");
+    }).join("");
 
-  const wrap = document.getElementById("wrapCarregarMaisProm");
-  const btn  = document.getElementById("btnCarregarMaisProm");
-  if (wrap && btn) {
-    wrap.style.display = (_promClientesVisiveis < _promClientesFiltrados.length) ? "flex" : "none";
+  } catch (err) {
+    console.error("Erro ao carregar clientes:", err);
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-cell">Erro ao carregar dados.</td></tr>`;
   }
 }
 
