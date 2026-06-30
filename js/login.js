@@ -2,7 +2,7 @@
 // login.js — Lógica da tela de login
 // ============================================================
 
-import { signInWithEmailAndPassword, setPersistence, browserLocalPersistence }
+import { signInWithEmailAndPassword, setPersistence, browserLocalPersistence, browserSessionPersistence }
   from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { auth } from "./firebase-config.js";
 import { resetarSenha } from "./auth.js";
@@ -10,6 +10,7 @@ import { resetarSenha } from "./auth.js";
 const btnLogin        = document.getElementById("btnLogin");
 const inputEmail      = document.getElementById("email");
 const inputSenha      = document.getElementById("senha");
+const inputManterConectado = document.getElementById("manterConectado");
 const alertErro       = document.getElementById("alertErro");
 const alertErroTexto  = document.getElementById("alertErroTexto");
 const alertSucesso    = document.getElementById("alertSucesso");
@@ -49,7 +50,8 @@ async function fazerLogin() {
   definirCarregando(true);
 
   try {
-    await setPersistence(auth, browserLocalPersistence);
+    const manter = inputManterConectado ? inputManterConectado.checked : true;
+    await setPersistence(auth, manter ? browserLocalPersistence : browserSessionPersistence);
     await signInWithEmailAndPassword(auth, email, senha);
     window.location.href = "/index.html";
   } catch (e) {
