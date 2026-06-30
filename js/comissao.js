@@ -85,6 +85,10 @@ function mostrarPainelDetalhe(comissao, modoEdicao = false) {
   document.getElementById("btnAdicionarLinhaComissao").hidden = !modoEdicao;
   document.getElementById("btnSalvarComissao").hidden         = !modoEdicao;
   document.getElementById("btnDesfazerComissao").hidden       = !modoEdicao;
+  const wrapQtd = document.getElementById("wrapQtdLinhasComissao");
+  if (wrapQtd) wrapQtd.hidden = !modoEdicao;
+  const inpQtd = document.getElementById("qtdLinhasComissao");
+  if (inpQtd) inpQtd.value = "";
   atualizarBotaoDesfazer();
 
   // Filtro de período — visível em ambos os modos
@@ -237,7 +241,10 @@ async function carregarRegistros(comissaoId) {
 // ================================================================
 function adicionarLinhaVazia() {
   if (!_modoEdicao) return;   // bloqueio modo leitura
-  adicionarLinha({});
+  const inpQtd = document.getElementById("qtdLinhasComissao");
+  let qtd = parseInt(inpQtd?.value, 10);
+  if (!qtd || qtd < 1) qtd = 1;
+  for (let i = 0; i < qtd; i++) adicionarLinha({});
   document.getElementById("tbodyComissao").lastElementChild?.querySelector("input")?.focus();
 }
 
@@ -785,7 +792,8 @@ function exigirSenha(comissaoId, acaoAutorizada, tituloAcao = "Ação Protegida"
         <label class="field-label" for="inputSenhaComissao">Senha da planilha</label>
         <div class="senha-input-wrap">
           <input class="field-input field-input--plain" type="password"
-            id="inputSenhaComissao" placeholder="Digite a senha" autocomplete="current-password" />
+            id="inputSenhaComissao" name="senha_planilha_${comissaoId}_${Date.now()}" placeholder="Digite a senha"
+            autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly')" />
           <button class="btn-toggle-senha" id="btnToggleSenhaC" type="button">
             <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clip-rule="evenodd"/><path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.064 7 9.542 7 .847 0 1.669-.105 2.454-.303z"/></svg>
           </button>
@@ -797,7 +805,13 @@ function exigirSenha(comissaoId, acaoAutorizada, tituloAcao = "Ação Protegida"
      <button class="btn-primary" id="btnConfirmarSenhaC">Confirmar</button>`
   );
 
-  setTimeout(() => document.getElementById("inputSenhaComissao")?.focus(), 100);
+  const _inpSenhaC = document.getElementById("inputSenhaComissao");
+  if (_inpSenhaC) _inpSenhaC.value = "";
+  setTimeout(() => {
+    const inp = document.getElementById("inputSenhaComissao");
+    if (inp) inp.value = "";
+    inp?.focus();
+  }, 100);
 
   document.getElementById("btnToggleSenhaC")?.addEventListener("click", () => {
     const inp = document.getElementById("inputSenhaComissao");
@@ -912,7 +926,8 @@ function confirmarExcluirPlanilha(id, titulo) {
         <label class="field-label" for="inputSenhaExcluirPlan">Confirme com a senha da planilha</label>
         <div class="senha-input-wrap">
           <input class="field-input field-input--plain" type="password"
-            id="inputSenhaExcluirPlan" placeholder="Digite a senha" />
+            id="inputSenhaExcluirPlan" name="senha_excluir_${id}_${Date.now()}" placeholder="Digite a senha"
+            autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly')" />
         </div>
       </div>
       <div id="errExcluirPlan" class="senha-erro" style="display:none"></div>
@@ -921,7 +936,11 @@ function confirmarExcluirPlanilha(id, titulo) {
      <button class="btn-danger-solid" id="btnConfExcluirPlan">Excluir Planilha</button>`
   );
 
-  setTimeout(() => document.getElementById("inputSenhaExcluirPlan")?.focus(), 100);
+  setTimeout(() => {
+    const inp = document.getElementById("inputSenhaExcluirPlan");
+    if (inp) inp.value = "";
+    inp?.focus();
+  }, 100);
 
   document.getElementById("btnConfExcluirPlan")?.addEventListener("click", async () => {
     const senha  = document.getElementById("inputSenhaExcluirPlan")?.value;
