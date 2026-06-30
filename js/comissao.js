@@ -18,6 +18,8 @@ let _senhaValidadaMap = {};
 let _registrosTodos   = [];
 let _modoEdicao       = false;
 let _contadorLinhas   = 0;
+let _undoStack        = [];
+const _fotosPorLinha  = new WeakMap(); // tr -> array de dataURLs (base64)
 
 export function iniciarComissao(usuario, dadosUsuario) {
   _usuario = usuario;
@@ -30,8 +32,18 @@ export function iniciarComissao(usuario, dadosUsuario) {
   document.getElementById("btnVoltarComissao")?.addEventListener("click", mostrarPainelLista);
   document.getElementById("btnAdicionarLinhaComissao")?.addEventListener("click", adicionarLinhaVazia);
   document.getElementById("btnSalvarComissao")?.addEventListener("click", salvarTodosRegistros);
+  document.getElementById("btnDesfazerComissao")?.addEventListener("click", desfazerUltimaAcao);
   document.getElementById("btnAplicarFiltro")?.addEventListener("click", aplicarFiltro);
   document.getElementById("btnLimparFiltro")?.addEventListener("click", limparFiltro);
+
+  document.addEventListener("keydown", (e) => {
+    const ctrlZ = (e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z";
+    if (!ctrlZ) return;
+    const painel = document.getElementById("comissaoDetalhePanel");
+    if (!painel || painel.hidden || !_modoEdicao) return;
+    e.preventDefault();
+    desfazerUltimaAcao();
+  });
 }
 
 // ================================================================
@@ -44,6 +56,7 @@ function mostrarPainelLista() {
   _registrosTodos = [];
   _contadorLinhas = 0;
   _modoEdicao     = false;
+  _undoStack      = [];
   carregarListaComissoes();
 }
 
@@ -51,6 +64,7 @@ function mostrarPainelDetalhe(comissao, modoEdicao = false) {
   _comissaoAtual  = comissao;
   _modoEdicao     = modoEdicao;
   _contadorLinhas = 0;
+  _undoStack      = [];
 
   document.getElementById("comissaoListaPanel").hidden   = true;
   document.getElementById("comissaoDetalhePanel").hidden = false;
@@ -70,6 +84,8 @@ function mostrarPainelDetalhe(comissao, modoEdicao = false) {
   // Mostrar/ocultar controles de edição
   document.getElementById("btnAdicionarLinhaComissao").hidden = !modoEdicao;
   document.getElementById("btnSalvarComissao").hidden         = !modoEdicao;
+  document.getElementById("btnDesfazerComissao").hidden       = !modoEdicao;
+  atualizarBotaoDesfazer();
 
   // Filtro de período — visível em ambos os modos
   // Bloquear inputs de filtro em leitura apenas se desejar (mantemos abertos para filtrar visualização)
@@ -270,13 +286,22 @@ function adicionarLinha(dados = {}) {
           ${optsCategoria}
         </select>
       </td>
-      <td class="col-acao">
+      <td class="col-acao" style="display:flex;gap:4px;align-items:center;justify-content:center">
+        <button class="btn-remove-row btn-foto-row" type="button" title="Anexar fotos">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 5h2.5l1-1.5h5l1 1.5H16a1 1 0 011 1v9a1 1 0 01-1 1H4a1 1 0 01-1-1V6a1 1 0 011-1zm6 3a3 3 0 100 6 3 3 0 000-6z" clip-rule="evenodd"/></svg>
+          <span class="foto-badge" hidden>0</span>
+        </button>
         <button class="btn-remove-row" title="Remover linha">
           <svg viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
           </svg>
         </button>
       </td>`;
+
+    _fotosPorLinha.set(tr, Array.isArray(dados.fotos) ? [...dados.fotos] : []);
+    atualizarBadgeFoto(tr);
+
+    tr.querySelector(".btn-foto-row").addEventListener("click", () => abrirModalFotos(tr));
 
     // Formatar valor ao sair
     const inputValor = tr.querySelector('[data-campo="valor"]');
@@ -287,18 +312,9 @@ function adicionarLinha(dados = {}) {
     });
     inputValor.addEventListener("input", atualizarTotalGeral);
 
-    // Remover linha
-    tr.querySelector(".btn-remove-row").addEventListener("click", () => {
-      const registroId = tr.dataset.registroId;
-      if (registroId) {
-        excluirLinhaSalva(tr, registroId);
-      } else {
-        tr.remove();
-        renumerarLinhas();
-        atualizarTotalGeral();
-        atualizarContagem();
-        if (!document.querySelector("#tbodyComissao tr[data-linha]")) adicionarLinhaVazia();
-      }
+    // Remover linha (com confirmação + undo)
+    tr.querySelector(".btn-remove-row[title='Remover linha']").addEventListener("click", () => {
+      confirmarExclusaoLinha(tr);
     });
 
   } else {
@@ -314,7 +330,16 @@ function adicionarLinha(dados = {}) {
       <td class="col-com-cat"   style="padding:0 var(--space-3)">
         <span class="badge-categoria badge-categoria--${slugCategoria(dados.categoria)}">${escHtml(dados.categoria || "—")}</span>
       </td>
-      <td class="col-acao"></td>`;
+      <td class="col-acao">
+        ${Array.isArray(dados.fotos) && dados.fotos.length ? `
+          <button class="btn-ver-fotos" type="button" title="Ver fotos anexadas">
+            📷 ${dados.fotos.length}
+          </button>` : ""}
+      </td>`;
+
+    if (Array.isArray(dados.fotos) && dados.fotos.length) {
+      tr.querySelector(".btn-ver-fotos")?.addEventListener("click", () => visualizarFotos(dados.fotos));
+    }
   }
 
   tbody.appendChild(tr);
@@ -322,7 +347,54 @@ function adicionarLinha(dados = {}) {
   atualizarContagem();
 }
 
+// ================================================================
+// EXCLUSÃO DE LINHA (com confirmação) + DESFAZER (undo)
+// ================================================================
+function confirmarExclusaoLinha(tr) {
+  const cliente = tr.querySelector('[data-campo="cliente"]')?.value.trim() || "esta linha";
+  window.abrirModal?.(
+    "Excluir registro",
+    `<div class="senha-cotacao-modal">
+      <p>Tem certeza que deseja excluir <strong>${escHtml(cliente)}</strong>? Você pode desfazer com Ctrl+Z logo em seguida.</p>
+    </div>`,
+    `<button class="btn-ghost" onclick="window.fecharModal()">Cancelar</button>
+     <button class="btn-danger-solid" id="btnConfExcluirLinha">Excluir</button>`
+  );
+
+  document.getElementById("btnConfExcluirLinha")?.addEventListener("click", async () => {
+    window.fecharModal?.();
+    const registroId = tr.dataset.registroId;
+    if (registroId) {
+      await excluirLinhaSalva(tr, registroId);
+    } else {
+      removerLinhaLocal(tr, true);
+    }
+  });
+}
+
+function removerLinhaLocal(tr, registrarUndo) {
+  const indexAtual = Array.from(tr.parentElement.children).indexOf(tr);
+  if (registrarUndo) {
+    _undoStack.push({
+      tipo: "local",
+      dados: coletarDadosLinha(tr),
+      fotos: _fotosPorLinha.get(tr) || [],
+      index: indexAtual
+    });
+    atualizarBotaoDesfazer();
+  }
+  tr.remove();
+  renumerarLinhas();
+  atualizarTotalGeral();
+  atualizarContagem();
+  if (!document.querySelector("#tbodyComissao tr[data-linha]")) adicionarLinhaVazia();
+}
+
 async function excluirLinhaSalva(tr, registroId) {
+  const dadosAntes = coletarDadosLinha(tr);
+  const fotosAntes = _fotosPorLinha.get(tr) || [];
+  const indexAtual = Array.from(tr.parentElement.children).indexOf(tr);
+
   const res = await excluirRegistroComissao(_comissaoAtual.id, registroId);
   if (res.sucesso) {
     tr.remove();
@@ -331,10 +403,162 @@ async function excluirLinhaSalva(tr, registroId) {
     atualizarTotalGeral();
     atualizarContagem();
     window.mostrarToast?.("Registro excluído.", "success");
+    _undoStack.push({ tipo: "salvo", dados: dadosAntes, fotos: fotosAntes, index: indexAtual });
+    atualizarBotaoDesfazer();
     if (!document.querySelector("#tbodyComissao tr[data-linha]")) adicionarLinhaVazia();
   } else {
     window.mostrarToast?.("Erro ao excluir: " + res.erro, "error");
   }
+}
+
+function atualizarBotaoDesfazer() {
+  const btn = document.getElementById("btnDesfazerComissao");
+  if (!btn) return;
+  btn.disabled = _undoStack.length === 0;
+}
+
+async function desfazerUltimaAcao() {
+  if (!_modoEdicao || _undoStack.length === 0) return;
+  const acao = _undoStack.pop();
+  atualizarBotaoDesfazer();
+
+  if (acao.tipo === "salvo") {
+    const res = await adicionarRegistroComissao(_comissaoAtual.id, acao.dados);
+    if (!res.sucesso) { window.mostrarToast?.("Não foi possível desfazer: " + res.erro, "error"); return; }
+    acao.dados.id = res.id;
+  }
+
+  const tbody = document.getElementById("tbodyComissao");
+  const vazio = tbody.querySelector(".excel-empty-row, tr:not([data-linha])");
+  if (vazio && !vazio.dataset.linha) vazio.remove();
+
+  adicionarLinha(acao.dados);
+  const novaLinha = tbody.lastElementChild;
+  if (novaLinha) {
+    _fotosPorLinha.set(novaLinha, acao.fotos || []);
+    atualizarBadgeFoto(novaLinha);
+    const refIndex = Math.min(acao.index, tbody.children.length - 1);
+    tbody.insertBefore(novaLinha, tbody.children[refIndex] || null);
+    renumerarLinhas();
+  }
+  if (acao.tipo === "salvo") _registrosTodos.push(acao.dados);
+  atualizarTotalGeral();
+  atualizarContagem();
+  window.mostrarToast?.("Ação desfeita.", "success");
+}
+
+// ================================================================
+// FOTOS DOS SERVIÇOS (anexo opcional, por linha)
+// ================================================================
+function atualizarBadgeFoto(tr) {
+  const badge = tr.querySelector(".foto-badge");
+  if (!badge) return;
+  const n = (_fotosPorLinha.get(tr) || []).length;
+  badge.textContent = n;
+  badge.hidden = n === 0;
+}
+
+function _comprimirImagem(file, maxDim = 1000, qualidade = 0.72) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Falha ao ler arquivo."));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Falha ao carregar imagem."));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const escala = maxDim / Math.max(width, height);
+          width  = Math.round(width  * escala);
+          height = Math.round(height * escala);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", qualidade));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function abrirModalFotos(tr) {
+  const fotos = _fotosPorLinha.get(tr) || [];
+
+  const render = () => `
+    <div class="comissao-fotos-modal">
+      <div class="comissao-fotos-grid">
+        ${fotos.map((f, i) => `
+          <div class="comissao-foto-item">
+            <img src="${f}" alt="Foto ${i + 1}" />
+            <button class="btn-remove-foto" data-i="${i}" title="Remover foto">×</button>
+          </div>`).join("") || `<p class="empty-cell">Nenhuma foto anexada.</p>`}
+      </div>
+      <label class="btn-secondary comissao-foto-add" for="inputFotosServico">
+        Adicionar foto(s)
+      </label>
+      <input type="file" id="inputFotosServico" accept="image/*" multiple hidden />
+      <p class="comissao-foto-dica">Pode anexar uma ou várias fotos (opcional).</p>
+    </div>`;
+
+  window.abrirModal?.(
+    "Fotos do serviço",
+    render(),
+    `<button class="btn-primary" onclick="window.fecharModal()">Concluir</button>`
+  );
+
+  const reabrirComEstadoAtual = () => {
+    const corpo = document.querySelector(".comissao-fotos-modal");
+    if (!corpo) return;
+    corpo.outerHTML = render();
+    ligarEventos();
+  };
+
+  const ligarEventos = () => {
+    document.getElementById("inputFotosServico")?.addEventListener("change", async (e) => {
+      const arquivos = Array.from(e.target.files || []);
+      if (!arquivos.length) return;
+      for (const file of arquivos) {
+        try {
+          const dataUrl = await _comprimirImagem(file);
+          fotos.push(dataUrl);
+        } catch {
+          window.mostrarToast?.("Erro ao processar uma das imagens.", "error");
+        }
+      }
+      _fotosPorLinha.set(tr, fotos);
+      atualizarBadgeFoto(tr);
+      reabrirComEstadoAtual();
+    });
+
+    document.querySelectorAll(".btn-remove-foto").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const i = Number(btn.dataset.i);
+        fotos.splice(i, 1);
+        _fotosPorLinha.set(tr, fotos);
+        atualizarBadgeFoto(tr);
+        reabrirComEstadoAtual();
+      });
+    });
+  };
+
+  ligarEventos();
+}
+
+function visualizarFotos(fotos) {
+  window.abrirModal?.(
+    "Fotos do serviço",
+    `<div class="comissao-fotos-modal">
+      <div class="comissao-fotos-grid">
+        ${fotos.map((f, i) => `
+          <div class="comissao-foto-item">
+            <img src="${f}" alt="Foto ${i + 1}" />
+          </div>`).join("")}
+      </div>
+    </div>`,
+    `<button class="btn-primary" onclick="window.fecharModal()">Fechar</button>`
+  );
 }
 
 // ================================================================
@@ -391,7 +615,8 @@ function coletarDadosLinha(tr) {
     qtdFolhas: parsearNumero(get("qtdFolhas")?.value),
     valor:     parsearMoeda(get("valor")?.value),
     data:      get("data")?.value || "",
-    categoria: get("categoria")?.value || ""
+    categoria: get("categoria")?.value || "",
+    fotos:     _fotosPorLinha.get(tr) || []
   };
 }
 
@@ -578,17 +803,17 @@ function abrirModalNovaComissao() {
       <div class="field">
         <label class="field-label" for="comissaoTitulo">Título da Planilha *</label>
         <input class="field-input field-input--plain" type="text" id="comissaoTitulo"
-          placeholder="Ex.: Comissão Janeiro 2025" />
+          placeholder="Ex.: Comissão Janeiro 2025" autocomplete="off" />
       </div>
       <div class="field">
         <label class="field-label" for="comissaoDescricao">Descrição</label>
         <input class="field-input field-input--plain" type="text" id="comissaoDescricao"
-          placeholder="Ex.: Vendas da filial Centro" />
+          placeholder="Ex.: Vendas da filial Centro" autocomplete="off" />
       </div>
       <div class="field">
         <label class="field-label" for="comissaoSenha">Senha da Planilha *</label>
         <div class="senha-input-wrap">
-          <input class="field-input field-input--plain" type="password" id="comissaoSenha" placeholder="Mínimo 4 caracteres" />
+          <input class="field-input field-input--plain" type="password" id="comissaoSenha" placeholder="Mínimo 4 caracteres" autocomplete="new-password" />
           <button class="btn-toggle-senha" id="btnTCS1" type="button">
             <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clip-rule="evenodd"/><path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.064 7 9.542 7 .847 0 1.669-.105 2.454-.303z"/></svg>
           </button>
@@ -597,7 +822,7 @@ function abrirModalNovaComissao() {
       <div class="field">
         <label class="field-label" for="comissaoSenhaConf">Confirmar Senha *</label>
         <div class="senha-input-wrap">
-          <input class="field-input field-input--plain" type="password" id="comissaoSenhaConf" placeholder="Repita a senha" />
+          <input class="field-input field-input--plain" type="password" id="comissaoSenhaConf" placeholder="Repita a senha" autocomplete="new-password" />
           <button class="btn-toggle-senha" id="btnTCS2" type="button">
             <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clip-rule="evenodd"/><path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.064 7 9.542 7 .847 0 1.669-.105 2.454-.303z"/></svg>
           </button>
