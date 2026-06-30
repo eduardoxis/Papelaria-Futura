@@ -498,7 +498,12 @@
           <button class="btn-ghost" id="btnLimparFiltro">Limpar</button>
           <div class="filter-periodo" id="wrapQtdLinhasComissao" style="display:none">
             <label class="field-label" style="white-space:nowrap">Qtd. linhas</label>
-            <input type="number" min="1" class="filter-input" id="qtdLinhasComissao" placeholder="1" style="width:80px" />
+            <div style="display:flex;gap:6px">
+              <input type="number" min="1" class="filter-input" id="qtdLinhasComissao" placeholder="1" style="width:80px" />
+              <button class="btn-secondary" id="btnConfirmarQtdLinhas" type="button" title="Adicionar linhas">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+              </button>
+            </div>
           </div>
           <span class="comissao-contagem" id="comissaoContagem"></span>
         </div>
