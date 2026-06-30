@@ -675,6 +675,29 @@
 }
 
 /* ----------------------------------------------------------------
+   Manter conectado — checkbox
+   ---------------------------------------------------------------- */
+.field--checkbox {
+  margin-top: -4px;
+  margin-bottom: 4px;
+}
+.checkbox-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13.5px;
+  color: var(--text-secondary, #475569);
+  user-select: none;
+}
+.checkbox-wrap input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--blue-700, #1d4ed8);
+  cursor: pointer;
+}
+
+/* ----------------------------------------------------------------
    Print — ocultar a tela de login ao imprimir
    ---------------------------------------------------------------- */
 @media print {
