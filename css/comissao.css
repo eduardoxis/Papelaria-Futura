@@ -300,15 +300,19 @@
 }
 .btn-remove-foto {
   position: absolute;
-  top: 4px; right: 4px;
-  width: 20px; height: 20px;
+  top: 6px; right: 6px;
+  width: 32px; height: 32px;
   border-radius: 999px;
   border: none;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0,0,0,0.65);
   color: #fff;
-  font-size: 13px;
+  font-size: 20px;
+  font-weight: 700;
   line-height: 1;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .comissao-foto-add {
   display: inline-flex;
@@ -316,6 +320,10 @@
   justify-content: center;
   cursor: pointer;
   width: fit-content;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 8px;
 }
 .comissao-foto-dica {
   font-size: 12px;
