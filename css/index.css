@@ -644,7 +644,7 @@ body {
    ---------------------------------------------------------------- */
 .filter-bar {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: var(--space-3);
   margin-bottom: var(--space-5);
   flex-wrap: wrap;
