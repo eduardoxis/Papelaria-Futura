@@ -86,7 +86,7 @@ function mostrarPainelDetalhe(comissao, modoEdicao = false) {
   document.getElementById("btnSalvarComissao").hidden         = !modoEdicao;
   document.getElementById("btnDesfazerComissao").hidden       = !modoEdicao;
   const wrapQtd = document.getElementById("wrapQtdLinhasComissao");
-  if (wrapQtd) wrapQtd.hidden = !modoEdicao;
+  if (wrapQtd) wrapQtd.style.display = modoEdicao ? "flex" : "none";
   const inpQtd = document.getElementById("qtdLinhasComissao");
   if (inpQtd) inpQtd.value = "";
   atualizarBotaoDesfazer();
