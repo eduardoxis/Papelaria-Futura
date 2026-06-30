@@ -491,7 +491,7 @@ function abrirModalFotos(tr) {
       <div class="comissao-fotos-grid">
         ${fotos.map((f, i) => `
           <div class="comissao-foto-item">
-            <img src="${f}" alt="Foto ${i + 1}" />
+            <img src="${f}" alt="Foto ${i + 1}" class="comissao-foto-clicavel" data-src="${f}" />
             <button class="btn-remove-foto" data-i="${i}" title="Remover foto">×</button>
           </div>`).join("") || `<p class="empty-cell">Nenhuma foto anexada.</p>`}
       </div>
@@ -541,9 +541,27 @@ function abrirModalFotos(tr) {
         reabrirComEstadoAtual();
       });
     });
+
+    document.querySelectorAll(".comissao-foto-clicavel").forEach(img => {
+      img.addEventListener("click", () => abrirFotoGrande(img.dataset.src));
+    });
   };
 
   ligarEventos();
+}
+
+function abrirFotoGrande(src) {
+  const overlay = document.createElement("div");
+  overlay.className = "comissao-lightbox-overlay";
+  overlay.innerHTML = `
+    <button class="comissao-lightbox-fechar" title="Fechar">×</button>
+    <img src="${src}" alt="Foto ampliada" />`;
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay || e.target.classList.contains("comissao-lightbox-fechar")) {
+      overlay.remove();
+    }
+  });
+  document.body.appendChild(overlay);
 }
 
 function visualizarFotos(fotos) {
@@ -553,12 +571,15 @@ function visualizarFotos(fotos) {
       <div class="comissao-fotos-grid">
         ${fotos.map((f, i) => `
           <div class="comissao-foto-item">
-            <img src="${f}" alt="Foto ${i + 1}" />
+            <img src="${f}" alt="Foto ${i + 1}" class="comissao-foto-clicavel" data-src="${f}" />
           </div>`).join("")}
       </div>
     </div>`,
     `<button class="btn-primary" onclick="window.fecharModal()">Fechar</button>`
   );
+  document.querySelectorAll(".comissao-foto-clicavel").forEach(img => {
+    img.addEventListener("click", () => abrirFotoGrande(img.dataset.src));
+  });
 }
 
 // ================================================================
