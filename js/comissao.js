@@ -31,6 +31,10 @@ export function iniciarComissao(usuario, dadosUsuario) {
   document.getElementById("btnNovaComissao")?.addEventListener("click", abrirModalNovaComissao);
   document.getElementById("btnVoltarComissao")?.addEventListener("click", mostrarPainelLista);
   document.getElementById("btnAdicionarLinhaComissao")?.addEventListener("click", adicionarLinhaVazia);
+  document.getElementById("btnConfirmarQtdLinhas")?.addEventListener("click", adicionarLinhaVazia);
+  document.getElementById("qtdLinhasComissao")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); adicionarLinhaVazia(); }
+  });
   document.getElementById("btnSalvarComissao")?.addEventListener("click", salvarTodosRegistros);
   document.getElementById("btnDesfazerComissao")?.addEventListener("click", desfazerUltimaAcao);
   document.getElementById("btnAplicarFiltro")?.addEventListener("click", aplicarFiltro);
