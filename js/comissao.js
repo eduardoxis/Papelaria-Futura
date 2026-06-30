@@ -94,6 +94,8 @@ function mostrarPainelDetalhe(comissao, modoEdicao = false) {
 
   document.getElementById("filtroDataInicio").value = "";
   document.getElementById("filtroDataFim").value    = "";
+  document.getElementById("filtroValorMin").value   = "";
+  document.getElementById("filtroValorMax").value   = "";
 
   // Marcar tabela como somente leitura via classe
   const tabela = document.getElementById("tbodyComissao")?.closest("table");
@@ -645,18 +647,28 @@ function coletarDadosLinha(tr) {
 // FILTRO POR PERÍODO
 // ================================================================
 function aplicarFiltro() {
-  const inicio = document.getElementById("filtroDataInicio")?.value;
-  const fim    = document.getElementById("filtroDataFim")?.value;
-  if (!inicio && !fim) { limparFiltro(); return; }
+  const inicio  = document.getElementById("filtroDataInicio")?.value;
+  const fim     = document.getElementById("filtroDataFim")?.value;
+  const valorMinStr = document.getElementById("filtroValorMin")?.value;
+  const valorMaxStr = document.getElementById("filtroValorMax")?.value;
+  const valorMin = valorMinStr ? parsearMoeda(valorMinStr) : null;
+  const valorMax = valorMaxStr ? parsearMoeda(valorMaxStr) : null;
+
+  if (!inicio && !fim && valorMin === null && valorMax === null) { limparFiltro(); return; }
 
   const dtInicio = inicio ? new Date(inicio + "T00:00:00") : null;
   const dtFim    = fim    ? new Date(fim    + "T23:59:59") : null;
 
   const filtrados = _registrosTodos.filter(r => {
-    if (!r.data) return false;
-    const dt = new Date(r.data + "T00:00:00");
-    if (dtInicio && dt < dtInicio) return false;
-    if (dtFim    && dt > dtFim)    return false;
+    if (dtInicio || dtFim) {
+      if (!r.data) return false;
+      const dt = new Date(r.data + "T00:00:00");
+      if (dtInicio && dt < dtInicio) return false;
+      if (dtFim    && dt > dtFim)    return false;
+    }
+    const valor = Number(r.valor) || 0;
+    if (valorMin !== null && valor < valorMin) return false;
+    if (valorMax !== null && valor > valorMax) return false;
     return true;
   });
 
@@ -665,7 +677,7 @@ function aplicarFiltro() {
   tbody.innerHTML = "";
 
   if (filtrados.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="empty-cell">Nenhum registro no período selecionado.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="empty-cell">Nenhum registro encontrado para o filtro selecionado.</td></tr>`;
     atualizarContagem(0);
     document.getElementById("comissaoTotalGeral").textContent = formatarMoeda(0);
     return;
@@ -679,6 +691,8 @@ function aplicarFiltro() {
 function limparFiltro() {
   document.getElementById("filtroDataInicio").value = "";
   document.getElementById("filtroDataFim").value    = "";
+  document.getElementById("filtroValorMin").value   = "";
+  document.getElementById("filtroValorMax").value   = "";
   const tbody = document.getElementById("tbodyComissao");
   _contadorLinhas = 0;
   tbody.innerHTML = "";
