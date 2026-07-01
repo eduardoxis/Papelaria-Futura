@@ -81,6 +81,10 @@ let _usuario = null;
 let _dadosUsuario = null;
 let _fotoAtual = null; // base64 da foto sendo editada no modal (null = sem foto)
 
+const ITENS_POR_PAGINA = 50;
+let _produtosFiltrados = []; // resultado atual (após busca/filtro), fatiado em páginas na renderização
+let _paginaAtual = 1;
+
 // ── Foto do produto: seleciona, redimensiona (canvas) e prepara preview ──
 function redimensionarImagem(file, maxLado = 200, qualidade = 0.82) {
   return new Promise((resolve, reject) => {
@@ -196,6 +200,14 @@ export function iniciarProdutos(usuario, dadosUsuario) {
 
   document.getElementById("btnExportarProdutos")?.addEventListener("click", exportarProdutos);
 
+  document.getElementById("btnProdPaginaAnterior")?.addEventListener("click", () => {
+    if (_paginaAtual > 1) { _paginaAtual--; renderPaginaProdutos(); }
+  });
+  document.getElementById("btnProdPaginaProxima")?.addEventListener("click", () => {
+    const totalPaginas = Math.max(1, Math.ceil(_produtosFiltrados.length / ITENS_POR_PAGINA));
+    if (_paginaAtual < totalPaginas) { _paginaAtual++; renderPaginaProdutos(); }
+  });
+
   document.getElementById("btnHistoricoGeralEstoque")?.addEventListener("click", abrirHistoricoGeralEstoque);
 
   document.getElementById("btnImportarProdutos")?.addEventListener("click", () => {
@@ -236,6 +248,7 @@ async function carregarListaProdutos(busca = "", categoria = "todos") {
   const tbody = document.getElementById("tbodyProdutos");
   if (!tbody) return;
   tbody.innerHTML = `<tr><td colspan="12" class="loading-cell">Carregando produtos...</td></tr>`;
+  document.getElementById("prodPaginacao").hidden = true;
 
   try {
     const snap = await getDocs(query(collection(db, COL), orderBy("nome")));
@@ -250,68 +263,103 @@ async function carregarListaProdutos(busca = "", categoria = "todos") {
       produtos = produtos.filter(p => p.categoria === categoria);
     }
 
-    if (!produtos.length) {
-      tbody.innerHTML = `<tr><td colspan="12" class="empty-cell">Nenhum produto encontrado.</td></tr>`;
-      return;
-    }
-
-    tbody.innerHTML = produtos.map(p => {
-      const estoque = p.estoque || 0;
-      const min = p.estoqueMinimo || 0;
-      const alertaEstoque = min > 0 && estoque <= min;
-      const estoqueHtml = alertaEstoque
-        ? `<span style="color:#DC2626;font-weight:600">${estoque} ⚠️</span>`
-        : `<span style="color:var(--gray-700)">${estoque}</span>`;
-      const sv = statusValidade(p.dataValidade);
-      const { margemReais, margemPct } = calcularMargem(p.preco, p.precoCusto);
-      const cm = corMargem(margemPct);
-      const margemHtml = (p.precoCusto || 0) > 0
-        ? `<span title="${formatarMoeda(margemReais)} por unidade" style="display:inline-block;padding:2px 9px;border-radius:999px;font-size:var(--text-xs);font-weight:600;white-space:nowrap;background:${cm.bg};color:${cm.cor}">${margemPct.toFixed(0)}%</span>`
-        : `<span style="color:var(--gray-400);font-size:var(--text-xs)">—</span>`;
-
-      return `<tr>
-        <td><span style="font-size:0.7rem;color:var(--gray-400);font-family:monospace">${escHtml(p.codigo || "—")}</span></td>
-        <td>
-          <div style="display:flex;align-items:center;gap:10px">
-            <div class="prod-thumb-mini">${p.foto ? `<img src="${p.foto}" alt="">` : "📦"}</div>
-            <strong style="color:var(--gray-800)">${escHtml(p.nome)}</strong>
-          </div>
-        </td>
-        <td style="color:var(--gray-500);font-size:var(--text-sm)">${escHtml(p.categoria || "—")}</td>
-        <td>${formatarMoeda(p.preco || 0)}</td>
-        <td>${formatarMoeda(p.precoCusto || 0)}</td>
-        <td>${margemHtml}</td>
-        <td>${estoqueHtml}</td>
-        <td style="color:var(--gray-400);font-size:var(--text-sm)">${p.unidade || "un"}</td>
-        <td><span style="font-size:0.7rem;color:var(--gray-400);font-family:monospace">${escHtml(p.codigoBarras || "—")}</span></td>
-        <td style="color:var(--gray-600);font-size:var(--text-sm);white-space:nowrap">${formatarData(p.dataValidade)}</td>
-        <td><span style="display:inline-block;padding:2px 9px;border-radius:999px;font-size:var(--text-xs);font-weight:600;white-space:nowrap;background:${sv.bg};color:${sv.cor}">${sv.label}</span></td>
-        <td class="col-center" style="white-space:nowrap">
-          <button class="btn-table-action btn-table-action--view" data-action="codigo-barras" data-id="${p.id}" title="Código de barras">
-            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 3a1 1 0 011-1h1a1 1 0 011 1v14a1 1 0 01-1 1H3a1 1 0 01-1-1V3zM6 3a1 1 0 011-1 1 1 0 011 1v14a1 1 0 01-1 1 1 1 0 01-1-1V3zM9.5 2a1 1 0 00-1 1v14a1 1 0 002 0V3a1 1 0 00-1-1zM12 3a1 1 0 011-1h1a1 1 0 011 1v14a1 1 0 01-1 1h-1a1 1 0 01-1-1V3zM17 2a1 1 0 00-1 1v14a1 1 0 002 0V3a1 1 0 00-1-1z"/></svg>
-          </button>
-          <button class="btn-table-action btn-table-action--view" data-action="historico-custo" data-id="${p.id}" title="Histórico de custo e margem">
-            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/></svg>
-          </button>
-          <button class="btn-table-action btn-table-action--view" data-action="historico-estoque" data-id="${p.id}" title="Histórico de movimentações">
-            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
-          </button>
-          <button class="btn-table-action btn-table-action--view" data-action="ajustar-estoque" data-id="${p.id}" title="Ajustar estoque">
-            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z"/></svg>
-          </button>
-          <button class="btn-table-action btn-table-action--view" data-action="editar-produto" data-id="${p.id}" title="Editar">
-            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
-          </button>
-          <button class="btn-table-action btn-table-action--delete" data-action="excluir-produto" data-id="${p.id}" title="Excluir">
-            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-          </button>
-        </td>
-      </tr>`;
-    }).join("");
+    _produtosFiltrados = produtos;
+    _paginaAtual = 1;
+    renderPaginaProdutos();
   } catch (err) {
     console.error(err);
     tbody.innerHTML = `<tr><td colspan="12" class="empty-cell">Erro ao carregar produtos.</td></tr>`;
   }
+}
+
+// Renderiza apenas a página atual (fatia de até ITENS_POR_PAGINA produtos),
+// evitando jogar milhares de linhas no DOM de uma vez — é isso que trava o
+// navegador quando o estoque tem muitos itens (ex.: planilhas importadas).
+function renderPaginaProdutos() {
+  const tbody = document.getElementById("tbodyProdutos");
+  if (!tbody) return;
+
+  const total = _produtosFiltrados.length;
+  const totalPaginas = Math.max(1, Math.ceil(total / ITENS_POR_PAGINA));
+  if (_paginaAtual > totalPaginas) _paginaAtual = totalPaginas;
+  if (_paginaAtual < 1) _paginaAtual = 1;
+
+  if (!total) {
+    tbody.innerHTML = `<tr><td colspan="12" class="empty-cell">Nenhum produto encontrado.</td></tr>`;
+    document.getElementById("prodPaginacao").hidden = true;
+    return;
+  }
+
+  const inicio = (_paginaAtual - 1) * ITENS_POR_PAGINA;
+  const fim = Math.min(inicio + ITENS_POR_PAGINA, total);
+  const paginaProdutos = _produtosFiltrados.slice(inicio, fim);
+
+  tbody.innerHTML = paginaProdutos.map(linhaProdutoHtml).join("");
+
+  // Atualiza a barra de paginação
+  const paginacao = document.getElementById("prodPaginacao");
+  paginacao.hidden = false;
+  document.getElementById("prodPaginacaoInfo").textContent =
+    `Mostrando ${inicio + 1}–${fim} de ${total} produto(s)`;
+  document.getElementById("prodPaginacaoPagina").textContent = `Página ${_paginaAtual} de ${totalPaginas}`;
+  const btnAnterior = document.getElementById("btnProdPaginaAnterior");
+  const btnProxima  = document.getElementById("btnProdPaginaProxima");
+  btnAnterior.disabled = _paginaAtual <= 1;
+  btnProxima.disabled  = _paginaAtual >= totalPaginas;
+}
+
+function linhaProdutoHtml(p) {
+  const estoque = p.estoque || 0;
+  const min = p.estoqueMinimo || 0;
+  const alertaEstoque = min > 0 && estoque <= min;
+  const estoqueHtml = alertaEstoque
+    ? `<span style="color:#DC2626;font-weight:600">${estoque} ⚠️</span>`
+    : `<span style="color:var(--gray-700)">${estoque}</span>`;
+  const sv = statusValidade(p.dataValidade);
+  const { margemReais, margemPct } = calcularMargem(p.preco, p.precoCusto);
+  const cm = corMargem(margemPct);
+  const margemHtml = (p.precoCusto || 0) > 0
+    ? `<span title="${formatarMoeda(margemReais)} por unidade" style="display:inline-block;padding:2px 9px;border-radius:999px;font-size:var(--text-xs);font-weight:600;white-space:nowrap;background:${cm.bg};color:${cm.cor}">${margemPct.toFixed(0)}%</span>`
+    : `<span style="color:var(--gray-400);font-size:var(--text-xs)">—</span>`;
+
+  return `<tr>
+    <td><span style="font-size:0.7rem;color:var(--gray-400);font-family:monospace">${escHtml(p.codigo || "—")}</span></td>
+    <td>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="prod-thumb-mini">${p.foto ? `<img src="${p.foto}" alt="">` : "📦"}</div>
+        <strong style="color:var(--gray-800)">${escHtml(p.nome)}</strong>
+      </div>
+    </td>
+    <td style="color:var(--gray-500);font-size:var(--text-sm)">${escHtml(p.categoria || "—")}</td>
+    <td>${formatarMoeda(p.preco || 0)}</td>
+    <td>${formatarMoeda(p.precoCusto || 0)}</td>
+    <td>${margemHtml}</td>
+    <td>${estoqueHtml}</td>
+    <td style="color:var(--gray-400);font-size:var(--text-sm)">${p.unidade || "un"}</td>
+    <td><span style="font-size:0.7rem;color:var(--gray-400);font-family:monospace">${escHtml(p.codigoBarras || "—")}</span></td>
+    <td style="color:var(--gray-600);font-size:var(--text-sm);white-space:nowrap">${formatarData(p.dataValidade)}</td>
+    <td><span style="display:inline-block;padding:2px 9px;border-radius:999px;font-size:var(--text-xs);font-weight:600;white-space:nowrap;background:${sv.bg};color:${sv.cor}">${sv.label}</span></td>
+    <td class="col-center" style="white-space:nowrap">
+      <button class="btn-table-action btn-table-action--view" data-action="codigo-barras" data-id="${p.id}" title="Código de barras">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 3a1 1 0 011-1h1a1 1 0 011 1v14a1 1 0 01-1 1H3a1 1 0 01-1-1V3zM6 3a1 1 0 011-1 1 1 0 011 1v14a1 1 0 01-1 1 1 1 0 01-1-1V3zM9.5 2a1 1 0 00-1 1v14a1 1 0 002 0V3a1 1 0 00-1-1zM12 3a1 1 0 011-1h1a1 1 0 011 1v14a1 1 0 01-1 1h-1a1 1 0 01-1-1V3zM17 2a1 1 0 00-1 1v14a1 1 0 002 0V3a1 1 0 00-1-1z"/></svg>
+      </button>
+      <button class="btn-table-action btn-table-action--view" data-action="historico-custo" data-id="${p.id}" title="Histórico de custo e margem">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/></svg>
+      </button>
+      <button class="btn-table-action btn-table-action--view" data-action="historico-estoque" data-id="${p.id}" title="Histórico de movimentações">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+      </button>
+      <button class="btn-table-action btn-table-action--view" data-action="ajustar-estoque" data-id="${p.id}" title="Ajustar estoque">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z"/></svg>
+      </button>
+      <button class="btn-table-action btn-table-action--view" data-action="editar-produto" data-id="${p.id}" title="Editar">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
+      </button>
+      <button class="btn-table-action btn-table-action--delete" data-action="excluir-produto" data-id="${p.id}" title="Excluir">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+      </button>
+    </td>
+  </tr>`;
 }
 
 function abrirModalNovoProduto() {
