@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="css/cotacao.css" />
   <link rel="stylesheet" href="css/admin.css" />
   <link rel="stylesheet" href="css/comissao.css" />
+  <link rel="stylesheet" href="css/produtos.css" />
   <link rel="stylesheet" href="css/promissoria.css" />
   <link rel="stylesheet" href="css/mobile.css" />
 </head>
@@ -68,6 +69,12 @@
         <a href="#" class="nav-item" data-page="comissao">
           <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V8z" clip-rule="evenodd"/></svg>
           Comissão
+        </a>
+      </li>
+      <li>
+        <a href="#" class="nav-item" data-page="estoque">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 3a1 1 0 011-1h1a1 1 0 011 1v14a1 1 0 01-1 1H3a1 1 0 01-1-1V3zM6 3a1 1 0 011-1 1 1 0 011 1v14a1 1 0 01-1 1 1 1 0 01-1-1V3zM9.5 2a1 1 0 00-1 1v14a1 1 0 002 0V3a1 1 0 00-1-1zM12 3a1 1 0 011-1h1a1 1 0 011 1v14a1 1 0 01-1 1h-1a1 1 0 01-1-1V3zM17 2a1 1 0 00-1 1v14a1 1 0 002 0V3a1 1 0 00-1-1z"/></svg>
+          Estoque
         </a>
       </li>
       <li class="nav-item-admin" hidden>
@@ -278,7 +285,7 @@
       <div class="filter-bar">
         <div class="filter-search">
           <svg class="filter-search-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
-          <input type="text" class="filter-input" id="filtroBusca" placeholder="Buscar por cliente..." />
+          <input type="text" class="filter-input" id="filtroBusca" placeholder="Buscar por cliente..." autocomplete="off" />
         </div>
         <button class="btn-secondary" id="btnBuscarCotacoes">Buscar</button>
         <button class="btn-ghost" id="btnLimparBusca">Limpar</button>
@@ -288,11 +295,11 @@
       <div class="filter-bar">
         <div class="filter-periodo">
           <label class="field-label" style="white-space:nowrap">Data inicial</label>
-          <input type="date" class="filter-input filter-input--date" id="cotFiltroDataInicio" />
+          <input type="date" class="filter-input filter-input--date" id="cotFiltroDataInicio" autocomplete="off" />
         </div>
         <div class="filter-periodo">
           <label class="field-label" style="white-space:nowrap">Data final</label>
-          <input type="date" class="filter-input filter-input--date" id="cotFiltroDataFim" />
+          <input type="date" class="filter-input filter-input--date" id="cotFiltroDataFim" autocomplete="off" />
         </div>
         <button class="btn-secondary" id="btnAplicarFiltroDataCotacoes">Filtrar</button>
         <button class="btn-ghost" id="btnLimparFiltroDataCotacoes">Limpar</button>
@@ -347,7 +354,7 @@
         </div>
       </div>
 
-      <input type="hidden" id="cotacaoEditandoId" value="" />
+      <input type="hidden" id="cotacaoEditandoId" value="" autocomplete="off" />
 
       <!-- Dados do cliente -->
       <div class="card">
@@ -355,19 +362,19 @@
         <div class="form-grid">
           <div class="field">
             <label class="field-label" for="cotCliente">Cliente *</label>
-            <input class="field-input field-input--plain" type="text" id="cotCliente" placeholder="Nome do cliente ou empresa" required />
+            <input class="field-input field-input--plain" type="text" id="cotCliente" placeholder="Nome do cliente ou empresa" required autocomplete="off" />
           </div>
           <div class="field">
             <label class="field-label" for="cotCnpj">CNPJ / CPF</label>
-            <input class="field-input field-input--plain" type="text" id="cotCnpj" placeholder="00.000.000/0001-00" />
+            <input class="field-input field-input--plain" type="text" id="cotCnpj" placeholder="00.000.000/0001-00" autocomplete="off" />
           </div>
           <div class="field">
             <label class="field-label" for="cotValidade">Validade da Cotação *</label>
-            <input class="field-input field-input--plain" type="date" id="cotValidade" required />
+            <input class="field-input field-input--plain" type="date" id="cotValidade" required autocomplete="off" />
           </div>
           <div class="field">
             <label class="field-label" for="cotStatus">Status</label>
-            <select class="field-input field-input--plain" id="cotStatus">
+            <select class="field-input field-input--plain" id="cotStatus" autocomplete="off">
               <option value="ativa">Ativa</option>
               <option value="aprovada">Aprovada</option>
               <option value="recusada">Recusada</option>
@@ -376,7 +383,7 @@
           </div>
           <div class="field field--full">
             <label class="field-label" for="cotObs">Observações</label>
-            <textarea class="field-input field-input--plain field-textarea" id="cotObs" placeholder="Ex.: Materiais à pronta entrega. Preços sujeitos a alteração." rows="3"></textarea>
+            <textarea class="field-input field-input--plain field-textarea" id="cotObs" placeholder="Ex.: Materiais à pronta entrega. Preços sujeitos a alteração." rows="3" autocomplete="off"></textarea>
           </div>
         </div>
       </div>
@@ -480,26 +487,26 @@
         <div class="filter-bar">
           <div class="filter-periodo">
             <label class="field-label" style="white-space:nowrap">Data inicial</label>
-            <input type="date" class="filter-input filter-input--date" id="filtroDataInicio" />
+            <input type="date" class="filter-input filter-input--date" id="filtroDataInicio" autocomplete="off" />
           </div>
           <div class="filter-periodo">
             <label class="field-label" style="white-space:nowrap">Data final</label>
-            <input type="date" class="filter-input filter-input--date" id="filtroDataFim" />
+            <input type="date" class="filter-input filter-input--date" id="filtroDataFim" autocomplete="off" />
           </div>
           <div class="filter-periodo">
             <label class="field-label" style="white-space:nowrap">Valor mínimo</label>
-            <input type="text" inputmode="decimal" class="filter-input" id="filtroValorMin" placeholder="R$ 0,00" style="width:110px" />
+            <input type="text" inputmode="decimal" class="filter-input" id="filtroValorMin" placeholder="R$ 0,00" style="width:110px" autocomplete="off" />
           </div>
           <div class="filter-periodo">
             <label class="field-label" style="white-space:nowrap">Valor máximo</label>
-            <input type="text" inputmode="decimal" class="filter-input" id="filtroValorMax" placeholder="R$ 0,00" style="width:110px" />
+            <input type="text" inputmode="decimal" class="filter-input" id="filtroValorMax" placeholder="R$ 0,00" style="width:110px" autocomplete="off" />
           </div>
           <button class="btn-secondary" id="btnAplicarFiltro">Filtrar</button>
           <button class="btn-ghost" id="btnLimparFiltro">Limpar</button>
           <div class="filter-periodo" id="wrapQtdLinhasComissao" style="display:none">
             <label class="field-label" style="white-space:nowrap">Qtd. linhas</label>
             <div style="display:flex;gap:6px">
-              <input type="number" min="1" class="filter-input" id="qtdLinhasComissao" placeholder="1" style="width:90px;padding:0 8px;text-align:center" />
+              <input type="number" min="1" class="filter-input" id="qtdLinhasComissao" placeholder="1" style="width:90px;padding:0 8px;text-align:center" autocomplete="off" />
               <button class="btn-secondary" id="btnConfirmarQtdLinhas" type="button" title="Adicionar linhas">
                 <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
               </button>
@@ -540,9 +547,146 @@
     </section>
 
     <!-- ======================================================== -->
+    <!-- PÁGINA: PRODUTOS / ESTOQUE                               -->
+    <!-- ======================================================== -->
+    <section id="page-estoque" class="page" aria-label="Produtos / Estoque" hidden>
+
+      <!-- Mobile page header -->
+      <div class="mobile-page-header">
+        <h2>Produtos / Estoque</h2>
+      </div>
+
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">Produtos / Estoque</h2>
+          <p class="page-subtitle">Cadastro e controle de estoque</p>
+        </div>
+        <div class="page-header-actions" style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn-ghost" id="btnHistoricoGeralEstoque">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+            Histórico do Estoque
+          </button>
+          <button class="btn-primary" id="btnNovoProduto">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+            Novo Produto
+          </button>
+        </div>
+      </div>
+
+      <!-- Indicadores -->
+      <div class="stats-grid">
+        <div class="stat-card stat-card--blue">
+          <div class="stat-card__icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 3a1 1 0 011-1h1a1 1 0 011 1v14a1 1 0 01-1 1H3a1 1 0 01-1-1V3zM6 3a1 1 0 011-1 1 1 0 011 1v14a1 1 0 01-1 1 1 1 0 01-1-1V3zM9.5 2a1 1 0 00-1 1v14a1 1 0 002 0V3a1 1 0 00-1-1zM12 3a1 1 0 011-1h1a1 1 0 011 1v14a1 1 0 01-1 1h-1a1 1 0 01-1-1V3zM17 2a1 1 0 00-1 1v14a1 1 0 002 0V3a1 1 0 00-1-1z"/></svg>
+          </div>
+          <div class="stat-card__body">
+            <span class="stat-card__label">Total Produtos</span>
+            <strong class="stat-card__value" id="indTotalProdutos">—</strong>
+          </div>
+        </div>
+        <div class="stat-card stat-card--green">
+          <div class="stat-card__icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2.5 2.5A.5.5 0 013 2h.5a.5.5 0 01.485.379L4.121 4H16.5a.5.5 0 01.485.621l-1.5 6A.5.5 0 0115 11H6a.5.5 0 01-.485-.379L3.61 3H3a.5.5 0 01-.5-.5zM6 14a1 1 0 100 2 1 1 0 000-2zm7 0a1 1 0 100 2 1 1 0 000-2z"/></svg>
+          </div>
+          <div class="stat-card__body">
+            <span class="stat-card__label">Itens em Estoque</span>
+            <strong class="stat-card__value" id="indTotalEstoque">—</strong>
+          </div>
+        </div>
+        <div class="stat-card stat-card--purple">
+          <div class="stat-card__icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10.75 10.818v2.614A3.13 3.13 0 0011.888 13c.482-.315.612-.648.612-.875 0-.227-.13-.56-.612-.875a3.13 3.13 0 00-1.138-.432zM8.33 8.62c.053.055.115.11.184.164.208.16.46.284.736.363V6.603a2.45 2.45 0 00-.35.13c-.14.065-.27.143-.386.233-.377.292-.514.627-.514.909 0 .184.058.39.202.592.037.052.08.102.128.152z"/><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v.316a3.78 3.78 0 00-1.653.713c-.599.467-1.09 1.169-1.09 2.02 0 .868.492 1.55 1.089 2.02.467.366 1.05.6 1.654.713v2.706a2.448 2.448 0 01-.913-.443c-.243-.19-.3-.352-.3-.443a.75.75 0 00-1.5 0c0 .868.491 1.55 1.088 2.02.467.366 1.05.6 1.653.713V17a.75.75 0 001.5 0v-.316c.604-.113 1.187-.347 1.653-.713.598-.47 1.09-1.152 1.09-2.02 0-.868-.492-1.55-1.089-2.02-.467-.366-1.05-.6-1.654-.713V8.512c.246.076.472.185.667.322.242.19.299.352.299.443a.75.75 0 001.5 0c0-.868-.491-1.55-1.088-2.02a3.78 3.78 0 00-1.378-.65V5z" clip-rule="evenodd"/></svg>
+          </div>
+          <div class="stat-card__body">
+            <span class="stat-card__label">Valor Inventário</span>
+            <strong class="stat-card__value valor-protegido" id="indValorInventario">—</strong>
+          </div>
+        </div>
+        <div class="stat-card stat-card--gold">
+          <div class="stat-card__icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+          </div>
+          <div class="stat-card__body">
+            <span class="stat-card__label">Estoque Baixo</span>
+            <strong class="stat-card__value" id="indAbaixoMinimo">—</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="filter-bar">
+        <div class="filter-search">
+          <svg class="filter-search-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+          <input type="text" class="filter-input" id="filtroBuscaProdutos" placeholder="Buscar por nome ou código..." autocomplete="off" />
+        </div>
+        <select class="filter-input" id="filtroCatProdutos" style="min-width:170px" autocomplete="off">
+          <option value="todos">Todas as categorias</option>
+          <option value="Cadernos e Blocos">Cadernos e Blocos</option>
+          <option value="Canetas e Lápis">Canetas e Lápis</option>
+          <option value="Escritório">Escritório</option>
+          <option value="Escolar">Escolar</option>
+          <option value="Arte e Desenho">Arte e Desenho</option>
+          <option value="Informática">Informática</option>
+          <option value="Papéis e Envelopes">Papéis e Envelopes</option>
+          <option value="Brinquedos">Brinquedos</option>
+          <option value="Presentes">Presentes</option>
+          <option value="Mercearia Geral">Mercearia Geral</option>
+        </select>
+        <button class="btn-secondary" id="btnBuscarProdutos">Buscar</button>
+        <button class="btn-ghost" id="btnLimparBuscaProdutos">Limpar</button>
+        <button class="btn-ghost" id="btnImportarProdutos">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM9.293 2.293a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414-1.414l3-3z" clip-rule="evenodd"/></svg>
+          Importar
+        </button>
+        <input type="file" id="inputImportarProdutos" accept=".csv,.xlsx,.xls" style="display:none" autocomplete="off" />
+        <button class="btn-ghost" id="btnExportarProdutos">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+          Exportar Excel
+        </button>
+      </div>
+
+      <!-- Legenda de validade -->
+      <div class="prod-legenda">
+        <strong>Legenda validade:</strong>
+        <span class="prod-legenda-item"><span class="prod-legenda-dot" style="background:#DC2626"></span> Vencido / vence em até 7 dias</span>
+        <span class="prod-legenda-item"><span class="prod-legenda-dot" style="background:#D97706"></span> Vence em até 30 dias</span>
+        <span class="prod-legenda-item"><span class="prod-legenda-dot" style="background:#059669"></span> Em dia (+30 dias)</span>
+        <span class="prod-legenda-item"><span class="prod-legenda-dot" style="background:#94A3B8"></span> Sem validade definida</span>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data-table" id="tabelaProdutos">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Nome</th>
+                <th>Categoria</th>
+                <th>Preço Venda</th>
+                <th>Preço Custo</th>
+                <th>Margem</th>
+                <th>Estoque</th>
+                <th>Un.</th>
+                <th>Cód. Barras</th>
+                <th>Validade</th>
+                <th>Status</th>
+                <th class="col-center td-actions-col">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyProdutos">
+              <tr><td colspan="12" class="loading-cell">Carregando produtos...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ======================================================== -->
     <!-- PÁGINA: PROMISSÓRIAS (somente admin)                     -->
     <!-- ======================================================== -->
     <section id="page-promissoria" class="page" aria-label="Promissórias" hidden>
+
 
       <!-- Mobile page header -->
       <div class="mobile-page-header">
@@ -624,7 +768,7 @@
               <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
               Importar CSV
             </button>
-            <input type="file" id="inputImportarCsvProm" accept=".csv,.xlsx,.xls" style="display:none" />
+            <input type="file" id="inputImportarCsvProm" accept=".csv,.xlsx,.xls" style="display:none" autocomplete="off" />
             <button class="btn-secondary" id="btnExportarProm">
               <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
               Exportar CSV
@@ -642,8 +786,8 @@
 
         <!-- Filtros -->
         <div class="filter-bar">
-          <input type="text" id="filtroBuscaProm" class="filter-input" placeholder="Buscar por nome ou telefone..." style="flex:1;min-width:180px" />
-          <select id="filtroStatusProm" class="filter-input" style="min-width:140px">
+          <input type="text" id="filtroBuscaProm" class="filter-input" placeholder="Buscar por nome ou telefone..." style="flex:1;min-width:180px" autocomplete="off" />
+          <select id="filtroStatusProm" class="filter-input" style="min-width:140px" autocomplete="off">
             <option value="todos">Todas as situações</option>
             <option value="pendente">Pendente</option>
             <option value="atrasado">Atrasado</option>
@@ -853,7 +997,7 @@
         <div class="filter-bar">
           <div class="filter-search">
             <svg class="filter-search-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
-            <input type="text" class="filter-input" id="filtroBuscaHistorico" placeholder="Buscar por cliente..." />
+            <input type="text" class="filter-input" id="filtroBuscaHistorico" placeholder="Buscar por cliente..." autocomplete="off" />
           </div>
           <button class="btn-secondary" id="btnBuscarHistorico">Buscar</button>
           <button class="btn-ghost" id="btnLimparBuscaHistorico">Limpar</button>
@@ -946,6 +1090,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
 <script type="module">
@@ -954,6 +1099,7 @@
   import { iniciarCotacao }              from "./js/cotacao.js";
   import { iniciarAdmin }                from "./js/admin.js";
   import { iniciarComissao }             from "./js/comissao.js";
+  import { iniciarProdutos }             from "./js/produtos.js";
   import { iniciarPromissoria }          from "./js/promissoria.js";
 
   // ----------------------------------------------------------------
@@ -992,6 +1138,7 @@
     iniciarCotacao(usuario, dadosUsuario);
     iniciarAdmin(usuario, dadosUsuario);
     iniciarComissao(usuario, dadosUsuario);
+    iniciarProdutos(usuario, dadosUsuario);
     if (isAdmin) iniciarPromissoria(usuario, dadosUsuario);
 
     // Navegação
@@ -1012,6 +1159,7 @@
       "cotacoes":      "Cotações",
       "nova-cotacao":  "Nova Cotação",
       "comissao":      "Comissão",
+      "estoque":       "Produtos / Estoque",
       "admin":         "Administração",
       "promissoria":   "Promissórias"
     };
