@@ -795,11 +795,11 @@ function abrirModalNovoCliente() {
       </div>
       <div>
         <label class="field-label">Telefone</label>
-        <input type="tel" id="mPromTelefone" class="field-input--plain" placeholder="(00) 00000-0000" />
+        <input type="tel" id="mPromTelefone" class="field-input--plain" placeholder="(00) 00000-0000" autocomplete="off" />
       </div>
       <div>
         <label class="field-label">Observações</label>
-        <input type="text" id="mPromObs" class="field-input--plain" placeholder="Informações adicionais..." />
+        <input type="text" id="mPromObs" class="field-input--plain" placeholder="Informações adicionais..." autocomplete="off" />
       </div>
     </div>`;
 
@@ -845,10 +845,10 @@ function linhaCompraHtml(hojeStr, vencStr) {
   const rid = `cr${++_compraRowSeq}`;
   return `
     <div class="compra-row" data-row-id="${rid}" style="display:grid;grid-template-columns:1fr 1fr 1fr 1.6fr 32px;gap:8px;align-items:center;margin-bottom:8px">
-      <input type="number" class="compra-valor field-input--plain" placeholder="0,00" min="0.01" step="0.01" />
-      <input type="date" class="compra-data field-input--plain" value="${hojeStr}" />
-      <input type="date" class="compra-venc field-input--plain" value="${vencStr}" />
-      <input type="text" class="compra-obs field-input--plain" placeholder="Descrição da compra..." />
+      <input type="number" class="compra-valor field-input--plain" placeholder="0,00" min="0.01" step="0.01" autocomplete="off" />
+      <input type="date" class="compra-data field-input--plain" value="${hojeStr}" autocomplete="off" />
+      <input type="date" class="compra-venc field-input--plain" value="${vencStr}" autocomplete="off" />
+      <input type="text" class="compra-obs field-input--plain" placeholder="Descrição da compra..." autocomplete="off" />
       <button type="button" class="btn-table-action btn-table-action--delete btn-remove-compra-row" title="Remover esta compra">
         <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
       </button>
@@ -985,12 +985,12 @@ async function abrirModalNovoPagamento(clienteId) {
       <div id="listaComprasPagamento" style="max-height:220px;overflow-y:auto;margin-bottom:var(--space-3)">
         ${comprasAbertas.map(c => `
           <label style="display:flex;align-items:center;gap:10px;padding:8px;border:1px solid var(--gray-200);border-radius:var(--radius-md);margin-bottom:6px">
-            <input type="checkbox" class="pag-check" data-compra-id="${c.id}" data-max="${c.saldo}" checked style="width:16px;height:16px;flex:none" />
+            <input type="checkbox" class="pag-check" data-compra-id="${c.id}" data-max="${c.saldo}" checked style="width:16px;height:16px;flex:none" autocomplete="off" />
             <div style="flex:1;min-width:0">
               <div style="font-size:var(--text-sm);font-weight:600;color:var(--gray-800)">Compra de ${formatarDataLocal(c.dataCompra)} ${c.observacoes ? `· ${escHtml(c.observacoes)}` : ""}</div>
               <div style="font-size:var(--text-xs);color:var(--gray-500)">Valor: ${formatarMoeda(c.valor)} · Saldo em aberto: ${formatarMoeda(c.saldo)}</div>
             </div>
-            <input type="number" class="pag-valor field-input--plain" data-compra-id="${c.id}" style="width:110px;flex:none" min="0" step="0.01" max="${c.saldo}" value="${c.saldo.toFixed(2)}" />
+            <input type="number" class="pag-valor field-input--plain" data-compra-id="${c.id}" style="width:110px;flex:none" min="0" step="0.01" max="${c.saldo}" value="${c.saldo.toFixed(2)}" autocomplete="off" />
           </label>`).join("")}
       </div>`;
 
@@ -999,11 +999,11 @@ async function abrirModalNovoPagamento(clienteId) {
       ${listaHtml}
       <div>
         <label class="field-label">Data do Pagamento *</label>
-        <input type="date" id="mPagData" class="field-input--plain" value="${hojeStr}" />
+        <input type="date" id="mPagData" class="field-input--plain" value="${hojeStr}" autocomplete="off" />
       </div>
       <div>
         <label class="field-label">Forma de Pagamento</label>
-        <select id="mPagForma" class="field-input--plain">
+        <select id="mPagForma" class="field-input--plain" autocomplete="off">
           <option value="">Selecione...</option>
           <option>Dinheiro</option>
           <option>PIX</option>
@@ -1014,12 +1014,12 @@ async function abrirModalNovoPagamento(clienteId) {
       </div>
       <div>
         <label class="field-label">Observações</label>
-        <input type="text" id="mPagObs" class="field-input--plain" placeholder="Informações do pagamento..." />
+        <input type="text" id="mPagObs" class="field-input--plain" placeholder="Informações do pagamento..." autocomplete="off" />
       </div>
       ${comprasAbertas.length > 0 ? `<div style="text-align:right;font-size:var(--text-sm);color:var(--gray-600);padding-top:4px;border-top:1px solid var(--gray-100)">Total a pagar: <strong id="mPagTotalPreview" style="color:var(--color-success)">—</strong></div>` : `
       <div>
         <label class="field-label">Valor do Pagamento (R$) *</label>
-        <input type="number" id="mPagValorGeral" class="field-input--plain" placeholder="0,00" min="0.01" step="0.01" />
+        <input type="number" id="mPagValorGeral" class="field-input--plain" placeholder="0,00" min="0.01" step="0.01" autocomplete="off" />
       </div>`}
     </div>`;
 
