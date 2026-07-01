@@ -4,7 +4,7 @@
 import {
   collection, doc, addDoc, getDoc, getDocs,
   updateDoc, deleteDoc, query, orderBy, limit,
-  serverTimestamp, Timestamp, where
+  serverTimestamp, Timestamp, where, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 import { formatarMoeda, formatarData, exportarExcel } from "./database.js";
@@ -199,6 +199,8 @@ export function iniciarProdutos(usuario, dadosUsuario) {
   });
 
   document.getElementById("btnExportarProdutos")?.addEventListener("click", exportarProdutos);
+
+  document.getElementById("btnExcluirTodosProdutos")?.addEventListener("click", confirmarExcluirTodosProdutos);
 
   document.getElementById("btnProdPaginaAnterior")?.addEventListener("click", () => {
     if (_paginaAtual > 1) { _paginaAtual--; renderPaginaProdutos(); }
@@ -1310,4 +1312,79 @@ function parseDataImportProd(v) {
   const m1 = v.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
   if (m1) return new Date(parseInt(m1[3]), parseInt(m1[2]) - 1, parseInt(m1[1]));
   const d = new Date(v); return isNaN(d) ? null : d;
+}
+
+// ── Excluir TODOS os produtos (reset do estoque) ────────────────
+// Apaga tudo de pf_produtos + pf_estoque_historico + pf_custo_historico,
+// para permitir importar uma planilha nova do zero. Ação irreversível,
+// por isso exige que o usuário digite "EXCLUIR" para confirmar.
+function confirmarExcluirTodosProdutos() {
+  const body = `
+    <div class="delete-warning">
+      <strong>⚠️ Atenção! Ação irreversível.</strong><br><br>
+      Isso vai apagar <strong>TODOS</strong> os produtos cadastrados no Estoque,
+      junto com o histórico de movimentações e de custo. Use isso quando quiser
+      limpar uma importação e recomeçar com outra planilha.<br><br>
+      Para confirmar, digite <strong>EXCLUIR</strong> no campo abaixo:
+    </div>
+    <div class="form-usuario" style="margin-top:12px">
+      <input type="text" id="mConfirmaExclusaoTotal" class="field-input--plain" placeholder="Digite EXCLUIR" autocomplete="off" />
+    </div>
+    <p id="progressoExclusaoTotal" style="font-size:var(--text-xs);color:var(--gray-400);margin-top:8px"></p>`;
+
+  const footer = `
+    <button class="btn-ghost" id="btnCancelarModalProd">Cancelar</button>
+    <button class="btn-danger" id="btnConfirmarExclusaoTotal" disabled>Excluir Todos os Produtos</button>`;
+
+  window.abrirModal("Excluir Todos os Produtos", body, footer);
+  document.getElementById("btnCancelarModalProd").onclick = () => window.fecharModal();
+
+  const input = document.getElementById("mConfirmaExclusaoTotal");
+  const btnOk = document.getElementById("btnConfirmarExclusaoTotal");
+  input.addEventListener("input", () => {
+    btnOk.disabled = input.value.trim().toUpperCase() !== "EXCLUIR";
+  });
+  input.focus();
+
+  btnOk.onclick = executarExclusaoTodosProdutos;
+}
+
+async function executarExclusaoTodosProdutos() {
+  const btn = document.getElementById("btnConfirmarExclusaoTotal");
+  const progresso = document.getElementById("progressoExclusaoTotal");
+  btn.disabled = true;
+  btn.textContent = "Excluindo...";
+
+  try {
+    let totalApagado = 0;
+    for (const colecao of [COL, COL_HIST, COL_CUSTO_HIST]) {
+      totalApagado += await excluirColecaoEmLotes(colecao, (n) => {
+        if (progresso) progresso.textContent = `Apagando... (${totalApagado + n} registros já removidos)`;
+      });
+    }
+    window.fecharModal();
+    window.mostrarToast(`Estoque limpo! ${totalApagado} registro(s) excluído(s).`, "success");
+    carregarProdutosPage();
+  } catch (err) {
+    console.error("Erro ao excluir todos os produtos:", err);
+    window.mostrarToast("Erro ao excluir. Verifique suas permissões e tente novamente.", "error");
+    btn.disabled = false;
+    btn.textContent = "Excluir Todos os Produtos";
+  }
+}
+
+// Apaga todos os documentos de uma coleção em lotes (limite de 450 por
+// writeBatch para ficar com folga do limite de 500 do Firestore).
+async function excluirColecaoEmLotes(nomeColecao, onProgresso) {
+  let apagados = 0;
+  while (true) {
+    const snap = await getDocs(query(collection(db, nomeColecao), limit(450)));
+    if (snap.empty) break;
+    const batch = writeBatch(db);
+    snap.docs.forEach(d => batch.delete(d.ref));
+    await batch.commit();
+    apagados += snap.docs.length;
+    onProgresso?.(apagados);
+  }
+  return apagados;
 }
