@@ -1267,7 +1267,20 @@ async function importarProdutos(file) {
     const btn = document.getElementById("btnConfImportProd");
     btn.disabled = true; btn.textContent = "Preparando...";
 
-    const existSnap = await getDocs(collection(db, COL));
+    let existSnap;
+    try {
+      existSnap = await getDocs(collection(db, COL));
+    } catch (err) {
+      console.error("Erro ao verificar produtos existentes:", err);
+      window.mostrarToast(
+        err?.code === "permission-denied"
+          ? "Permissão negada pelo Firestore. Verifique as regras de segurança para a coleção pf_produtos."
+          : "Erro ao verificar produtos existentes: " + (err?.message || err),
+        "error"
+      );
+      btn.disabled = false; btn.textContent = `Importar ${dados.length} produto(s)`;
+      return;
+    }
     const existentes = new Set(); existSnap.forEach(d => existentes.add((d.data().nome||"").toUpperCase().trim()));
 
     // Monta a lista de itens válidos primeiro (sem tocar no Firestore ainda)
