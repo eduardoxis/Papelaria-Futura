@@ -1265,42 +1265,91 @@ async function importarProdutos(file) {
   document.getElementById("btnCancImportProd").onclick = () => window.fecharModal();
   document.getElementById("btnConfImportProd").onclick = async () => {
     const btn = document.getElementById("btnConfImportProd");
-    btn.disabled = true; btn.textContent = "Importando...";
+    btn.disabled = true; btn.textContent = "Preparando...";
+
     const existSnap = await getDocs(collection(db, COL));
     const existentes = new Set(); existSnap.forEach(d => existentes.add((d.data().nome||"").toUpperCase().trim()));
-    let imp = 0, ign = 0, erros = 0;
+
+    // Monta a lista de itens válidos primeiro (sem tocar no Firestore ainda)
+    const itens = [];
+    let ign = 0;
     for (const r of dados) {
       const nome = String(r[iNome] || "").trim();
       if (!nome || existentes.has(nome.toUpperCase())) { ign++; continue; }
-      try {
-        const estoqueImport = iEstoque!==-1 ? (parseInt(r[iEstoque]) || 0) : 0;
-        const ref = await addDoc(collection(db, COL), {
-          nome,
-          codigo: iCodigo!==-1 ? String(r[iCodigo]||"").trim() : "",
-          codigoBarras: iCodBarras!==-1 ? String(r[iCodBarras]||"").trim() : "",
-          categoria: iCategoria!==-1 ? String(r[iCategoria]||"").trim() : "",
-          preco: iPreco!==-1 ? (parseFloat(String(r[iPreco]||"0").replace(",", ".")) || 0) : 0,
-          precoCusto: iPrecoCusto!==-1 ? (parseFloat(String(r[iPrecoCusto]||"0").replace(",", ".")) || 0) : 0,
-          estoque: estoqueImport,
-          unidade: iUnidade!==-1 ? (String(r[iUnidade]||"un").trim() || "un") : "un",
-          estoqueMinimo: iEstMin!==-1 ? (parseInt(r[iEstMin]) || 0) : 0,
-          dataValidade: iValidade!==-1 && r[iValidade] ? Timestamp.fromDate(parseDataImportProd(String(r[iValidade])) || new Date()) : null,
+      existentes.add(nome.toUpperCase()); // evita duplicar dentro do próprio arquivo importado
+      const estoqueImport = iEstoque!==-1 ? (parseInt(r[iEstoque]) || 0) : 0;
+      itens.push({
+        nome,
+        codigo: iCodigo!==-1 ? String(r[iCodigo]||"").trim() : "",
+        codigoBarras: iCodBarras!==-1 ? String(r[iCodBarras]||"").trim() : "",
+        categoria: iCategoria!==-1 ? String(r[iCategoria]||"").trim() : "",
+        preco: iPreco!==-1 ? (parseFloat(String(r[iPreco]||"0").replace(",", ".")) || 0) : 0,
+        precoCusto: iPrecoCusto!==-1 ? (parseFloat(String(r[iPrecoCusto]||"0").replace(",", ".")) || 0) : 0,
+        estoque: estoqueImport,
+        unidade: iUnidade!==-1 ? (String(r[iUnidade]||"un").trim() || "un") : "un",
+        estoqueMinimo: iEstMin!==-1 ? (parseInt(r[iEstMin]) || 0) : 0,
+        dataValidade: iValidade!==-1 && r[iValidade] ? Timestamp.fromDate(parseDataImportProd(String(r[iValidade])) || new Date()) : null,
+      });
+    }
+
+    // Grava em lotes (writeBatch) — até 500 operações por lote.
+    // Cada produto pode gerar até 2 gravações (produto + movimentação de estoque),
+    // então usamos no máximo 200 produtos por lote para nunca estourar o limite.
+    const TAM_LOTE = 200;
+    let imp = 0, erros = 0;
+    const total = itens.length;
+
+    for (let inicio = 0; inicio < itens.length; inicio += TAM_LOTE) {
+      const grupo = itens.slice(inicio, inicio + TAM_LOTE);
+      const batch = writeBatch(db);
+
+      for (const item of grupo) {
+        const novoRef = doc(collection(db, COL));
+        batch.set(novoRef, {
+          nome: item.nome,
+          codigo: item.codigo,
+          codigoBarras: item.codigoBarras,
+          categoria: item.categoria,
+          preco: item.preco,
+          precoCusto: item.precoCusto,
+          estoque: item.estoque,
+          unidade: item.unidade,
+          estoqueMinimo: item.estoqueMinimo,
+          dataValidade: item.dataValidade,
           criadoPor: _usuario?.uid || null,
           criadoPorNome: _dadosUsuario?.nome || "—",
           criadoEm: serverTimestamp()
         });
-        if (estoqueImport > 0) {
-          await gravarMovimentacao({
-            produtoId: ref.id, nomeProduto: nome,
-            tipo: "importacao", qtdAntes: 0, qtdDepois: estoqueImport,
-            motivo: "Importação de planilha", operador: _dadosUsuario?.nome || "—"
+        if (item.estoque > 0) {
+          const histRef = doc(collection(db, COL_HIST));
+          batch.set(histRef, {
+            produtoId: novoRef.id,
+            nomeProduto: item.nome,
+            tipo: "importacao",
+            qtdAntes: 0,
+            qtdDepois: item.estoque,
+            delta: item.estoque,
+            motivo: "Importação de planilha",
+            operador: _dadosUsuario?.nome || "—",
+            criadoEm: serverTimestamp()
           });
         }
-        existentes.add(nome.toUpperCase()); imp++;
-      } catch (e) { console.error(e); erros++; }
-      const total = dados.length, feito = imp + ign + erros;
-      const b = document.getElementById("btnConfImportProd"); if (b) b.textContent = `Importando... (${feito}/${total})`;
+      }
+
+      try {
+        await batch.commit();
+        imp += grupo.length;
+      } catch (e) {
+        console.error("Erro ao gravar lote:", e);
+        erros += grupo.length;
+      }
+
+      const feito = Math.min(inicio + TAM_LOTE, total);
+      if (btn) btn.textContent = `Importando... (${feito}/${total})`;
+      // Cede o controle ao navegador entre lotes para a UI não travar
+      await new Promise(res => setTimeout(res, 0));
     }
+
     window.fecharModal();
     window.mostrarToast(`Importação: ${imp} importado(s), ${ign} ignorado(s)${erros?`, ${erros} erro(s)`:""}`, imp>0?"success":"error");
     carregarProdutosPage();
