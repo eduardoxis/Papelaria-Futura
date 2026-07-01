@@ -275,21 +275,21 @@ function adicionarLinha(dados = {}) {
     <td class="col-item"><span class="item-num">${n}</span></td>
     <td class="col-desc">
       <input class="excel-input" type="text" placeholder="Descrição do produto" ${dis}
-        data-campo="descricao" value="${escHtml(dados.descricao || "")}" />
+        data-campo="descricao" value="${escHtml(dados.descricao || "")}" autocomplete="off" />
     </td>
     <td class="col-marca">
       <input class="excel-input" type="text" placeholder="Marca" ${dis}
-        data-campo="marca" value="${escHtml(dados.marca || "")}" />
+        data-campo="marca" value="${escHtml(dados.marca || "")}" autocomplete="off" />
     </td>
     <td class="col-qtd">
       <input class="excel-input excel-input--center" type="number" ${dis}
         min="0" step="any" placeholder="0"
-        data-campo="quantidade" value="${dados.quantidade ?? ""}" />
+        data-campo="quantidade" value="${dados.quantidade ?? ""}" autocomplete="off" />
     </td>
     <td class="col-unit">
       <input class="excel-input excel-input--right" type="text" ${dis}
         placeholder="R$ 0,00"
-        data-campo="valorUnitario" value="${dados.valorUnitario ? formatarCampoMoeda(dados.valorUnitario) : ""}" />
+        data-campo="valorUnitario" value="${dados.valorUnitario ? formatarCampoMoeda(dados.valorUnitario) : ""}" autocomplete="off" />
     </td>
     <td class="col-total cell-total" data-campo="valorTotal">
       ${formatarMoeda(calcularTotal(dados.quantidade, dados.valorUnitario))}
