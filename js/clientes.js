@@ -181,32 +181,32 @@ function abrirModalCliente(id = null) {
       <button type="button" class="cli-tipo-btn ${tipo === "fisica" ? "cli-tipo-btn--active" : ""}" data-tipo="fisica" id="btnTipoFisica">Pessoa Física</button>
       <button type="button" class="cli-tipo-btn ${tipo === "juridica" ? "cli-tipo-btn--active" : ""}" data-tipo="juridica" id="btnTipoJuridica">Pessoa Jurídica</button>
     </div>
-    <input type="hidden" id="cliTipo" value="${tipo}" />
+    <input type="hidden" id="cliTipo" value="${tipo}" autocomplete="off" />
 
     <div class="cli-form-grid" style="margin-top:var(--space-4)">
       <div class="field" style="grid-column:1 / -1">
         <label class="field-label" for="cliNome">Nome ${tipo === "juridica" ? "/ Razão Social" : ""} *</label>
-        <input type="text" class="field-input--plain" id="cliNome" value="${escAttr(cliente?.nome)}" placeholder="Nome completo" required />
+        <input type="text" class="field-input--plain" id="cliNome" value="${escAttr(cliente?.nome)}" placeholder="Nome completo" required autocomplete="off" />
       </div>
 
       <div class="field" id="cliApelidoWrap" style="grid-column:1 / -1">
         <label class="field-label" for="cliApelido">${tipo === "juridica" ? "Nome Fantasia" : "Apelido"}</label>
-        <input type="text" class="field-input--plain" id="cliApelido" value="${escAttr(cliente?.apelido)}" />
+        <input type="text" class="field-input--plain" id="cliApelido" value="${escAttr(cliente?.apelido)}" autocomplete="off" />
       </div>
 
       <!-- Campos Pessoa Física -->
       <div id="blocoFisica" class="cli-form-grid" style="grid-column:1 / -1;display:${tipo === "fisica" ? "grid" : "none"}">
         <div class="field">
           <label class="field-label" for="cliCpf">CPF</label>
-          <input type="text" class="field-input--plain" id="cliCpf" value="${escAttr(cliente?.documento)}" placeholder="000.000.000-00" maxlength="14" />
+          <input type="text" class="field-input--plain" id="cliCpf" value="${escAttr(cliente?.documento)}" placeholder="000.000.000-00" maxlength="14" autocomplete="off" />
         </div>
         <div class="field">
           <label class="field-label" for="cliRg">RG</label>
-          <input type="text" class="field-input--plain" id="cliRg" value="${escAttr(cliente?.rg)}" />
+          <input type="text" class="field-input--plain" id="cliRg" value="${escAttr(cliente?.rg)}" autocomplete="off" />
         </div>
         <div class="field">
           <label class="field-label" for="cliNascimento">Nascimento</label>
-          <input type="date" class="field-input--plain" id="cliNascimento" value="${escAttr(cliente?.nascimento)}" />
+          <input type="date" class="field-input--plain" id="cliNascimento" value="${escAttr(cliente?.nascimento)}" autocomplete="off" />
         </div>
       </div>
 
@@ -214,59 +214,59 @@ function abrirModalCliente(id = null) {
       <div id="blocoJuridica" class="cli-form-grid" style="grid-column:1 / -1;display:${tipo === "juridica" ? "grid" : "none"}">
         <div class="field">
           <label class="field-label" for="cliCnpj">CNPJ</label>
-          <input type="text" class="field-input--plain" id="cliCnpj" value="${escAttr(cliente?.documento)}" placeholder="00.000.000/0001-00" maxlength="18" />
+          <input type="text" class="field-input--plain" id="cliCnpj" value="${escAttr(cliente?.documento)}" placeholder="00.000.000/0001-00" maxlength="18" autocomplete="off" />
         </div>
         <div class="field">
           <label class="field-label" for="cliIe">Inscrição Estadual</label>
-          <input type="text" class="field-input--plain" id="cliIe" value="${escAttr(cliente?.inscricaoEstadual)}" />
+          <input type="text" class="field-input--plain" id="cliIe" value="${escAttr(cliente?.inscricaoEstadual)}" autocomplete="off" />
         </div>
       </div>
 
       <div class="field">
         <label class="field-label" for="cliEmail">E-mail</label>
-        <input type="email" class="field-input--plain" id="cliEmail" value="${escAttr(cliente?.email)}" />
+        <input type="email" class="field-input--plain" id="cliEmail" value="${escAttr(cliente?.email)}" autocomplete="off" />
       </div>
       <div class="field">
         <label class="field-label" for="cliTelefone">Telefone</label>
-        <input type="tel" class="field-input--plain" id="cliTelefone" value="${escAttr(cliente?.telefone)}" placeholder="(00) 0000-0000" />
+        <input type="tel" class="field-input--plain" id="cliTelefone" value="${escAttr(cliente?.telefone)}" placeholder="(00) 0000-0000" autocomplete="off" />
       </div>
       <div class="field">
         <label class="field-label" for="cliCelular">Celular</label>
-        <input type="tel" class="field-input--plain" id="cliCelular" value="${escAttr(cliente?.celular)}" placeholder="(00) 00000-0000" />
+        <input type="tel" class="field-input--plain" id="cliCelular" value="${escAttr(cliente?.celular)}" placeholder="(00) 00000-0000" autocomplete="off" />
       </div>
       <div class="field">
         <label class="field-label" for="cliFax">Fax</label>
-        <input type="tel" class="field-input--plain" id="cliFax" value="${escAttr(cliente?.fax)}" />
+        <input type="tel" class="field-input--plain" id="cliFax" value="${escAttr(cliente?.fax)}" autocomplete="off" />
       </div>
 
       <div class="field">
         <label class="field-label" for="cliCep">CEP</label>
-        <input type="text" class="field-input--plain" id="cliCep" value="${escAttr(cliente?.cep)}" placeholder="00000-000" maxlength="9" />
+        <input type="text" class="field-input--plain" id="cliCep" value="${escAttr(cliente?.cep)}" placeholder="00000-000" maxlength="9" autocomplete="off" />
       </div>
       <div class="field" style="grid-column:span 2">
         <label class="field-label" for="cliEndereco">Endereço</label>
-        <input type="text" class="field-input--plain" id="cliEndereco" value="${escAttr(cliente?.endereco)}" />
+        <input type="text" class="field-input--plain" id="cliEndereco" value="${escAttr(cliente?.endereco)}" autocomplete="off" />
       </div>
       <div class="field">
         <label class="field-label" for="cliNumero">Número</label>
-        <input type="text" class="field-input--plain" id="cliNumero" value="${escAttr(cliente?.numero)}" />
+        <input type="text" class="field-input--plain" id="cliNumero" value="${escAttr(cliente?.numero)}" autocomplete="off" />
       </div>
 
       <div class="field">
         <label class="field-label" for="cliComplemento">Complemento</label>
-        <input type="text" class="field-input--plain" id="cliComplemento" value="${escAttr(cliente?.complemento)}" />
+        <input type="text" class="field-input--plain" id="cliComplemento" value="${escAttr(cliente?.complemento)}" autocomplete="off" />
       </div>
       <div class="field">
         <label class="field-label" for="cliBairro">Bairro</label>
-        <input type="text" class="field-input--plain" id="cliBairro" value="${escAttr(cliente?.bairro)}" />
+        <input type="text" class="field-input--plain" id="cliBairro" value="${escAttr(cliente?.bairro)}" autocomplete="off" />
       </div>
       <div class="field">
         <label class="field-label" for="cliCidade">Cidade</label>
-        <input type="text" class="field-input--plain" id="cliCidade" value="${escAttr(cliente?.cidade)}" />
+        <input type="text" class="field-input--plain" id="cliCidade" value="${escAttr(cliente?.cidade)}" autocomplete="off" />
       </div>
       <div class="field">
         <label class="field-label" for="cliEstado">Estado</label>
-        <select class="field-input--plain" id="cliEstado">
+        <select class="field-input--plain" id="cliEstado" autocomplete="off">
           <option value="">UF</option>
           ${optionsEstado}
         </select>
@@ -274,12 +274,12 @@ function abrirModalCliente(id = null) {
 
       <div class="field" style="grid-column:1 / -1">
         <label class="field-label" for="cliObservacoes">Observações</label>
-        <textarea class="field-input--plain field-textarea" id="cliObservacoes" rows="2">${escHtml(cliente?.observacoes || "")}</textarea>
+        <textarea class="field-input--plain field-textarea" id="cliObservacoes" rows="2" autocomplete="off">${escHtml(cliente?.observacoes || "")}</textarea>
       </div>
 
       <div class="field" style="grid-column:1 / -1">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:var(--text-sm);color:var(--gray-700)">
-          <input type="checkbox" id="cliAtivo" ${cliente?.ativo !== false ? "checked" : ""} />
+          <input type="checkbox" id="cliAtivo" ${cliente?.ativo !== false ? "checked" : ""} autocomplete="off" />
           Cliente ativo
         </label>
       </div>
