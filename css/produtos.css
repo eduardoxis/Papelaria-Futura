@@ -92,3 +92,37 @@
   display: inline-block;
   flex: none;
 }
+
+/* Paginação da tabela de produtos */
+.prod-paginacao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: 12px 16px;
+  border-top: 1px solid var(--gray-200);
+}
+
+.prod-paginacao-info {
+  font-size: var(--text-xs);
+  color: var(--gray-400);
+}
+
+.prod-paginacao-botoes {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.prod-paginacao-pagina {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--gray-600);
+  white-space: nowrap;
+}
+
+.prod-paginacao-botoes .btn-ghost:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
