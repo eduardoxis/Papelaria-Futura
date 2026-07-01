@@ -327,6 +327,25 @@ export function formatarDataHora(timestamp) {
   return data.toLocaleString("pt-BR");
 }
 
+// Exporta uma matriz de linhas (array de arrays) para um arquivo .xlsx,
+// baixando-o no navegador. Requer a biblioteca SheetJS (window.XLSX).
+export function exportarExcel(nomeArquivo, linhas) {
+  try {
+    if (!window.XLSX) {
+      console.error("Biblioteca XLSX não carregada.");
+      return false;
+    }
+    const ws = window.XLSX.utils.aoa_to_sheet(linhas);
+    const wb = window.XLSX.utils.book_new();
+    window.XLSX.utils.book_append_sheet(wb, ws, "Dados");
+    window.XLSX.writeFile(wb, nomeArquivo);
+    return true;
+  } catch (erro) {
+    console.error("Erro ao exportar Excel:", erro);
+    return false;
+  }
+}
+
 
 // ================================================================
 // SENHA COTAÇÃO — Proteção de Editar/Excluir
@@ -397,6 +416,7 @@ export async function criarComissao(dados, uidUsuario) {
       descricao:  dados.descricao || "",
       senhaHash:  hash,
       criadoPor:  uidUsuario,
+      criadoPorNome: dados.criadoPorNome || "—",
       dataCriacao: serverTimestamp(),
       updatedAt:  serverTimestamp()
     };
