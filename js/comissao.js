@@ -13,6 +13,7 @@ import {
 const CATEGORIAS = ["Dinheiro", "Débito", "Crédito", "Pix celular", "Pix maquininha", "Convênio"];
 
 let _usuario          = null;
+let _dadosUsuario      = null;
 let _comissaoAtual    = null;
 let _senhaValidadaMap = {};
 let _registrosTodos   = [];
@@ -23,6 +24,7 @@ const _fotosPorLinha  = new WeakMap(); // tr -> array de dataURLs (base64)
 
 export function iniciarComissao(usuario, dadosUsuario) {
   _usuario = usuario;
+  _dadosUsuario = dadosUsuario;
 
   document.addEventListener("navegacao", (e) => {
     if (e.detail.page === "comissao") carregarListaComissoes();
@@ -153,6 +155,7 @@ async function carregarListaComissoes() {
         <div class="comissao-card-body">
           <strong class="comissao-card-titulo">${escHtml(c.titulo)}</strong>
           ${c.descricao ? `<p class="comissao-card-desc">${escHtml(c.descricao)}</p>` : ""}
+          <span class="comissao-card-criador">Criada por ${escHtml(c.criadoPorNome || "—")}</span>
           <span class="comissao-card-data">Criada em ${formatarData(c.dataCriacao)}</span>
         </div>
         <div class="comissao-card-actions">
@@ -274,28 +277,28 @@ function adicionarLinha(dados = {}) {
       <td class="col-item"><span class="item-num">${n}</span></td>
       <td class="col-com-cliente">
         <input class="excel-input" type="text" placeholder="Cliente *"
-          data-campo="cliente" value="${escHtml(dados.cliente || "")}" />
+          data-campo="cliente" value="${escHtml(dados.cliente || "")}" autocomplete="off" />
       </td>
       <td class="col-com-desc">
         <input class="excel-input" type="text" placeholder="Descrição"
-          data-campo="descricao" value="${escHtml(dados.descricao || "")}" />
+          data-campo="descricao" value="${escHtml(dados.descricao || "")}" autocomplete="off" />
       </td>
       <td class="col-com-folhas">
         <input class="excel-input excel-input--center" type="number"
           min="0" step="1" placeholder="0"
-          data-campo="qtdFolhas" value="${dados.qtdFolhas ?? ""}" />
+          data-campo="qtdFolhas" value="${dados.qtdFolhas ?? ""}" autocomplete="off" />
       </td>
       <td class="col-com-valor">
         <input class="excel-input excel-input--right" type="text"
           placeholder="R$ 0,00"
-          data-campo="valor" value="${dados.valor ? formatarCampoMoeda(dados.valor) : ""}" />
+          data-campo="valor" value="${dados.valor ? formatarCampoMoeda(dados.valor) : ""}" autocomplete="off" />
       </td>
       <td class="col-com-data">
         <input class="excel-input" type="date"
-          data-campo="data" value="${dados.data || hoje}" />
+          data-campo="data" value="${dados.data || hoje}" autocomplete="off" />
       </td>
       <td class="col-com-cat">
-        <select class="excel-input excel-select" data-campo="categoria">
+        <select class="excel-input excel-select" data-campo="categoria" autocomplete="off">
           ${optsCategoria}
         </select>
       </td>
@@ -511,7 +514,7 @@ function abrirModalFotos(tr) {
       <label class="btn-secondary comissao-foto-add" for="inputFotosServico">
         Adicionar foto(s)
       </label>
-      <input type="file" id="inputFotosServico" accept="image/*" multiple hidden />
+      <input type="file" id="inputFotosServico" accept="image/*" multiple hidden autocomplete="off" />
       <p class="comissao-foto-dica">Pode anexar uma ou várias fotos (opcional).</p>
     </div>`;
 
@@ -906,7 +909,8 @@ function abrirModalNovaComissao() {
     if (!senha || senha.length < 4) { erroEl.textContent = "Senha mínima de 4 caracteres."; erroEl.style.display = "block"; return; }
     if (senha !== conf) { erroEl.textContent = "As senhas não conferem."; erroEl.style.display = "block"; return; }
     btn.disabled = true; btn.textContent = "Criando...";
-    const res = await criarComissao({ titulo, descricao: desc, senha }, _usuario.uid);
+    const nomeCriador = _dadosUsuario?.nome || _usuario?.email?.split("@")[0] || "—";
+    const res = await criarComissao({ titulo, descricao: desc, senha, criadoPorNome: nomeCriador }, _usuario.uid);
     if (res.sucesso) {
       window.fecharModal?.();
       window.mostrarToast?.("Planilha criada!", "success");
