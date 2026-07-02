@@ -1,30 +1,77 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
     function estaAutenticado() {
       return request.auth != null;
     }
-
     function ehAdmin() {
       return estaAutenticado() &&
         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.role == "admin";
     }
-
     function ehDono(uid) {
       return estaAutenticado() && request.auth.uid == uid;
     }
-
     match /usuarios/{uid} {
       allow read: if ehDono(uid) || ehAdmin();
       allow create: if estaAutenticado() && request.auth.uid == uid;
       allow update: if ehDono(uid) || ehAdmin();
       allow delete: if ehAdmin();
     }
-
     match /cotacoes/{cotacaoId} {
       allow read: if estaAutenticado();
       allow create: if estaAutenticado() &&
         request.resource.data.criadoPor == request.auth.uid;
       allow update: if estaAutenticado() &&
         (resource.data.criadoPor == request.auth.uid || ehAdmin());
+      allow delete: if estaAutenticado() &&
+        (resource.data.criadoPor == request.auth.uid || ehAdmin());
+    }
+    match /config/{docId} {
+      allow read:  if estaAutenticado();
+      allow write: if ehAdmin();
+    }
+    match /comissoes/{comissaoId} {
+      allow read:   if estaAutenticado();
+      allow create: if estaAutenticado();
+      allow update: if estaAutenticado();
+      allow delete: if estaAutenticado();
+      match /registros/{registroId} {
+        allow read:   if estaAutenticado();
+        allow create: if estaAutenticado();
+        allow update: if estaAutenticado();
+        allow delete: if estaAutenticado();
+      }
+    }
+    // ── Produtos / Estoque — só admin pode ler ou escrever ──────
+    match /pf_produtos/{produtoId} {
+      allow read: if ehAdmin();
+      allow create, update, delete: if ehAdmin();
+    }
+    match /pf_estoque_historico/{movId} {
+      allow read: if ehAdmin();
+      allow create, update, delete: if ehAdmin();
+    }
+    match /pf_custo_historico/{histId} {
+      allow read: if ehAdmin();
+      allow create, update, delete: if ehAdmin();
+    }
+    match /prom_clientes/{clienteId} {
+      allow read:   if ehAdmin();
+      allow create: if ehAdmin();
+      allow update: if ehAdmin();
+      allow delete: if ehAdmin();
+    }
+    match /prom_compras/{compraId} {
+      allow read:   if ehAdmin();
+      allow create: if ehAdmin();
+      allow update: if ehAdmin();
+      allow delete: if ehAdmin();
+    }
+    match /prom_pagamentos/{pagamentoId} {
+      allow read:   if ehAdmin();
+      allow create: if ehAdmin();
+      allow update: if ehAdmin();
+      allow delete: if ehAdmin();
+    }
+  }
+}
