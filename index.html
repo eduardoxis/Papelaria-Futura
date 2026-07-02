@@ -71,7 +71,7 @@
           Comissão
         </a>
       </li>
-      <li>
+      <li class="nav-item-admin" hidden>
         <a href="#" class="nav-item" data-page="estoque">
           <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 3a1 1 0 011-1h1a1 1 0 011 1v14a1 1 0 01-1 1H3a1 1 0 01-1-1V3zM6 3a1 1 0 011-1 1 1 0 011 1v14a1 1 0 01-1 1 1 1 0 01-1-1V3zM9.5 2a1 1 0 00-1 1v14a1 1 0 002 0V3a1 1 0 00-1-1zM12 3a1 1 0 011-1h1a1 1 0 011 1v14a1 1 0 01-1 1h-1a1 1 0 01-1-1V3zM17 2a1 1 0 00-1 1v14a1 1 0 002 0V3a1 1 0 00-1-1z"/></svg>
           Estoque
@@ -1156,7 +1156,7 @@
     iniciarCotacao(usuario, dadosUsuario);
     iniciarAdmin(usuario, dadosUsuario);
     iniciarComissao(usuario, dadosUsuario);
-    iniciarProdutos(usuario, dadosUsuario);
+    if (isAdmin) iniciarProdutos(usuario, dadosUsuario);
     if (isAdmin) iniciarPromissoria(usuario, dadosUsuario);
 
     // Navegação
