@@ -244,12 +244,12 @@ async function abrirModalBuscarProduto(qtdInicial) {
       <div class="caixa-lista-item-linha">
         <div>
           <strong>${escHtml(p.nome || "—")}</strong><br/>
-          <small>${escHtml(p.codigo || "s/ código")} · Estoque: ${p.estoque ?? 0}</small>
+          <small>${escHtml(p.codigo || "s/ código")}${p.estoque != null ? ` · Estoque: ${p.estoque}` : ""}</small>
         </div>
         <div class="caixa-preco-add-wrap">
           <span class="caixa-preco-add-prefixo">R$</span>
-          <input type="number" min="0" step="0.01" class="field-input--plain caixa-preco-add-input"
-                 data-preco-id="${escHtml(p.id)}" value="${(Number(p.preco) || 0).toFixed(2)}" autocomplete="off" />
+          <input type="number" min="0.01" step="0.01" class="field-input--plain caixa-preco-add-input"
+                 data-preco-id="${escHtml(p.id)}" placeholder="0,00" autocomplete="off" />
           <button type="button" class="btn-primary" data-id="${escHtml(p.id)}">Adicionar</button>
         </div>
       </div>
@@ -259,12 +259,28 @@ async function abrirModalBuscarProduto(qtdInicial) {
         const produto = resultados.find(p => p.id === btn.dataset.id);
         const inputPreco = cont.querySelector(`[data-preco-id="${btn.dataset.id}"]`);
         const precoCustom = parseFloat(inputPreco?.value);
+        if (isNaN(precoCustom) || precoCustom <= 0) {
+          window.mostrarToast?.("Informe o valor cobrado neste item.", "error");
+          inputPreco?.focus();
+          return;
+        }
         if (produto) {
-          adicionarItem(produto, qtdInicial || 1, isNaN(precoCustom) ? null : precoCustom);
+          adicionarItem(produto, qtdInicial || 1, precoCustom);
           window.fecharModal();
         }
       });
     });
+    // Enter no campo de preço já adiciona o item (fluxo rápido no balcão)
+    cont.querySelectorAll(".caixa-preco-add-input").forEach(inp => {
+      inp.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          cont.querySelector(`[data-id="${inp.dataset.precoId}"]`)?.click();
+        }
+      });
+    });
+    // Foco automático no primeiro campo de preço quando há um único resultado
+    if (resultados.length === 1) cont.querySelector(".caixa-preco-add-input")?.focus();
   };
 
   renderLista("");
