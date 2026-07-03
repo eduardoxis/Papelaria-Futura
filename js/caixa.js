@@ -11,6 +11,7 @@ import { db } from "./firebase-config.js";
 import {
   formatarMoeda, listarComissoes, adicionarRegistroComissao, listarUsuarios
 } from "./database.js";
+import { COL_SERVICOS } from "./servicos.js";
 import { escHtml } from "./index.js";
 
 const COL_PRODUTOS = "pf_produtos";
@@ -189,18 +190,25 @@ function setToggleTipo(campo, tipo) {
 }
 
 // ----------------------------------------------------------------
-// Produtos — cache + busca
+// Produtos + Serviços Personalizados — cache + busca (unificados)
 // ----------------------------------------------------------------
 async function carregarProdutosCache(forcar = false) {
   const agora = Date.now();
   if (!forcar && _produtosCache && (agora - _produtosCacheEm) < 60000) return _produtosCache;
   try {
-    const snap = await getDocs(collection(db, COL_PRODUTOS));
-    _produtosCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const [snapProdutos, snapServicos] = await Promise.all([
+      getDocs(collection(db, COL_PRODUTOS)),
+      getDocs(collection(db, COL_SERVICOS))
+    ]);
+    const produtos = snapProdutos.docs.map(d => ({ id: d.id, tipo: "produto", ...d.data() }));
+    const servicos = snapServicos.docs
+      .map(d => ({ id: d.id, tipo: "servico", ...d.data() }))
+      .filter(s => s.ativo !== false); // só serviços ativos aparecem no Caixa
+    _produtosCache = [...servicos, ...produtos]; // serviços primeiro (uso mais frequente no Caixa)
     _produtosCacheEm = agora;
   } catch (err) {
-    console.error("Erro ao carregar produtos:", err);
-    window.mostrarToast?.("Erro ao carregar produtos do estoque.", "error");
+    console.error("Erro ao carregar produtos/serviços:", err);
+    window.mostrarToast?.("Erro ao carregar produtos/serviços.", "error");
     _produtosCache = _produtosCache || [];
   }
   return _produtosCache;
@@ -214,7 +222,8 @@ function buscarProdutosLocal(termo) {
     (p.nome || "").toLowerCase().includes(t) ||
     (p.codigo || "").toLowerCase() === t ||
     (p.codigoBarras || "").toLowerCase() === t ||
-    (p.codigo || "").toLowerCase().includes(t)
+    (p.codigo || "").toLowerCase().includes(t) ||
+    (p.categoria || "").toLowerCase().includes(t)
   ).slice(0, 30);
 }
 
@@ -243,8 +252,10 @@ async function abrirModalBuscarProduto(qtdInicial) {
     cont.innerHTML = resultados.map(p => `
       <div class="caixa-lista-item-linha">
         <div>
-          <strong>${escHtml(p.nome || "—")}</strong><br/>
-          <small>${escHtml(p.codigo || "s/ código")}${p.estoque != null ? ` · Estoque: ${p.estoque}` : ""}</small>
+          <strong>${escHtml(p.nome || "—")}</strong>
+          ${p.tipo === "servico" ? `<span class="caixa-tag-servico">Serviço</span>` : ""}
+          <br/>
+          <small>${escHtml(p.codigo || "s/ código")}${p.tipo === "produto" && p.estoque != null ? ` · Estoque: ${p.estoque}` : ""}</small>
         </div>
         <div class="caixa-preco-add-wrap">
           <span class="caixa-preco-add-prefixo">R$</span>
@@ -294,7 +305,8 @@ function adicionarItem(produto, qtd, precoCustom) {
   const unitario = (precoCustom != null && !isNaN(precoCustom) && precoCustom >= 0)
     ? precoCustom
     : (Number(produto.preco) || 0);
-  if (produto.estoque != null && produto.estoque <= 0) {
+  const tipo = produto.tipo === "servico" ? "servico" : "produto";
+  if (tipo === "produto" && produto.estoque != null && produto.estoque <= 0) {
     window.mostrarToast?.(`"${produto.nome}" está sem estoque.`, "warning");
   }
   const existente = _itens.find(i => i.produtoId === produto.id && i.unitario === unitario);
@@ -304,6 +316,7 @@ function adicionarItem(produto, qtd, precoCustom) {
   } else {
     _itens.push({
       produtoId: produto.id,
+      tipo,
       nome: produto.nome || "—",
       precoOriginal: Number(produto.preco) || 0,
       unitario,
@@ -747,7 +760,7 @@ async function finalizarVenda(vendedor) {
   const vendaDoc = {
     numero: numeroVenda,
     itens: _itens.map(i => ({
-      produtoId: i.produtoId, nome: i.nome, qtd: i.qtd,
+      produtoId: i.produtoId, tipo: i.tipo || "produto", nome: i.nome, qtd: i.qtd,
       unitario: i.unitario, precoOriginal: i.precoOriginal ?? i.unitario,
       descontoValor: i.descontoValor || 0, total: i.total
     })),
@@ -768,8 +781,9 @@ async function finalizarVenda(vendedor) {
   // 1) Salvar a venda
   const vendaRef = await addDoc(collection(db, COL_VENDAS), vendaDoc);
 
-  // 2) Baixar estoque de cada item (best-effort — não bloqueia a venda)
-  await Promise.all(_itens.map(async (item) => {
+  // 2) Baixar estoque apenas dos itens do tipo "produto" — serviços
+  //    personalizados não têm estoque físico (best-effort, não bloqueia a venda)
+  await Promise.all(_itens.filter(i => i.tipo !== "servico").map(async (item) => {
     try {
       const prodRef = doc(db, COL_PRODUTOS, item.produtoId);
       const snap = await getDoc(prodRef);
