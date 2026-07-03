@@ -193,6 +193,20 @@
   text-align: right;
 }
 
+.caixa-tag-servico {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--gold-dark);
+  background: #FEF3C7;
+  border-radius: 5px;
+  padding: 1px 6px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
 .caixa-item-remover {
   background: none;
   border: none;
