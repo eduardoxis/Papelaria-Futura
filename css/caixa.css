@@ -1,0 +1,324 @@
+/* ============================================================
+   caixa.css — Módulo Caixa (PDV) — Papelaria Futura
+   ============================================================ */
+
+.caixa-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.caixa-status-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  color: var(--gray-500);
+  margin-top: 4px;
+}
+
+.caixa-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-success);
+  display: inline-block;
+}
+
+.caixa-status-sep { color: var(--gray-300); }
+
+.caixa-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.caixa-col-esq, .caixa-col-dir {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.caixa-card-title {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--gray-900);
+  margin: 0 0 12px;
+}
+
+.caixa-card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.caixa-card-header-row .caixa-card-title { margin: 0; }
+
+/* ---- Terminal ---- */
+.caixa-terminal-card { }
+
+.caixa-terminal-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--blue-950);
+  color: #E5EDFF;
+  border: 1px solid var(--blue-800);
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-family: "Inter", monospace;
+  font-size: var(--text-base);
+  letter-spacing: 0.02em;
+}
+.caixa-terminal-input::placeholder { color: #6E82C4; }
+.caixa-terminal-input:focus {
+  outline: none;
+  border-color: var(--blue-400);
+  box-shadow: 0 0 0 3px rgba(26, 85, 212, 0.25);
+}
+
+.caixa-terminal-dica {
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+  margin: 10px 2px 0;
+  line-height: 1.5;
+}
+.caixa-terminal-dica--rodape {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--gray-100);
+}
+
+/* ---- Atalhos ---- */
+.caixa-atalhos-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.caixa-atalho-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+  padding: 12px 14px;
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  background: var(--white);
+  cursor: pointer;
+  transition: border-color .15s, background .15s, transform .1s;
+  font-family: var(--font-body);
+}
+.caixa-atalho-card:hover {
+  border-color: var(--blue-300);
+  background: var(--blue-050);
+}
+.caixa-atalho-card:active { transform: scale(0.98); }
+
+.caixa-atalho-tecla {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: var(--blue-100);
+  color: var(--blue-700);
+  font-weight: 700;
+  font-size: var(--text-xs);
+  margin-bottom: 4px;
+}
+
+.caixa-atalho-card strong {
+  font-size: var(--text-sm);
+  color: var(--gray-900);
+  font-weight: 600;
+}
+.caixa-atalho-card small {
+  font-size: 11px;
+  color: var(--gray-500);
+  line-height: 1.35;
+}
+
+.caixa-atalho-card--finalizar {
+  grid-column: 1 / -1;
+  background: #ECFDF5;
+  border-color: #A7F3D0;
+}
+.caixa-atalho-card--finalizar:hover { background: #D1FAE5; }
+.caixa-atalho-card--finalizar .caixa-atalho-tecla { background: var(--color-success); color: #fff; }
+
+/* ---- Itens da venda ---- */
+.caixa-itens-card .table-wrap { max-height: 360px; overflow-y: auto; }
+
+.caixa-item-remover {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--gray-400);
+  padding: 4px;
+  border-radius: 6px;
+}
+.caixa-item-remover:hover { color: var(--color-danger); background: #FEE2E2; }
+
+/* ---- Resumo ---- */
+.caixa-resumo-linha {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: var(--text-sm);
+  color: var(--gray-600);
+}
+.caixa-resumo-linha strong { color: var(--gray-800); font-weight: 600; }
+.caixa-valor-neg { color: var(--color-danger) !important; }
+.caixa-valor-pos { color: var(--color-success) !important; }
+
+.caixa-resumo-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0 6px;
+  margin-top: 6px;
+  border-top: 1px dashed var(--gray-200);
+  font-family: var(--font-display);
+}
+.caixa-resumo-total span {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--gray-700);
+  letter-spacing: 0.04em;
+}
+.caixa-resumo-total strong {
+  font-size: var(--text-2xl);
+  color: var(--blue-600);
+}
+
+.caixa-resumo-descgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.caixa-toggle-input {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.caixa-toggle-input input {
+  border: none !important;
+  border-radius: 0 !important;
+  flex: 1;
+  min-width: 0;
+}
+.caixa-toggle-btn {
+  border: none;
+  background: var(--gray-100);
+  color: var(--gray-500);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  padding: 0 10px;
+  cursor: pointer;
+}
+.caixa-toggle-btn--ativo {
+  background: var(--blue-600);
+  color: #fff;
+}
+
+/* ---- Pagamento ---- */
+.caixa-pagto-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.caixa-troco-display {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #ECFDF5;
+  color: #047857;
+  font-weight: 700;
+  font-size: var(--text-base);
+}
+
+.caixa-btn-finalizar {
+  width: 100%;
+  justify-content: center;
+  margin-top: 18px;
+  padding: 14px;
+  font-size: var(--text-base);
+  background: var(--color-success);
+  border-color: var(--color-success);
+}
+.caixa-btn-finalizar:hover { background: #0D9668; }
+
+/* ---- Modal: selecionar vendedor ---- */
+.caixa-vendedor-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+  margin-top: 4px;
+}
+
+.caixa-vendedor-opcao {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  cursor: pointer;
+  background: var(--white);
+  text-align: left;
+}
+.caixa-vendedor-opcao:hover { border-color: var(--blue-300); background: var(--blue-050); }
+.caixa-vendedor-opcao--ativo {
+  border-color: var(--blue-500);
+  background: var(--blue-050);
+  box-shadow: 0 0 0 2px rgba(0, 45, 148, 0.15) inset;
+}
+
+.caixa-vendedor-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--blue-600);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: var(--text-sm);
+  flex-shrink: 0;
+}
+
+.caixa-vendedor-nome { font-weight: 600; color: var(--gray-900); font-size: var(--text-sm); }
+.caixa-vendedor-role { font-size: 11px; color: var(--gray-500); }
+
+/* ---- Modal: lista de itens (editar/excluir/desconto) ---- */
+.caixa-lista-itens-modal { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
+.caixa-lista-item-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+}
+.caixa-lista-item-linha button { flex-shrink: 0; }
+
+@media (max-width: 1100px) {
+  .caixa-grid { grid-template-columns: 1fr; }
+}
