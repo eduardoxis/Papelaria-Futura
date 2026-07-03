@@ -190,25 +190,22 @@ function setToggleTipo(campo, tipo) {
 }
 
 // ----------------------------------------------------------------
-// Produtos + Serviços Personalizados — cache + busca (unificados)
+// Serviços Personalizados — cache + busca
+// (o Caixa busca SOMENTE em Serviços Personalizados, não no
+// estoque de produtos)
 // ----------------------------------------------------------------
 async function carregarProdutosCache(forcar = false) {
   const agora = Date.now();
   if (!forcar && _produtosCache && (agora - _produtosCacheEm) < 60000) return _produtosCache;
   try {
-    const [snapProdutos, snapServicos] = await Promise.all([
-      getDocs(collection(db, COL_PRODUTOS)),
-      getDocs(collection(db, COL_SERVICOS))
-    ]);
-    const produtos = snapProdutos.docs.map(d => ({ id: d.id, tipo: "produto", ...d.data() }));
-    const servicos = snapServicos.docs
+    const snapServicos = await getDocs(collection(db, COL_SERVICOS));
+    _produtosCache = snapServicos.docs
       .map(d => ({ id: d.id, tipo: "servico", ...d.data() }))
       .filter(s => s.ativo !== false); // só serviços ativos aparecem no Caixa
-    _produtosCache = [...servicos, ...produtos]; // serviços primeiro (uso mais frequente no Caixa)
     _produtosCacheEm = agora;
   } catch (err) {
-    console.error("Erro ao carregar produtos/serviços:", err);
-    window.mostrarToast?.("Erro ao carregar produtos/serviços.", "error");
+    console.error("Erro ao carregar serviços:", err);
+    window.mostrarToast?.("Erro ao carregar serviços personalizados.", "error");
     _produtosCache = _produtosCache || [];
   }
   return _produtosCache;
