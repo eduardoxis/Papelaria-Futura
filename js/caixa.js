@@ -102,6 +102,7 @@ export function iniciarCaixa(usuario, dadosUsuario) {
     if (!btn) return;
     const idx = Number(btn.dataset.idx);
     if (btn.dataset.action === "remover") removerItem(idx);
+    if (btn.dataset.action === "editar-preco") abrirModalEditarPreco(idx);
   });
 
   renderTudo();
@@ -243,16 +244,23 @@ async function abrirModalBuscarProduto(qtdInicial) {
       <div class="caixa-lista-item-linha">
         <div>
           <strong>${escHtml(p.nome || "—")}</strong><br/>
-          <small>${escHtml(p.codigo || "s/ código")} · ${formatarMoeda(p.preco)} · Estoque: ${p.estoque ?? 0}</small>
+          <small>${escHtml(p.codigo || "s/ código")} · Estoque: ${p.estoque ?? 0}</small>
         </div>
-        <button type="button" class="btn-primary" data-id="${escHtml(p.id)}">Adicionar</button>
+        <div class="caixa-preco-add-wrap">
+          <span class="caixa-preco-add-prefixo">R$</span>
+          <input type="number" min="0" step="0.01" class="field-input--plain caixa-preco-add-input"
+                 data-preco-id="${escHtml(p.id)}" value="${(Number(p.preco) || 0).toFixed(2)}" autocomplete="off" />
+          <button type="button" class="btn-primary" data-id="${escHtml(p.id)}">Adicionar</button>
+        </div>
       </div>
     `).join("");
     cont.querySelectorAll("[data-id]").forEach(btn => {
       btn.addEventListener("click", () => {
         const produto = resultados.find(p => p.id === btn.dataset.id);
+        const inputPreco = cont.querySelector(`[data-preco-id="${btn.dataset.id}"]`);
+        const precoCustom = parseFloat(inputPreco?.value);
         if (produto) {
-          adicionarItem(produto, qtdInicial || 1);
+          adicionarItem(produto, qtdInicial || 1, isNaN(precoCustom) ? null : precoCustom);
           window.fecharModal();
         }
       });
@@ -265,12 +273,15 @@ async function abrirModalBuscarProduto(qtdInicial) {
   inputBusca?.focus();
 }
 
-function adicionarItem(produto, qtd) {
+function adicionarItem(produto, qtd, precoCustom) {
   qtd = Number(qtd) || 1;
+  const unitario = (precoCustom != null && !isNaN(precoCustom) && precoCustom >= 0)
+    ? precoCustom
+    : (Number(produto.preco) || 0);
   if (produto.estoque != null && produto.estoque <= 0) {
     window.mostrarToast?.(`"${produto.nome}" está sem estoque.`, "warning");
   }
-  const existente = _itens.find(i => i.produtoId === produto.id);
+  const existente = _itens.find(i => i.produtoId === produto.id && i.unitario === unitario);
   if (existente) {
     existente.qtd += qtd;
     existente.total = calcularTotalItem(existente);
@@ -278,10 +289,11 @@ function adicionarItem(produto, qtd) {
     _itens.push({
       produtoId: produto.id,
       nome: produto.nome || "—",
-      unitario: Number(produto.preco) || 0,
+      precoOriginal: Number(produto.preco) || 0,
+      unitario,
       qtd,
       descontoValor: 0,
-      total: (Number(produto.preco) || 0) * qtd
+      total: unitario * qtd
     });
   }
   renderTudo();
@@ -376,8 +388,41 @@ function abrirEdicaoQtdItem(idx) {
 }
 
 // ----------------------------------------------------------------
-// Modal: deletar item (D)
+// Editar valor unitário de um item já adicionado (preço variável —
+// ex: bolo, presente personalizado, produto sem preço fixo)
 // ----------------------------------------------------------------
+function abrirModalEditarPreco(idx) {
+  const item = _itens[idx];
+  if (!item) return;
+  const precoOriginalInfo = (item.precoOriginal != null && item.precoOriginal !== item.unitario)
+    ? `<small style="color:var(--gray-500)">Preço cadastrado: ${formatarMoeda(item.precoOriginal)}</small>`
+    : "";
+  const body = `
+    <div class="field-label">Valor unitário para "${escHtml(item.nome)}"</div>
+    <div class="caixa-toggle-input" style="max-width:220px">
+      <span class="caixa-preco-add-prefixo" style="padding:0 10px;display:flex;align-items:center;background:var(--gray-100);font-size:var(--text-xs);font-weight:700;color:var(--gray-500)">R$</span>
+      <input type="number" min="0" step="0.01" class="field-input--plain" id="mCaixaPrecoEdit" value="${item.unitario.toFixed(2)}" autocomplete="off" />
+    </div>
+    <div style="margin-top:6px">${precoOriginalInfo}</div>
+  `;
+  window.abrirModal("Editar Valor Unitário", body, `
+    <button class="btn-ghost" id="btnCancPrecoEdit">Cancelar</button>
+    <button class="btn-primary" id="btnOkPrecoEdit">Salvar</button>
+  `);
+  document.getElementById("btnCancPrecoEdit").onclick = () => window.fecharModal();
+  document.getElementById("btnOkPrecoEdit").onclick = () => {
+    const v = parseFloat(document.getElementById("mCaixaPrecoEdit").value);
+    if (isNaN(v) || v < 0) { window.mostrarToast?.("Valor inválido.", "error"); return; }
+    item.unitario = v;
+    item.total = calcularTotalItem(item);
+    renderTudo();
+    window.fecharModal();
+  };
+  document.getElementById("mCaixaPrecoEdit")?.focus();
+  document.getElementById("mCaixaPrecoEdit")?.select();
+}
+
+
 function abrirModalDeletarItem(numeroItem) {
   if (_itens.length === 0) {
     window.mostrarToast?.("Não há itens na venda.", "warning");
@@ -534,7 +579,11 @@ function renderItens() {
       <td>${idx + 1}</td>
       <td>${escHtml(it.nome)}</td>
       <td>${it.qtd}</td>
-      <td>${formatarMoeda(it.unitario)}</td>
+      <td>
+        <button type="button" class="caixa-preco-editar" data-action="editar-preco" data-idx="${idx}" title="Clique para editar o valor unitário">
+          ${formatarMoeda(it.unitario)}
+        </button>
+      </td>
       <td>${it.descontoValor ? formatarMoeda(it.descontoValor) : "—"}</td>
       <td class="col-right"><strong>${formatarMoeda(it.total)}</strong></td>
       <td class="col-center">
@@ -683,7 +732,8 @@ async function finalizarVenda(vendedor) {
     numero: numeroVenda,
     itens: _itens.map(i => ({
       produtoId: i.produtoId, nome: i.nome, qtd: i.qtd,
-      unitario: i.unitario, descontoValor: i.descontoValor || 0, total: i.total
+      unitario: i.unitario, precoOriginal: i.precoOriginal ?? i.unitario,
+      descontoValor: i.descontoValor || 0, total: i.total
     })),
     subtotal: subtotalBruto,
     descontoItens, descontoTotal, acrescimo, total,
