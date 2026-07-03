@@ -42,18 +42,29 @@ service cloud.firestore {
         allow delete: if estaAutenticado();
       }
     }
-    // ── Produtos / Estoque — só admin pode ler ou escrever ──────
+    // ── Produtos / Estoque — leitura liberada p/ o Caixa (PDV),
+    //     escrita de estoque também liberada p/ dar baixa nas vendas.
+    //     Cadastro/edição completa do módulo Estoque continua admin.
     match /pf_produtos/{produtoId} {
-      allow read: if ehAdmin();
-      allow create, update, delete: if ehAdmin();
+      allow read: if estaAutenticado();
+      allow create, delete: if ehAdmin();
+      allow update: if estaAutenticado();
     }
     match /pf_estoque_historico/{movId} {
-      allow read: if ehAdmin();
-      allow create, update, delete: if ehAdmin();
+      allow read: if estaAutenticado();
+      allow create: if estaAutenticado();
+      allow update, delete: if ehAdmin();
     }
     match /pf_custo_historico/{histId} {
       allow read: if ehAdmin();
       allow create, update, delete: if ehAdmin();
+    }
+    // ── Caixa (PDV) — vendas ────────────────────────────────────
+    match /pf_vendas/{vendaId} {
+      allow read:   if estaAutenticado();
+      allow create: if estaAutenticado() &&
+        request.resource.data.operadorUid == request.auth.uid;
+      allow update, delete: if ehAdmin();
     }
     match /prom_clientes/{clienteId} {
       allow read:   if ehAdmin();
