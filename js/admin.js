@@ -4,14 +4,14 @@
 
 import {
   listarUsuarios, salvarUsuario, excluirUsuarioFirestore,
-  salvarSenhaCotacao, senhaCotacaoExiste, listarCotacoes
+  salvarSenhaCotacao, senhaCotacaoExiste, listarCotacoes, listarVendas
 } from "./database.js";
 import {
   createUserWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { auth } from "./firebase-config.js";
 import { escHtml } from "./index.js";
-import { formatarData, formatarDataHora } from "./database.js";
+import { formatarData, formatarDataHora, formatarMoeda } from "./database.js";
 
 let _dadosUsuario = null;
 
@@ -36,6 +36,7 @@ export function iniciarAdmin(usuario, dadosUsuario) {
       carregarUsuarios();
       carregarCardSenhaCotacao();
       carregarHistoricoCotacoes();
+      carregarVendas();
     }
   });
 
@@ -62,6 +63,19 @@ export function iniciarAdmin(usuario, dadosUsuario) {
     if (!btn) return;
     const { cliente, historico } = btn.dataset;
     abrirModalHistorico(cliente, JSON.parse(historico));
+  });
+
+  // Vendas Realizadas
+  document.getElementById("btnBuscarVendas")?.addEventListener("click", () => {
+    const termo = document.getElementById("filtroBuscaVendas").value.trim();
+    carregarVendas(termo);
+  });
+  document.getElementById("btnLimparBuscaVendas")?.addEventListener("click", () => {
+    document.getElementById("filtroBuscaVendas").value = "";
+    carregarVendas();
+  });
+  document.getElementById("filtroBuscaVendas")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") carregarVendas(e.target.value.trim());
   });
 }
 
@@ -148,6 +162,7 @@ function abrirModalNovoUsuario() {
         <label class="field-label" for="novoRole">Perfil de acesso *</label>
         <select class="field-input--plain" id="novoRole" autocomplete="off">
           <option value="user">Usuário</option>
+          <option value="vendedor">Vendedor</option>
           <option value="admin">Administrador</option>
         </select>
       </div>
@@ -218,8 +233,9 @@ function abrirModalEditarUsuario(usuario) {
       <div class="field">
         <label class="field-label" for="editRole">Perfil de acesso</label>
         <select class="field-input--plain" id="editRole" autocomplete="off">
-          <option value="user"  ${usuario.role === "user"  ? "selected" : ""}>Usuário</option>
-          <option value="admin" ${usuario.role === "admin" ? "selected" : ""}>Administrador</option>
+          <option value="user"     ${usuario.role === "user"     ? "selected" : ""}>Usuário</option>
+          <option value="vendedor" ${usuario.role === "vendedor" ? "selected" : ""}>Vendedor</option>
+          <option value="admin"    ${usuario.role === "admin"    ? "selected" : ""}>Administrador</option>
         </select>
       </div>
       <div id="erroEditarUsuario" style="color:#991B1B;font-size:13px;background:#FEF2F2;
@@ -292,6 +308,7 @@ function confirmarExclusaoUsuario(id, nome) {
 // ================================================================
 function roleBadge(role) {
   if (role === "admin") return `<span class="role-badge role-badge--admin">Administrador</span>`;
+  if (role === "vendedor") return `<span class="role-badge role-badge--vendedor">Vendedor</span>`;
   return `<span class="role-badge role-badge--user">Usuário</span>`;
 }
 
@@ -420,6 +437,57 @@ function abrirModalSenhaCotacao() {
 // ================================================================
 // HISTÓRICO DE ALTERAÇÕES DAS COTAÇÕES
 // ================================================================
+// ================================================================
+// VENDAS REALIZADAS (log por vendedor)
+// ================================================================
+let _todasVendasCache = [];
+
+async function carregarVendas(termoBusca = "") {
+  const tbody = document.getElementById("tbodyVendas");
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="7" class="loading-cell">Carregando...</td></tr>`;
+
+  // Busca tudo uma vez e cacheia; filtro por vendedor é feito no cliente
+  if (_todasVendasCache.length === 0 || termoBusca === "") {
+    const resultado = await listarVendas({ limitQtd: 200 });
+    if (!resultado.sucesso) {
+      tbody.innerHTML = `<tr><td colspan="7" class="loading-cell">Erro ao carregar vendas.</td></tr>`;
+      return;
+    }
+    _todasVendasCache = resultado.vendas;
+  }
+
+  const termo = termoBusca.trim().toLowerCase();
+  const vendas = termo
+    ? _todasVendasCache.filter(v => (v.vendedorNome || "").toLowerCase().includes(termo))
+    : _todasVendasCache;
+
+  if (vendas.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-cell">Nenhuma venda encontrada.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = vendas.map(linhaVendaHtml).join("");
+}
+
+function linhaVendaHtml(v) {
+  const qtdItens = (v.itens || []).length;
+  return `
+    <tr>
+      <td>${formatarDataHora(v.criadoEm)}</td>
+      <td><strong>${escHtml(v.vendedorNome || "—")}</strong></td>
+      <td>#${escHtml(String(v.numero ?? "—"))}</td>
+      <td>${qtdItens} ${qtdItens === 1 ? "item" : "itens"}</td>
+      <td>${escHtml(v.formaPagamento || "—")}</td>
+      <td class="col-right"><strong>${formatarMoeda(v.total || 0)}</strong></td>
+      <td class="col-center">
+        ${v.comissaoId
+          ? `<span class="role-badge role-badge--vendedor">Sim</span>`
+          : `<span class="role-badge role-badge--user">Não</span>`}
+      </td>
+    </tr>`;
+}
+
 async function carregarHistoricoCotacoes(termoBusca = "") {
   const tbody = document.getElementById("tbodyHistoricoCotacoes");
   if (!tbody) return;
