@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Dashboard — Papelaria Futura</title>
   <link rel="icon" type="image/png" href="img/favicon.png" />
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#1E40AF" />
+  <link rel="apple-touch-icon" href="img/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Papelaria Futura" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
@@ -1609,6 +1618,17 @@
     toast.querySelector(".toast-close").addEventListener("click", remover);
     setTimeout(remover, duracao);
   };
+</script>
+
+<!-- PWA — registra o service worker (cache offline + instalável) -->
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./service-worker.js").catch((err) => {
+        console.warn("Falha ao registrar service worker:", err);
+      });
+    });
+  }
 </script>
 
 </body>
