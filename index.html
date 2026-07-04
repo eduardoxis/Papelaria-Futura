@@ -1375,38 +1375,12 @@
 </div>
 
 <!-- ============================================================ -->
-<!-- MOBILE BOTTOM NAV                                            -->
 <!-- ============================================================ -->
-<nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Navegação principal">
-  <a href="#" class="mobile-nav-item mobile-nav-item--active" data-page="dashboard" id="mobileNavDash">
-    <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z"/><path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z"/></svg>
-    <span>Dashboard</span>
-  </a>
-  <a href="#" class="mobile-nav-item" data-page="cotacoes" id="mobileNavCotacoes">
-    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
-    <span>Cotações</span>
-  </a>
-  <a href="#" class="mobile-nav-item" data-page="caixa" id="mobileNavCaixa">
-    <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 3a1 1 0 000 2v10a2 2 0 002 2h10a2 2 0 002-2V5a1 1 0 100-2H3zm3 4a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm0 3a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h2a1 1 0 100-2H7z"/></svg>
-    <span>Caixa</span>
-  </a>
-  <a href="#" class="mobile-nav-item" data-page="comissao" id="mobileNavComissao">
-    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V8z" clip-rule="evenodd"/></svg>
-    <span>Comissão</span>
-  </a>
-  <a href="#" class="mobile-nav-item nav-item-admin" data-page="promissoria" id="mobileNavPromissoria" hidden>
-    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
-    <span>Promissórias</span>
-  </a>
-  <a href="#" class="mobile-nav-item nav-item-admin" data-page="admin" id="mobileNavAdmin" hidden>
-    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
-    <span>Administração</span>
-  </a>
-  <a href="#" class="mobile-nav-item" id="mobileNavPerfil" data-action="perfil">
-    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
-    <span>Perfil</span>
-  </a>
-</nav>
+<!-- MOBILE HAMBURGER (abre o menu lateral)                       -->
+<!-- ============================================================ -->
+<button class="mobile-hamburger-btn" id="btnMobileHamburger" aria-label="Abrir menu">
+  <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>
+</button>
 
 <!-- Scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -1512,12 +1486,6 @@
 
       document.getElementById("topbarTitle").textContent = titles[pageId] || pageId;
 
-      // Sincronizar bottom nav mobile
-      document.querySelectorAll(".mobile-nav-item").forEach(el => {
-        el.classList.remove("mobile-nav-item--active");
-        if (el.dataset.page === pageId) el.classList.add("mobile-nav-item--active");
-      });
-
       // Mostra CTA "Nova Cotação" apenas nas páginas relacionadas a cotações
       const ctaBar = document.getElementById("mobileCTABar");
       if (ctaBar) ctaBar.style.display = (pageId === "dashboard" || pageId === "cotacoes") ? "" : "none";
@@ -1537,8 +1505,8 @@
       });
     });
 
-    // Botão Perfil mobile — abre o sidebar como drawer de perfil
-    document.getElementById("mobileNavPerfil")?.addEventListener("click", (e) => {
+    // Botão hambúrguer mobile — abre o menu lateral
+    document.getElementById("btnMobileHamburger")?.addEventListener("click", (e) => {
       e.preventDefault();
       document.getElementById("sidebar").classList.add("sidebar--open");
       document.getElementById("sidebarOverlay").classList.add("overlay--visible");
