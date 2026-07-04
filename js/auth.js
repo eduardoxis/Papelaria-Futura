@@ -11,17 +11,33 @@ export async function buscarDadosUsuario(uid) {
     const ref  = doc(db, "usuarios", uid);
     const snap = await getDoc(ref);
     if (snap.exists()) return snap.data();
-    const padrao = { uid, role: "user", criadoEm: serverTimestamp() };
+    const padrao = { uid, roles: ["user"], criadoEm: serverTimestamp() };
     await setDoc(ref, padrao, { merge: true });
     return padrao;
   } catch {
-    return { role: "user" };
+    return { roles: ["user"] };
   }
+}
+
+// ── Cargos (multi-cargo) ────────────────────────────────────────
+// Retorna a lista de cargos de um usuário. Compatível com documentos
+// antigos que só tinham o campo `role` (string única).
+export function cargosDoUsuario(dadosUsuario) {
+  if (Array.isArray(dadosUsuario?.roles) && dadosUsuario.roles.length) {
+    return dadosUsuario.roles;
+  }
+  if (dadosUsuario?.role) return [dadosUsuario.role];
+  return ["user"];
+}
+
+// Verifica se o usuário tem um cargo específico ("admin", "vendedor", "user")
+export function temCargo(dadosUsuario, cargo) {
+  return cargosDoUsuario(dadosUsuario).includes(cargo);
 }
 
 export async function verificarAdmin(uid) {
   const d = await buscarDadosUsuario(uid);
-  return d?.role === "admin";
+  return temCargo(d, "admin");
 }
 
 // ── Logout ─────────────────────────────────────────────────────
