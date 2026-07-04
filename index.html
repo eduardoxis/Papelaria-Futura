@@ -1424,7 +1424,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
 <script type="module">
-  import { protegerRota, logoutUsuario } from "./js/auth.js";
+  import { protegerRota, logoutUsuario, temCargo } from "./js/auth.js";
   import { iniciarDashboard }            from "./js/index.js";
   import { iniciarCotacao }              from "./js/cotacao.js";
   import { iniciarAdmin }                from "./js/admin.js";
@@ -1444,8 +1444,7 @@
   function iniciarApp(usuario, dadosUsuario) {
     // Dados do usuário no sidebar
     const nome   = dadosUsuario?.nome   || usuario.email.split("@")[0];
-    const role   = dadosUsuario?.role   || "user";
-    const isAdmin = role === "admin";
+    const isAdmin = temCargo(dadosUsuario, "admin");
 
     document.getElementById("userName").textContent  = nome;
     document.getElementById("userRole").textContent  = isAdmin ? "Administrador" : "Usuário";
