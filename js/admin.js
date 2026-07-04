@@ -423,8 +423,8 @@ function abrirModalSenhaCotacao() {
   });
 
   document.getElementById("btnSalvarSenhaCot")?.addEventListener("click", async () => {
-    const nova  = document.getElementById("adminNovaSenhaCot")?.value;
-    const conf  = document.getElementById("adminConfSenhaCot")?.value;
+    const nova  = (document.getElementById("adminNovaSenhaCot")?.value || "").trim();
+    const conf  = (document.getElementById("adminConfSenhaCot")?.value || "").trim();
     const erroEl = document.getElementById("erroSenhaCotAdmin");
     erroEl.style.display = "none";
 
