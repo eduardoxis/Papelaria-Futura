@@ -41,6 +41,11 @@
   color: var(--gray-600);
 }
 
+.role-badge--vendedor {
+  background: var(--green-100, #D1FAE5);
+  color: var(--green-700, #047857);
+}
+
 /* Aviso de exclusão */
 .delete-warning {
   background: #FEF2F2;
