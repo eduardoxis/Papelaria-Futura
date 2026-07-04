@@ -10,6 +10,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 import { formatarMoeda } from "./database.js";
+import { temCargo } from "./auth.js";
 
 // ── Constantes ──────────────────────────────────────────────
 const COL_CLIENTES     = "prom_clientes";
@@ -27,7 +28,7 @@ export function iniciarPromissoria(usuario, dadosUsuario) {
 
   document.addEventListener("navegacao", (e) => {
     if (e.detail.page === "promissoria") {
-      if (_dadosUsuario?.role !== "admin") {
+      if (!temCargo(_dadosUsuario, "admin")) {
         window.navegar?.("dashboard");
         window.mostrarToast?.("Acesso restrito a administradores.", "error");
         return;
