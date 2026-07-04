@@ -686,7 +686,7 @@ function _pedirSenhaComissao(onSucesso) {
   overlay.addEventListener("click", (e) => { if (e.target === overlay) fechar(); });
 
   const confirmar = async () => {
-    const senha  = input.value;
+    const senha  = input.value.trim();
     const erroEl = overlay.querySelector("#caixaSenhaErro");
     const btn    = overlay.querySelector("#caixaSenhaConfirmar");
 
