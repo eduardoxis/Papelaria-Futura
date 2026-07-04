@@ -109,9 +109,9 @@
   }
 
   #filtroBuscaProm {
-    height: 60px !important;
+    height: 64px !important;
     padding: 0 var(--space-5) !important;
-    font-size: 1.05rem !important;
+    font-size: 1.1rem !important;
     border-radius: var(--radius-lg) !important;
   }
 
