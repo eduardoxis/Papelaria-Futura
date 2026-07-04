@@ -1347,6 +1347,40 @@
         </div>
       </div>
 
+      <!-- Vendas Realizadas (log por vendedor) -->
+      <div class="card">
+        <h3 class="card-section-title">Vendas Realizadas</h3>
+        <p class="page-subtitle" style="margin: -8px 0 16px">Acompanhe as vendas finalizadas no Caixa por cada vendedor.</p>
+
+        <div class="filter-bar">
+          <div class="filter-search">
+            <svg class="filter-search-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+            <input type="text" class="filter-input" id="filtroBuscaVendas" placeholder="Buscar por vendedor..." autocomplete="off" />
+          </div>
+          <button class="btn-secondary" id="btnBuscarVendas">Buscar</button>
+          <button class="btn-ghost" id="btnLimparBuscaVendas">Limpar</button>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table" id="tabelaVendas">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Vendedor</th>
+                <th>Nº Venda</th>
+                <th>Itens</th>
+                <th>Forma Pagto.</th>
+                <th class="col-right">Total</th>
+                <th class="col-center">Comissão</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyVendas">
+              <tr><td colspan="7" class="loading-cell">Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </section>
 
   </main>
