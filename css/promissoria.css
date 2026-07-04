@@ -83,6 +83,14 @@
   overflow: hidden;
 }
 
+/* ── Campo de busca por nome/telefone — sempre grande ────────── */
+#filtroBuscaProm {
+  height: 50px !important;
+  padding: 0 var(--space-5) !important;
+  font-size: 1rem !important;
+  border-radius: var(--radius-lg) !important;
+}
+
 /* ── Responsivo — filtros empilhados no mobile ──────────────── */
 @media (max-width: 640px) {
   #painelListaClientesProm .filter-bar {
