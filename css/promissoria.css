@@ -96,6 +96,31 @@
   }
 }
 
+/* ── Responsivo — campos e botões maiores para toque no mobile ── */
+@media (max-width: 768px) {
+  #painelListaClientesProm .filter-bar {
+    gap: var(--space-3);
+  }
+
+  #painelListaClientesProm .filter-input {
+    height: 50px;
+    font-size: var(--text-base);
+    border-radius: var(--radius-lg);
+  }
+
+  #painelListaClientesProm .filter-bar select.filter-input {
+    padding-right: var(--space-8);
+  }
+
+  #painelListaClientesProm .filter-bar .btn-secondary,
+  #painelListaClientesProm .filter-bar .btn-ghost {
+    width: 100%;
+    height: 50px;
+    font-size: var(--text-base);
+    justify-content: center;
+  }
+}
+
 /* ── Abas Clientes / Dashboard ──────────────────────────────── */
 .prom-tabs {
   display: flex;
