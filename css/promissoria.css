@@ -121,7 +121,50 @@
   }
 }
 
-/* ── Abas Clientes / Dashboard ──────────────────────────────── */
+/* ── Responsivo — tabela de clientes vira cards com labels ──── */
+@media (max-width: 768px) {
+  #tbodyClientesProm tr {
+    display: block;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--gray-100);
+  }
+
+  #tbodyClientesProm td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: 4px 0;
+    text-align: right;
+  }
+
+  /* Nome do cliente — sem label, ocupa a linha inteira */
+  #tbodyClientesProm td[data-label="Cliente"] {
+    display: block;
+    text-align: left;
+    padding-bottom: var(--space-2);
+  }
+
+  /* Mostra o rótulo (Compras, Total Comprado, etc.) antes do valor */
+  #tbodyClientesProm td[data-label]::before {
+    content: attr(data-label);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--gray-500);
+    text-align: left;
+    flex-shrink: 0;
+  }
+
+  /* Linha de ações — botões alinhados à direita, sem centralizar */
+  #tbodyClientesProm .td-actions-prom {
+    justify-content: flex-end;
+    padding-top: var(--space-2);
+  }
+
+  #tbodyClientesProm .actions-cell {
+    justify-content: flex-end;
+  }
+}
 .prom-tabs {
   display: flex;
   gap: var(--space-2);
