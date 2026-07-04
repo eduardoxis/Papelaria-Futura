@@ -409,6 +409,13 @@
     align-items: stretch;
   }
 
+  /* Título/subtítulo/ações da página — evita ficar colado nas bordas
+     em páginas que não usam o mobile-page-header azul (Promissórias,
+     Caixa, Comissão, Produtos, Serviços, etc.) */
+  .page-header {
+    padding: 0 var(--space-4);
+  }
+
   #page-cotacoes .card,
   #page-nova-cotacao .card,
   #page-admin .card {
