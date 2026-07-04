@@ -1373,15 +1373,6 @@
 <!-- ============================================================ -->
 <div class="toast-container" id="toastContainer" aria-live="polite"></div>
 
-<!-- ============================================================ -->
-<!-- MOBILE CTA — Nova Cotação (fixo, acima do bottom nav)       -->
-<!-- ============================================================ -->
-<div class="mobile-cta-bar" id="mobileCTABar">
-  <button class="btn-mobile-nova-cotacao" data-page="nova-cotacao">
-    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
-    Nova Cotação
-  </button>
-</div>
 
 <!-- ============================================================ -->
 <!-- ============================================================ -->
@@ -1494,10 +1485,6 @@
       });
 
       document.getElementById("topbarTitle").textContent = titles[pageId] || pageId;
-
-      // Mostra CTA "Nova Cotação" apenas nas páginas relacionadas a cotações
-      const ctaBar = document.getElementById("mobileCTABar");
-      if (ctaBar) ctaBar.style.display = (pageId === "dashboard" || pageId === "cotacoes") ? "" : "none";
 
       // Fechar sidebar no mobile
       fecharSidebar();
