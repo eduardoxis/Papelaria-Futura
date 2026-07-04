@@ -9,7 +9,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 import {
-  formatarMoeda, listarComissoes, adicionarRegistroComissao, listarUsuarios, verificarSenhaCotacao
+  formatarMoeda, listarComissoes, adicionarRegistroComissao, listarUsuarios, verificarSenhaComissao
 } from "./database.js";
 import { COL_SERVICOS } from "./servicos.js";
 import { escHtml } from "./index.js";
@@ -662,13 +662,13 @@ function resetarTerminal() {
 // global, pois isso destruiria o modal "Selecionar Vendedor" que
 // já está aberto por baixo)
 // ----------------------------------------------------------------
-function _pedirSenhaComissao(onSucesso) {
+function _pedirSenhaComissao(comissaoId, onSucesso) {
   const overlay = document.createElement("div");
   overlay.className = "caixa-senha-overlay";
   overlay.innerHTML = `
     <div class="caixa-senha-caixa">
       <h4>🔒 Senha necessária</h4>
-      <p>Para lançar a comissão nesta planilha, informe a senha de acesso às cotações.</p>
+      <p>Informe a senha desta planilha de comissão para lançar o registro.</p>
       <div class="senha-input-wrap">
         <input type="password" id="caixaSenhaInput" class="field-input--plain" placeholder="Digite a senha" autocomplete="current-password" />
         <button class="btn-toggle-senha" id="caixaBtnToggleSenha" type="button" aria-label="Mostrar senha">
@@ -720,14 +720,10 @@ function _pedirSenhaComissao(onSucesso) {
     btn.disabled = true;
     btn.textContent = "Verificando...";
 
-    const resultado = await verificarSenhaCotacao(senha);
+    const resultado = await verificarSenhaComissao(comissaoId, senha);
 
     if (resultado.sucesso) {
       fechar();
-      onSucesso();
-    } else if (resultado.semSenha) {
-      fechar();
-      window.mostrarToast?.("Atenção: nenhuma senha foi configurada. Configure em Administração → Senha Cotação.", "warning", 6000);
       onSucesso();
     } else {
       erroEl.textContent = resultado.erro || "Senha incorreta.";
@@ -818,7 +814,7 @@ async function iniciarFinalizacaoVenda() {
     campoCliente.style.display = "none";
     _comissaoSelecionadaId = null;
 
-    _pedirSenhaComissao(() => {
+    _pedirSenhaComissao(idEscolhido, () => {
       _comissaoSelecionadaId = idEscolhido;
       selectComissao.value = idEscolhido;
       campoCliente.style.display = "";
