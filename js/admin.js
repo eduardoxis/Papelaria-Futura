@@ -12,6 +12,7 @@ import {
 import { auth } from "./firebase-config.js";
 import { escHtml } from "./index.js";
 import { formatarData, formatarDataHora, formatarMoeda } from "./database.js";
+import { cargosDoUsuario, temCargo } from "./auth.js";
 
 let _dadosUsuario = null;
 
@@ -28,7 +29,7 @@ export function iniciarAdmin(usuario, dadosUsuario) {
   // Só carrega se for admin
   document.addEventListener("navegacao", (e) => {
     if (e.detail.page === "admin") {
-      if (_dadosUsuario?.role !== "admin") {
+      if (!temCargo(_dadosUsuario, "admin")) {
         window.navegar?.("dashboard");
         window.mostrarToast?.("Acesso restrito a administradores.", "error");
         return;
@@ -113,7 +114,7 @@ async function carregarUsuarios() {
         </div>
       </td>
       <td>${escHtml(u.email || "—")}</td>
-      <td>${roleBadge(u.role)}</td>
+      <td>${roleBadge(u)}</td>
       <td>${formatarData(u.ultimoAcesso)}</td>
       <td class="col-right">
         <div style="display:flex;gap:5px;justify-content:flex-end">
@@ -159,12 +160,18 @@ function abrirModalNovoUsuario() {
         <input class="field-input--plain" type="password" id="novaSenha" placeholder="Mínimo 6 caracteres" autocomplete="new-password" />
       </div>
       <div class="field">
-        <label class="field-label" for="novoRole">Perfil de acesso *</label>
-        <select class="field-input--plain" id="novoRole" autocomplete="off">
-          <option value="user">Usuário</option>
-          <option value="vendedor">Vendedor</option>
-          <option value="admin">Administrador</option>
-        </select>
+        <label class="field-label">Cargos * <span style="font-weight:400;color:var(--gray-500)">(pode marcar mais de um)</span></label>
+        <div class="form-usuario-cargos">
+          <label class="checkbox-cargo">
+            <input type="checkbox" name="novoCargo" value="user" checked /> Usuário
+          </label>
+          <label class="checkbox-cargo">
+            <input type="checkbox" name="novoCargo" value="vendedor" /> Vendedor
+          </label>
+          <label class="checkbox-cargo">
+            <input type="checkbox" name="novoCargo" value="admin" /> Administrador
+          </label>
+        </div>
       </div>
       <div id="erroNovoUsuario" style="color:#991B1B;font-size:13px;background:#FEF2F2;
         padding:10px;border-radius:8px;display:none;border:1px solid #FECACA"></div>
@@ -180,13 +187,19 @@ async function criarNovoUsuario() {
   const nome  = document.getElementById("novoNome")?.value.trim();
   const email = document.getElementById("novoEmail")?.value.trim();
   const senha = document.getElementById("novaSenha")?.value;
-  const role  = document.getElementById("novoRole")?.value;
+  const roles = Array.from(document.querySelectorAll('input[name="novoCargo"]:checked')).map(el => el.value);
   const erroEl = document.getElementById("erroNovoUsuario");
 
   erroEl.style.display = "none";
 
   if (!nome || !email || !senha) {
     erroEl.textContent = "Preencha todos os campos obrigatórios.";
+    erroEl.style.display = "block";
+    return;
+  }
+
+  if (roles.length === 0) {
+    erroEl.textContent = "Selecione ao menos um cargo.";
     erroEl.style.display = "block";
     return;
   }
@@ -201,7 +214,7 @@ async function criarNovoUsuario() {
     const uid = credencial.user.uid;
 
     // Salvar no Firestore
-    await salvarUsuario(uid, { nome, email, role, uid });
+    await salvarUsuario(uid, { nome, email, roles, role: roles[0], uid });
 
     window.fecharModal?.();
     window.mostrarToast?.(`Usuário "${nome}" criado com sucesso!`, "success");
@@ -218,6 +231,7 @@ async function criarNovoUsuario() {
 // EDITAR USUÁRIO
 // ================================================================
 function abrirModalEditarUsuario(usuario) {
+  const cargosAtuais = cargosDoUsuario(usuario);
   window.abrirModal?.(
     "Editar Usuário",
     `<div class="form-usuario">
@@ -231,12 +245,18 @@ function abrirModalEditarUsuario(usuario) {
           style="opacity:0.6;cursor:not-allowed" autocomplete="off" />
       </div>
       <div class="field">
-        <label class="field-label" for="editRole">Perfil de acesso</label>
-        <select class="field-input--plain" id="editRole" autocomplete="off">
-          <option value="user"     ${usuario.role === "user"     ? "selected" : ""}>Usuário</option>
-          <option value="vendedor" ${usuario.role === "vendedor" ? "selected" : ""}>Vendedor</option>
-          <option value="admin"    ${usuario.role === "admin"    ? "selected" : ""}>Administrador</option>
-        </select>
+        <label class="field-label">Cargos <span style="font-weight:400;color:var(--gray-500)">(pode marcar mais de um)</span></label>
+        <div class="form-usuario-cargos">
+          <label class="checkbox-cargo">
+            <input type="checkbox" name="editCargo" value="user" ${cargosAtuais.includes("user") ? "checked" : ""} /> Usuário
+          </label>
+          <label class="checkbox-cargo">
+            <input type="checkbox" name="editCargo" value="vendedor" ${cargosAtuais.includes("vendedor") ? "checked" : ""} /> Vendedor
+          </label>
+          <label class="checkbox-cargo">
+            <input type="checkbox" name="editCargo" value="admin" ${cargosAtuais.includes("admin") ? "checked" : ""} /> Administrador
+          </label>
+        </div>
       </div>
       <div id="erroEditarUsuario" style="color:#991B1B;font-size:13px;background:#FEF2F2;
         padding:10px;border-radius:8px;display:none;border:1px solid #FECACA"></div>
@@ -247,7 +267,7 @@ function abrirModalEditarUsuario(usuario) {
 
   document.getElementById("btnConfirmarEdicao")?.addEventListener("click", async () => {
     const nome  = document.getElementById("editNome")?.value.trim();
-    const role  = document.getElementById("editRole")?.value;
+    const roles = Array.from(document.querySelectorAll('input[name="editCargo"]:checked')).map(el => el.value);
     const erroEl = document.getElementById("erroEditarUsuario");
 
     if (!nome) {
@@ -256,11 +276,17 @@ function abrirModalEditarUsuario(usuario) {
       return;
     }
 
+    if (roles.length === 0) {
+      erroEl.textContent = "Selecione ao menos um cargo.";
+      erroEl.style.display = "block";
+      return;
+    }
+
     const btn = document.getElementById("btnConfirmarEdicao");
     btn.disabled = true;
     btn.textContent = "Salvando...";
 
-    const resultado = await salvarUsuario(usuario.id, { nome, role });
+    const resultado = await salvarUsuario(usuario.id, { nome, roles, role: roles[0] });
 
     if (resultado.sucesso) {
       window.fecharModal?.();
@@ -306,10 +332,13 @@ function confirmarExclusaoUsuario(id, nome) {
 // ================================================================
 // UTILITÁRIOS
 // ================================================================
-function roleBadge(role) {
-  if (role === "admin") return `<span class="role-badge role-badge--admin">Administrador</span>`;
-  if (role === "vendedor") return `<span class="role-badge role-badge--vendedor">Vendedor</span>`;
-  return `<span class="role-badge role-badge--user">Usuário</span>`;
+function roleBadge(usuario) {
+  const cargos = cargosDoUsuario(usuario);
+  const rotulos = { admin: "Administrador", vendedor: "Vendedor", user: "Usuário" };
+  const classes = { admin: "role-badge--admin", vendedor: "role-badge--vendedor", user: "role-badge--user" };
+  return cargos.map(c =>
+    `<span class="role-badge ${classes[c] || "role-badge--user"}">${rotulos[c] || c}</span>`
+  ).join(" ");
 }
 
 function traduzirErro(codigo) {
