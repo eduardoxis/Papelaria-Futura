@@ -400,11 +400,17 @@ export async function verificarSenhaCotacao(senha) {
   try {
     const snap = await getDoc(doc(db, COLECAO_CONFIG, DOC_SENHA_COT));
     if (!snap.exists()) return { sucesso: false, semSenha: true };
-    const hash = await _hashSenha(senha);
+    const hash = await _hashSenha(String(senha ?? "").trim());
     if (hash === snap.data().hash) return { sucesso: true };
     return { sucesso: false, erro: "Senha incorreta. Tente novamente." };
   } catch (erro) {
     console.error("Erro ao verificar senha cotação:", erro);
+    if (erro.code === "permission-denied") {
+      return {
+        sucesso: false,
+        erro: "Sem permissão para verificar a senha. Peça para um administrador liberar leitura da configuração no Firestore."
+      };
+    }
     return { sucesso: false, erro: erro.message };
   }
 }
