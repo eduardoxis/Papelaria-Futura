@@ -101,8 +101,8 @@ async function carregarUsuarios() {
       <td>${escHtml(u.email || "—")}</td>
       <td>${roleBadge(u.role)}</td>
       <td>${formatarData(u.ultimoAcesso)}</td>
-      <td class="col-center">
-        <div style="display:flex;gap:5px;justify-content:center">
+      <td class="col-right">
+        <div style="display:flex;gap:5px;justify-content:flex-end">
           <button class="btn-action btn-action--edit" onclick="window.editarUsuarioById('${u.id}')">
             <svg viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
             Editar
@@ -504,7 +504,7 @@ function linhaHistoricoHtml(c) {
       <td><strong>${escHtml(c.cliente || "—")}</strong></td>
       <td>${formatarData(c.dataCriacao)}</td>
       <td>${ultima ? `${escHtml(ultima.usuario || "—")} — ${formatarDataHora(ultima.data)}` : "—"}</td>
-      <td class="col-center">
+      <td class="col-right">
         <button class="btn-action btn-action--view" data-action="ver-historico"
           data-cliente="${escHtml(c.cliente || "—")}"
           data-historico='${escHtml(JSON.stringify(historico))}'>
