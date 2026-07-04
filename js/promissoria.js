@@ -521,13 +521,13 @@ async function carregarListaClientes(busca = "", filtroStatus = "todos") {
       const badge = badgeSituacao(c.situacao);
       return `
         <tr>
-          <td><strong>${escHtml(c.nome)}</strong>${c.telefone ? `<br><span style="font-size:var(--text-xs);color:var(--gray-500)">${escHtml(c.telefone)}</span>` : ""}</td>
-          <td class="col-center">${c.qtdCompras}</td>
-          <td>${formatarMoeda(c.totalComprado)}</td>
-          <td>${formatarMoeda(c.totalPago)}</td>
-          <td><strong style="color:${c.saldo > 0 ? 'var(--color-danger)' : 'var(--color-success)'}">${formatarMoeda(Math.max(0, c.saldo))}</strong></td>
-          <td>${badge}</td>
-          <td class="col-center">
+          <td data-label="Cliente"><strong>${escHtml(c.nome)}</strong>${c.telefone ? `<br><span style="font-size:var(--text-xs);color:var(--gray-500)">${escHtml(c.telefone)}</span>` : ""}</td>
+          <td class="col-center" data-label="Compras">${c.qtdCompras}</td>
+          <td data-label="Total Comprado">${formatarMoeda(c.totalComprado)}</td>
+          <td data-label="Total Pago">${formatarMoeda(c.totalPago)}</td>
+          <td data-label="Saldo Devedor"><strong style="color:${c.saldo > 0 ? 'var(--color-danger)' : 'var(--color-success)'}">${formatarMoeda(Math.max(0, c.saldo))}</strong></td>
+          <td data-label="Situação">${badge}</td>
+          <td class="col-center td-actions-prom">
             <div class="actions-cell">
               <button class="btn-table-action btn-table-action--view" data-action="ver-cliente" data-id="${c.id}" title="Ver detalhes">
                 <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
