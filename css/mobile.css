@@ -451,6 +451,8 @@
   /* Página cotações mobile: td de ações vira bloco com botões empilhados */
   #tabelaCotacoes .td-actions-col {
     display: block !important;
+    width: auto !important;
+    white-space: normal !important;
     padding: var(--space-2) 0 0 0;
     border-bottom: none;
   }
@@ -460,5 +462,10 @@
     flex-wrap: wrap;
     gap: var(--space-2);
     justify-content: flex-start;
+  }
+
+  .td-actions-wrap--cotacoes .btn-action {
+    flex-shrink: 1;
+    white-space: nowrap;
   }
 }
