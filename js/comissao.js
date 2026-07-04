@@ -26,6 +26,13 @@ export function iniciarComissao(usuario, dadosUsuario) {
   _usuario = usuario;
   _dadosUsuario = dadosUsuario;
 
+  // Clique para ampliar fotos — delegado no documento inteiro, então
+  // funciona sempre, não importa quando/como o modal foi renderizado.
+  document.addEventListener("click", (e) => {
+    const img = e.target.closest(".comissao-foto-clicavel");
+    if (img && img.dataset.src) abrirFotoGrande(img.dataset.src);
+  });
+
   document.addEventListener("navegacao", (e) => {
     if (e.detail.page === "comissao") carregarListaComissoes();
   });
@@ -557,10 +564,6 @@ function abrirModalFotos(tr) {
         reabrirComEstadoAtual();
       });
     });
-
-    document.querySelectorAll(".comissao-foto-clicavel").forEach(img => {
-      img.addEventListener("click", () => abrirFotoGrande(img.dataset.src));
-    });
   };
 
   ligarEventos();
@@ -593,9 +596,6 @@ function visualizarFotos(fotos) {
     </div>`,
     `<button class="btn-primary" onclick="window.fecharModal()">Fechar</button>`
   );
-  document.querySelectorAll(".comissao-foto-clicavel").forEach(img => {
-    img.addEventListener("click", () => abrirFotoGrande(img.dataset.src));
-  });
 }
 
 // ================================================================
