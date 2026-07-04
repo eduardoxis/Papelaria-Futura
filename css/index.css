@@ -831,6 +831,7 @@ body {
   background: rgba(0,0,0,0.5);
   z-index: calc(var(--z-raised) - 1);
   opacity: 0;
+  pointer-events: none;
   transition: opacity var(--duration-base) ease;
 }
 
