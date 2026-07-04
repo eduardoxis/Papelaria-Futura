@@ -1093,7 +1093,7 @@
             <h2 class="page-title">Promissórias</h2>
             <p class="page-subtitle">Controle de crédito e pagamentos de clientes</p>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <div class="page-header-actions">
             <button class="btn-secondary" id="btnImportarCsvProm">
               <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
               Importar CSV
@@ -1530,9 +1530,9 @@
         if (el.dataset.page === pageId) el.classList.add("mobile-nav-item--active");
       });
 
-      // Esconde CTA "Nova Cotação" quando já estiver na página nova-cotacao
+      // Mostra CTA "Nova Cotação" apenas nas páginas relacionadas a cotações
       const ctaBar = document.getElementById("mobileCTABar");
-      if (ctaBar) ctaBar.style.display = pageId === "nova-cotacao" ? "none" : "";
+      if (ctaBar) ctaBar.style.display = (pageId === "dashboard" || pageId === "cotacoes") ? "" : "none";
 
       // Fechar sidebar no mobile
       fecharSidebar();
