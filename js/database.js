@@ -486,7 +486,7 @@ export async function verificarSenhaComissao(comissaoId, senha) {
   try {
     const snap = await getDoc(doc(db, COLECAO_COMISSOES, comissaoId));
     if (!snap.exists()) return { sucesso: false, erro: "Planilha não encontrada." };
-    const hash = await _hashSenha(senha);
+    const hash = await _hashSenha(String(senha ?? "").trim());
     if (hash === snap.data().senhaHash) return { sucesso: true };
     return { sucesso: false, erro: "Senha incorreta. Tente novamente." };
   } catch (erro) {
