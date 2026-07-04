@@ -9,7 +9,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 import {
-  formatarMoeda, listarComissoes, adicionarRegistroComissao, listarUsuarios
+  formatarMoeda, listarComissoes, adicionarRegistroComissao, listarUsuarios, verificarSenhaCotacao
 } from "./database.js";
 import { COL_SERVICOS } from "./servicos.js";
 import { escHtml } from "./index.js";
@@ -657,6 +657,72 @@ function resetarTerminal() {
 }
 
 // ----------------------------------------------------------------
+// Senha para lançar comissão — overlay próprio (não usa o modal
+// global, pois isso destruiria o modal "Selecionar Vendedor" que
+// já está aberto por baixo)
+// ----------------------------------------------------------------
+function _pedirSenhaComissao(onSucesso) {
+  const overlay = document.createElement("div");
+  overlay.className = "caixa-senha-overlay";
+  overlay.innerHTML = `
+    <div class="caixa-senha-caixa">
+      <h4>🔒 Senha necessária</h4>
+      <p>Para lançar a comissão nesta planilha, informe a senha de acesso às cotações.</p>
+      <input type="password" id="caixaSenhaInput" class="field-input--plain" placeholder="Digite a senha" autocomplete="current-password" />
+      <div id="caixaSenhaErro" class="caixa-senha-erro" style="display:none"></div>
+      <div class="caixa-senha-acoes">
+        <button class="btn-ghost" id="caixaSenhaCancelar" type="button">Cancelar</button>
+        <button class="btn-primary" id="caixaSenhaConfirmar" type="button">Confirmar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const input = overlay.querySelector("#caixaSenhaInput");
+  setTimeout(() => input.focus(), 50);
+
+  const fechar = () => overlay.remove();
+  overlay.querySelector("#caixaSenhaCancelar").onclick = fechar;
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) fechar(); });
+
+  const confirmar = async () => {
+    const senha  = input.value;
+    const erroEl = overlay.querySelector("#caixaSenhaErro");
+    const btn    = overlay.querySelector("#caixaSenhaConfirmar");
+
+    erroEl.style.display = "none";
+    if (!senha) {
+      erroEl.textContent = "Informe a senha.";
+      erroEl.style.display = "block";
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Verificando...";
+
+    const resultado = await verificarSenhaCotacao(senha);
+
+    if (resultado.sucesso) {
+      fechar();
+      onSucesso();
+    } else if (resultado.semSenha) {
+      fechar();
+      window.mostrarToast?.("Atenção: nenhuma senha foi configurada. Configure em Administração → Senha Cotação.", "warning", 6000);
+      onSucesso();
+    } else {
+      erroEl.textContent = resultado.erro || "Senha incorreta.";
+      erroEl.style.display = "block";
+      btn.disabled = false;
+      btn.textContent = "Confirmar";
+      input.value = "";
+      input.focus();
+    }
+  };
+
+  overlay.querySelector("#caixaSenhaConfirmar").onclick = confirmar;
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") confirmar(); });
+}
+
+// ----------------------------------------------------------------
 // Finalizar venda → modal Selecionar Vendedor (+ planilha comissão)
 // ----------------------------------------------------------------
 async function iniciarFinalizacaoVenda() {
@@ -669,11 +735,11 @@ async function iniciarFinalizacaoVenda() {
   _comissaoSelecionadaId = null;
 
   const [resUsuarios, resComissoes] = await Promise.all([listarUsuarios(), listarComissoes()]);
-  const vendedores = resUsuarios.sucesso ? resUsuarios.usuarios : [];
+  const vendedores = resUsuarios.sucesso ? resUsuarios.usuarios.filter(u => u.role === "vendedor") : [];
   const planilhas   = resComissoes.sucesso ? resComissoes.comissoes : [];
 
   if (vendedores.length === 0) {
-    window.mostrarToast?.("Nenhum vendedor cadastrado. Cadastre um usuário em Administração.", "error");
+    window.mostrarToast?.("Nenhum vendedor cadastrado. Cadastre um usuário com cargo \"Vendedor\" em Administração.", "error");
     return;
   }
 
@@ -682,25 +748,30 @@ async function iniciarFinalizacaoVenda() {
       <span class="caixa-vendedor-avatar">${escHtml((v.nome || "?").charAt(0).toUpperCase())}</span>
       <span>
         <div class="caixa-vendedor-nome">${escHtml(v.nome || v.email || "—")}</div>
-        <div class="caixa-vendedor-role">${v.role === "admin" ? "Administrador" : "Usuário"}</div>
+        <div class="caixa-vendedor-role">Vendedor</div>
       </span>
     </button>
   `).join("");
 
-  const optsPlanilha = planilhas.length
-    ? planilhas.map(c => `<option value="${escHtml(c.id)}">${escHtml(c.titulo)}</option>`).join("")
-    : `<option value="">Nenhuma planilha cadastrada</option>`;
+  const optsPlanilha = `<option value="">Não lançar comissão</option>` +
+    planilhas.map(c => `<option value="${escHtml(c.id)}">${escHtml(c.titulo)}</option>`).join("");
 
   const body = `
     <div class="field-label">Vendedor responsável pela venda</div>
     <div class="caixa-vendedor-lista" id="mCaixaListaVendedores">${listaVendedoresHTML}</div>
 
     <div style="margin-top:16px">
-      <label class="field-label">Lançar comissão na planilha</label>
-      <select class="field-input--plain" id="mCaixaSelectComissao" ${planilhas.length ? "" : "disabled"} autocomplete="off">
+      <label class="field-label">Lançar comissão na planilha (opcional)</label>
+      <select class="field-input--plain" id="mCaixaSelectComissao" autocomplete="off">
         ${optsPlanilha}
       </select>
-      ${planilhas.length === 0 ? '<small style="color:var(--gray-500)">A venda será finalizada normalmente, mas nenhum registro de comissão será criado.</small>' : ""}
+      <small style="color:var(--gray-500)">Selecionar uma planilha vai pedir a senha de acesso.</small>
+    </div>
+
+    <div id="mCaixaCampoCliente" style="margin-top:16px;display:none">
+      <label class="field-label" for="mCaixaNomeCliente">Nome do cliente (opcional)</label>
+      <input class="field-input--plain" type="text" id="mCaixaNomeCliente"
+        placeholder="Se preenchido, entra automaticamente na linha da comissão" autocomplete="off" />
     </div>
   `;
 
@@ -709,9 +780,28 @@ async function iniciarFinalizacaoVenda() {
     <button class="btn-primary" id="btnConfirmarVendedor" disabled>Confirmar</button>
   `);
 
-  if (planilhas.length) _comissaoSelecionadaId = planilhas[0].id;
-  document.getElementById("mCaixaSelectComissao")?.addEventListener("change", (e) => {
-    _comissaoSelecionadaId = e.target.value || null;
+  const selectComissao = document.getElementById("mCaixaSelectComissao");
+  const campoCliente   = document.getElementById("mCaixaCampoCliente");
+
+  selectComissao?.addEventListener("change", (e) => {
+    const idEscolhido = e.target.value || null;
+
+    if (!idEscolhido) {
+      _comissaoSelecionadaId = null;
+      campoCliente.style.display = "none";
+      return;
+    }
+
+    // Reseta visualmente até a senha ser confirmada
+    selectComissao.value = "";
+    campoCliente.style.display = "none";
+    _comissaoSelecionadaId = null;
+
+    _pedirSenhaComissao(() => {
+      _comissaoSelecionadaId = idEscolhido;
+      selectComissao.value = idEscolhido;
+      campoCliente.style.display = "";
+    });
   });
 
   document.getElementById("btnCancelarVendedor").onclick = () => window.fecharModal();
@@ -729,10 +819,11 @@ async function iniciarFinalizacaoVenda() {
   btnConfirmar.onclick = async () => {
     const vendedor = vendedores.find(v => v.id === _vendedorSelecionadoId);
     if (!vendedor) return;
+    const nomeCliente = document.getElementById("mCaixaNomeCliente")?.value.trim() || "";
     btnConfirmar.disabled = true;
     btnConfirmar.textContent = "Finalizando...";
     try {
-      await finalizarVenda(vendedor);
+      await finalizarVenda(vendedor, nomeCliente);
       window.fecharModal();
     } catch (err) {
       console.error(err);
@@ -746,7 +837,7 @@ async function iniciarFinalizacaoVenda() {
 // ----------------------------------------------------------------
 // Persistência: venda + baixa de estoque + registro de comissão
 // ----------------------------------------------------------------
-async function finalizarVenda(vendedor) {
+async function finalizarVenda(vendedor, nomeCliente = "") {
   const { subtotalBruto, descontoItens, descontoTotal, acrescimo, total } = calcularTotais();
   const formaPagamento = document.getElementById("selCaixaFormaPagto")?.value || "Dinheiro";
   const recebidoRaw = (document.getElementById("inputValorRecebido")?.value || "").replace(",", ".");
@@ -816,7 +907,7 @@ async function finalizarVenda(vendedor) {
 
     const hoje = new Date().toISOString().slice(0, 10);
     const registro = {
-      cliente: _cpfCnpj ? `Consumidor (${_cpfCnpj})` : "Consumidor",
+      cliente: nomeCliente || (_cpfCnpj ? `Consumidor (${_cpfCnpj})` : "Consumidor"),
       descricao: descricaoComissao,
       qtdFolhas: 1,
       valor: total,
