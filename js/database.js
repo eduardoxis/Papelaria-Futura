@@ -290,6 +290,24 @@ export async function listarUsuarios() {
 }
 
 // ----------------------------------------------------------------
+// Listar vendas finalizadas no Caixa (log — Administração)
+// ----------------------------------------------------------------
+const COL_VENDAS_LOG = "pf_vendas";
+
+export async function listarVendas({ limitQtd = 100 } = {}) {
+  try {
+    const snapshot = await getDocs(
+      query(collection(db, COL_VENDAS_LOG), orderBy("criadoEm", "desc"), limit(limitQtd))
+    );
+    const vendas = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+    return { sucesso: true, vendas };
+  } catch (erro) {
+    console.error("Erro ao listar vendas:", erro);
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
+// ----------------------------------------------------------------
 // Excluir usuário do Firestore (apenas doc — Auth via Admin SDK)
 // ----------------------------------------------------------------
 export async function excluirUsuarioFirestore(uid) {
