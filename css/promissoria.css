@@ -145,13 +145,6 @@
     text-align: right;
   }
 
-  /* Nome do cliente — sem label, ocupa a linha inteira */
-  #tbodyClientesProm td[data-label="Cliente"] {
-    display: block;
-    text-align: left;
-    padding-bottom: var(--space-2);
-  }
-
   /* Mostra o rótulo (Compras, Total Comprado, etc.) antes do valor */
   #tbodyClientesProm td[data-label]::before {
     content: attr(data-label) ": ";
