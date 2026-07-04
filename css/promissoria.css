@@ -109,9 +109,9 @@
   }
 
   #filtroBuscaProm {
-    height: 56px !important;
-    padding: 0 var(--space-4) !important;
-    font-size: 1rem !important;
+    height: 60px !important;
+    padding: 0 var(--space-5) !important;
+    font-size: 1.05rem !important;
     border-radius: var(--radius-lg) !important;
   }
 
@@ -154,7 +154,7 @@
 
   /* Mostra o rótulo (Compras, Total Comprado, etc.) antes do valor */
   #tbodyClientesProm td[data-label]::before {
-    content: attr(data-label);
+    content: attr(data-label) ": ";
     font-size: var(--text-xs);
     font-weight: 600;
     color: var(--gray-500);
