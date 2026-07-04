@@ -13,6 +13,7 @@ import {
 } from "./database.js";
 import { COL_SERVICOS } from "./servicos.js";
 import { escHtml } from "./index.js";
+import { temCargo } from "./auth.js";
 
 const COL_PRODUTOS = "pf_produtos";
 const COL_HIST     = "pf_estoque_historico";
@@ -735,7 +736,7 @@ async function iniciarFinalizacaoVenda() {
   _comissaoSelecionadaId = null;
 
   const [resUsuarios, resComissoes] = await Promise.all([listarUsuarios(), listarComissoes()]);
-  const vendedores = resUsuarios.sucesso ? resUsuarios.usuarios.filter(u => u.role === "vendedor") : [];
+  const vendedores = resUsuarios.sucesso ? resUsuarios.usuarios.filter(u => temCargo(u, "vendedor")) : [];
   const planilhas   = resComissoes.sucesso ? resComissoes.comissoes : [];
 
   if (vendedores.length === 0) {
