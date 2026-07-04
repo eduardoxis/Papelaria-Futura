@@ -373,3 +373,56 @@
 @media (max-width: 1100px) {
   .caixa-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Overlay de senha para lançar comissão (independente do modal) ── */
+.caixa-senha-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10050; /* acima do modal e do lightbox de fotos */
+  padding: var(--space-4);
+}
+
+.caixa-senha-caixa {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  width: 100%;
+  max-width: 360px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+}
+
+.caixa-senha-caixa h4 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-lg);
+}
+
+.caixa-senha-caixa p {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--gray-600);
+}
+
+.caixa-senha-caixa input {
+  width: 100%;
+}
+
+.caixa-senha-erro {
+  color: #991B1B;
+  font-size: var(--text-xs);
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-top: var(--space-2);
+}
+
+.caixa-senha-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
