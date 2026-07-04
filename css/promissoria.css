@@ -108,6 +108,13 @@
     border-radius: var(--radius-lg);
   }
 
+  #filtroBuscaProm {
+    height: 56px !important;
+    padding: 0 var(--space-4) !important;
+    font-size: 1rem !important;
+    border-radius: var(--radius-lg) !important;
+  }
+
   #painelListaClientesProm .filter-bar select.filter-input {
     padding-right: var(--space-8);
   }
