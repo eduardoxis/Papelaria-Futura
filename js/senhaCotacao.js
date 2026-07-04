@@ -84,7 +84,7 @@ export function exigirSenhaCotacao(acaoAutorizada, tituloAcao = "Ação Protegid
   });
 
   document.getElementById("btnConfirmarSenha")?.addEventListener("click", async () => {
-    const senha   = document.getElementById("inputSenhaCotacao")?.value;
+    const senha   = (document.getElementById("inputSenhaCotacao")?.value || "").trim();
     const erroEl  = document.getElementById("errSenhaCotacao");
     const btnConf = document.getElementById("btnConfirmarSenha");
 
