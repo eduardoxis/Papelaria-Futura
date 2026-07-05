@@ -4,7 +4,8 @@
 
 import {
   criarCotacao, atualizarCotacao, listarCotacoes,
-  excluirCotacao, buscarCotacao, formatarMoeda, formatarData
+  excluirCotacao, buscarCotacao, formatarMoeda, formatarData,
+  buscarConfigLembreteCotacao, marcarLembreteEnviado
 } from "./database.js";
 import { badgeStatus, escHtml } from "./index.js";
 import { gerarPDF } from "./pdf.js";
@@ -27,6 +28,8 @@ export function iniciarCotacao(usuario, dadosUsuario) {
   _usuario      = usuario;
   _dadosUsuario = dadosUsuario;
 
+  carregarConfigLembrete();
+
   // Navegação
   document.addEventListener("navegacao", (e) => {
     if (e.detail.page === "cotacoes")     carregarListaCotacoes();
@@ -41,6 +44,20 @@ export function iniciarCotacao(usuario, dadosUsuario) {
     else if (v.length > 5) v = v.replace(/^(\d{2})(\d{3})(\d{0,3})$/,"$1.$2.$3");
     else if (v.length > 2) v = v.replace(/^(\d{2})(\d{0,3})$/,"$1.$2");
     e.target.value = v;
+  });
+
+  // Máscara + validação de Telefone/WhatsApp
+  document.getElementById("cotTelefone")?.addEventListener("input", (e) => {
+    let v = e.target.value.replace(/\D/g,"").substring(0,11);
+    if (v.length > 10) v = v.replace(/^(\d{2})(\d{5})(\d{0,4})$/,"($1) $2-$3");
+    else if (v.length > 6) v = v.replace(/^(\d{2})(\d{4})(\d{0,4})$/,"($1) $2-$3");
+    else if (v.length > 2) v = v.replace(/^(\d{2})(\d{0,5})$/,"($1) $2");
+    else if (v.length > 0) v = v.replace(/^(\d{0,2})$/,"($1");
+    e.target.value = v;
+    esconderErroTelefone();
+  });
+  document.getElementById("cotTelefone")?.addEventListener("blur", (e) => {
+    validarECorrigirTelefone(e.target.value);
   });
 
   // Botões do formulário
@@ -185,7 +202,8 @@ function atualizarBotaoCarregarMais() {
 }
 
 function linhaCotacaoHtml(c) {
-  const lembrete = precisaLembrete(c);
+  const diasParado = precisaLembrete(c);
+  const ultimoEnvioDias = diasDesde(c.ultimoLembreteEm);
   return `
     <tr>
       <td class="td-cliente-row" title="${escHtml(c.cliente || "—")}">
@@ -195,11 +213,15 @@ function linhaCotacaoHtml(c) {
       <td class="col-right td-valor-col"><strong class="valor-protegido">${formatarMoeda(c.valorTotal)}</strong></td>
       <td class="td-status-actions-row">
         ${badgeStatus(c.status)}
-        ${lembrete ? `
-          <button class="btn-lembrete" data-action="lembrete" data-id="${escHtml(c.id)}" title="Cotação parada há ${lembrete}+ dias — enviar lembrete">
+        ${diasParado ? `
+          <button class="btn-lembrete" data-action="lembrete" data-id="${escHtml(c.id)}" title="Cotação parada há ${diasParado} dias — enviar lembrete">
             <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 00-6 6c0 1.887.87 3.4 2.026 4.474.66.614 1.05 1.155 1.208 1.526h5.532c.158-.371.548-.912 1.208-1.526A5.99 5.99 0 0016 8a6 6 0 00-6-6zM8.5 17a.5.5 0 000 1h3a.5.5 0 000-1h-3z"/></svg>
             Lembrete
           </button>` : ""}
+        ${!diasParado && ultimoEnvioDias !== null ? `
+          <span class="lembrete-enviado-tag" title="Último lembrete enviado">
+            Lembrete enviado ${ultimoEnvioDias === 0 ? "hoje" : `há ${ultimoEnvioDias} dia${ultimoEnvioDias > 1 ? "s" : ""}`}
+          </span>` : ""}
       </td>
       <td class="td-actions-col col-center">
         <div class="td-actions-wrap td-actions-wrap--cotacoes">
@@ -230,17 +252,30 @@ function linhaCotacaoHtml(c) {
 }
 
 // ================================================================
-// LEMBRETE DE FOLLOW-UP (4+ dias sem fechar)
+// LEMBRETE DE FOLLOW-UP (dias sem fechar, prazo configurável)
 // ================================================================
-const DIAS_PARA_LEMBRETE = 4;
+let _diasParaLembrete = 4; // valor padrão até carregar a config real
+
+async function carregarConfigLembrete() {
+  const resultado = await buscarConfigLembreteCotacao();
+  _diasParaLembrete = resultado.sucesso ? resultado.dias : 4;
+}
+
+// Quantidade de dias completos desde uma data/Timestamp, ou null se vazio
+function diasDesde(timestamp) {
+  if (!timestamp) return null;
+  const data = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
+  return Math.floor((Date.now() - data.getTime()) / 86400000);
+}
 
 // Retorna a quantidade de dias parada se a cotação precisar de lembrete
-// (ainda "ativa" e criada há DIAS_PARA_LEMBRETE dias ou mais), ou 0 se não.
+// (ainda "ativa", e sem retorno há _diasParaLembrete dias ou mais, contando
+// a partir do último lembrete enviado — se nunca enviou, conta da criação).
 function precisaLembrete(c) {
   if (c.status !== "ativa" || !c.dataCriacao) return 0;
-  const dataCriacao = c.dataCriacao?.toDate ? c.dataCriacao.toDate() : new Date(c.dataCriacao);
-  const diffDias = Math.floor((Date.now() - dataCriacao.getTime()) / 86400000);
-  return diffDias >= DIAS_PARA_LEMBRETE ? diffDias : 0;
+  const referencia = c.ultimoLembreteEm || c.dataCriacao;
+  const diffDias = diasDesde(referencia);
+  return diffDias !== null && diffDias >= _diasParaLembrete ? diffDias : 0;
 }
 
 // Monta a mensagem de lembrete com saudação de acordo com o horário atual
@@ -294,18 +329,22 @@ async function abrirLembreteCotacao(id) {
 
   document.getElementById("btnCopiarLembrete").onclick = () => {
     const texto = document.getElementById("textoLembreteCotacao").value;
-    navigator.clipboard.writeText(texto).then(() => {
+    navigator.clipboard.writeText(texto).then(async () => {
       window.mostrarToast?.("Mensagem copiada!", "success");
+      await marcarLembreteEnviado(id);
+      carregarListaCotacoes(document.getElementById("filtroBusca")?.value.trim() || "");
     }).catch(() => {
       window.mostrarToast?.("Não foi possível copiar. Selecione o texto manualmente.", "error");
     });
   };
 
-  document.getElementById("btnEnviarWhatsapp")?.addEventListener("click", () => {
+  document.getElementById("btnEnviarWhatsapp")?.addEventListener("click", async () => {
     const texto = document.getElementById("textoLembreteCotacao").value;
     const url = `https://wa.me/${numeroWhats}?text=${encodeURIComponent(texto)}`;
     window.open(url, "_blank");
     window.fecharModal();
+    await marcarLembreteEnviado(id);
+    carregarListaCotacoes(document.getElementById("filtroBusca")?.value.trim() || "");
   });
 }
 
@@ -473,6 +512,39 @@ function coletarItens() {
   return itens;
 }
 
+// ================================================================
+// VALIDAÇÃO DE TELEFONE
+// ================================================================
+// Telefone brasileiro válido: DDD (2 dígitos) + número (8 ou 9 dígitos) = 10 ou 11 dígitos
+function validarTelefone(telefone) {
+  const digitos = String(telefone || "").replace(/\D/g, "");
+  if (digitos.length === 0) return true; // campo opcional — vazio é válido
+  return digitos.length === 10 || digitos.length === 11;
+}
+
+function esconderErroTelefone() {
+  const erroEl = document.getElementById("cotTelefoneErro");
+  const inputEl = document.getElementById("cotTelefone");
+  if (erroEl) erroEl.style.display = "none";
+  inputEl?.classList.remove("field-input--erro");
+}
+
+function validarECorrigirTelefone(valor) {
+  const erroEl = document.getElementById("cotTelefoneErro");
+  const inputEl = document.getElementById("cotTelefone");
+  if (!erroEl || !inputEl) return true;
+
+  if (validarTelefone(valor)) {
+    esconderErroTelefone();
+    return true;
+  }
+
+  erroEl.textContent = "Telefone incompleto. Informe o DDD + número (10 ou 11 dígitos).";
+  erroEl.style.display = "block";
+  inputEl.classList.add("field-input--erro");
+  return false;
+}
+
 function coletarDadosCotacao() {
   const cliente  = document.getElementById("cotCliente").value.trim();
   const cnpj     = document.getElementById("cotCnpj").value.trim();
@@ -495,6 +567,11 @@ async function salvarCotacao() {
   if (!dados.cliente) {
     window.mostrarToast?.("Informe o nome do cliente.", "warning");
     document.getElementById("cotCliente").focus();
+    return;
+  }
+  if (!validarECorrigirTelefone(dados.telefone)) {
+    window.mostrarToast?.("Telefone incompleto. Corrija antes de salvar.", "warning");
+    document.getElementById("cotTelefone").focus();
     return;
   }
   if (!dados.validade) {
