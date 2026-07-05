@@ -552,10 +552,17 @@ export async function salvarConfigComissaoCriador(percentual) {
 // Lista todas as cotações com status "aprovada"
 export async function listarCotacoesAprovadas() {
   try {
+    // Sem orderBy na consulta de propósito: where + orderBy em campos
+    // diferentes exige índice composto no Firestore. Ordena no cliente.
     const snap = await getDocs(
-      query(collection(db, COLECAO_COTACOES), where("status", "==", "aprovada"), orderBy("dataCriacao", "desc"))
+      query(collection(db, COLECAO_COTACOES), where("status", "==", "aprovada"))
     );
     const cotacoes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    cotacoes.sort((a, b) => {
+      const da = a.dataCriacao?.toDate ? a.dataCriacao.toDate() : new Date(a.dataCriacao || 0);
+      const db_ = b.dataCriacao?.toDate ? b.dataCriacao.toDate() : new Date(b.dataCriacao || 0);
+      return db_ - da;
+    });
     return { sucesso: true, cotacoes };
   } catch (erro) {
     console.error("Erro ao listar cotações aprovadas:", erro);
