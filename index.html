@@ -381,6 +381,7 @@
           <div class="field">
             <label class="field-label" for="cotTelefone">Telefone / WhatsApp</label>
             <input class="field-input field-input--plain" type="text" id="cotTelefone" placeholder="(00) 00000-0000" autocomplete="off" />
+            <small id="cotTelefoneErro" style="display:none;color:#B91C1C;font-size:12px;margin-top:4px"></small>
           </div>
           <div class="field">
             <label class="field-label" for="cotValidade">Validade da Cotação *</label>
@@ -1428,6 +1429,19 @@
         <p class="page-subtitle" style="margin: -8px 0 16px">Controle de acesso para editar e excluir cotações.</p>
         <div id="cardSenhaCotacao">
           <div class="loading-cell">Carregando configurações...</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="card-section-title">Lembrete de Cotações</h3>
+        <p class="page-subtitle" style="margin: -8px 0 16px">Depois de quantos dias sem retorno do cliente o botão de lembrete deve aparecer.</p>
+        <div class="ccg-config">
+          <label class="field-label" for="inputDiasLembreteCotacao">Avisar após quantos dias sem retorno</label>
+          <div style="display:flex;gap:10px;align-items:center;max-width:280px">
+            <input type="number" step="1" min="1" class="field-input--plain" id="inputDiasLembreteCotacao" placeholder="4" autocomplete="off" />
+            <span style="font-weight:600;color:var(--gray-600)">dias</span>
+            <button class="btn-primary" id="btnSalvarDiasLembreteCotacao">Salvar</button>
+          </div>
         </div>
       </div>
       </div>
