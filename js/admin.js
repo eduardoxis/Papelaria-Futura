@@ -14,7 +14,8 @@ import { escHtml } from "./index.js";
 import { formatarData, formatarDataHora, formatarMoeda, listarVendasEntre } from "./database.js";
 import {
   buscarConfigComissaoCriador, salvarConfigComissaoCriador,
-  listarCotacoesAprovadas, marcarComissaoCriadorPaga
+  listarCotacoesAprovadas, marcarComissaoCriadorPaga,
+  buscarConfigLembreteCotacao, salvarConfigLembreteCotacao
 } from "./database.js";
 import { cargosDoUsuario, temCargo } from "./auth.js";
 import { gerarPdfFechamentoCaixa } from "./pdf.js";
@@ -41,6 +42,7 @@ export function iniciarAdmin(usuario, dadosUsuario) {
       }
       carregarUsuarios();
       carregarCardSenhaCotacao();
+      carregarConfigLembreteCotacao();
       carregarHistoricoCotacoes();
       carregarVendas();
     }
@@ -48,6 +50,9 @@ export function iniciarAdmin(usuario, dadosUsuario) {
 
   // Botão novo usuário
   document.getElementById("btnNovoUsuario")?.addEventListener("click", abrirModalNovoUsuario);
+
+  // Lembrete de Cotações — salvar prazo configurável
+  document.getElementById("btnSalvarDiasLembreteCotacao")?.addEventListener("click", salvarDiasLembreteCotacao);
 
   // Menu de seções (Usuários / Senha Cotação / Histórico / Vendas)
   document.querySelectorAll(".admin-menu-item").forEach(btn => {
@@ -420,6 +425,38 @@ function traduzirErro(codigo) {
 // ================================================================
 // SENHA COTAÇÃO
 // ================================================================
+async function carregarConfigLembreteCotacao() {
+  const input = document.getElementById("inputDiasLembreteCotacao");
+  if (!input) return;
+  const resultado = await buscarConfigLembreteCotacao();
+  input.value = resultado.dias || 4;
+}
+
+async function salvarDiasLembreteCotacao() {
+  const input = document.getElementById("inputDiasLembreteCotacao");
+  const valor = parseInt(input?.value, 10);
+
+  if (isNaN(valor) || valor < 1) {
+    window.mostrarToast?.("Informe um número de dias válido (mínimo 1).", "warning");
+    return;
+  }
+
+  const btn = document.getElementById("btnSalvarDiasLembreteCotacao");
+  btn.disabled = true;
+  btn.textContent = "Salvando...";
+
+  const resultado = await salvarConfigLembreteCotacao(valor);
+
+  btn.disabled = false;
+  btn.textContent = "Salvar";
+
+  if (resultado.sucesso) {
+    window.mostrarToast?.("Prazo do lembrete salvo com sucesso!", "success");
+  } else {
+    window.mostrarToast?.("Erro ao salvar. Tente novamente.", "error");
+  }
+}
+
 async function carregarCardSenhaCotacao() {
   const container = document.getElementById("cardSenhaCotacao");
   if (!container) return;
