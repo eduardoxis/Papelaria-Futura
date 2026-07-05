@@ -12,6 +12,10 @@ import {
 import { auth } from "./firebase-config.js";
 import { escHtml } from "./index.js";
 import { formatarData, formatarDataHora, formatarMoeda, listarVendasEntre } from "./database.js";
+import {
+  buscarConfigComissaoCriador, salvarConfigComissaoCriador,
+  listarCotacoesAprovadas, marcarComissaoCriadorPaga
+} from "./database.js";
 import { cargosDoUsuario, temCargo } from "./auth.js";
 import { gerarPdfFechamentoCaixa } from "./pdf.js";
 
@@ -87,6 +91,25 @@ export function iniciarAdmin(usuario, dadosUsuario) {
 
   // Relatório por dia (calendário)
   document.getElementById("btnGerarRelatorioDia")?.addEventListener("click", gerarRelatorioDoDia);
+
+  // Comissão por Cotação Ganhada
+  document.getElementById("btnSalvarPercentualComissaoCriador")?.addEventListener("click", salvarPercentualComissaoCriador);
+  document.getElementById("btnBuscarComissaoCriador")?.addEventListener("click", () => {
+    const termo = document.getElementById("filtroBuscaComissaoCriador").value.trim();
+    renderTabelaComissaoCriador(termo);
+  });
+  document.getElementById("btnLimparBuscaComissaoCriador")?.addEventListener("click", () => {
+    document.getElementById("filtroBuscaComissaoCriador").value = "";
+    renderTabelaComissaoCriador();
+  });
+  document.getElementById("filtroBuscaComissaoCriador")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") renderTabelaComissaoCriador(e.target.value.trim());
+  });
+  document.getElementById("tbodyComissaoCriador")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-action='alternar-pagamento']");
+    if (!btn) return;
+    alternarPagamentoComissao(btn.dataset.id, btn.dataset.pago === "true");
+  });
 }
 
 // ================================================================
@@ -346,7 +369,8 @@ const PAINEIS_ADMIN = {
   dashboardVendas: "adminPanelDashboardVendas",
   senha:     "adminPanelSenha",
   historico: "adminPanelHistorico",
-  vendas:    "adminPanelVendas"
+  vendas:    "adminPanelVendas",
+  comissaoCriador: "adminPanelComissaoCriador"
 };
 
 function trocarPainelAdmin(painelId) {
@@ -363,6 +387,11 @@ function trocarPainelAdmin(painelId) {
   if (painelId === "dashboardVendas" && !_dashboardVendasCarregado) {
     _dashboardVendasCarregado = true;
     carregarDashboardVendas();
+  }
+
+  if (painelId === "comissaoCriador" && !_comissaoCriadorCarregado) {
+    _comissaoCriadorCarregado = true;
+    carregarComissaoCriador();
   }
 }
 
@@ -608,6 +637,129 @@ async function carregarDashboardVendas() {
 }
 
 // ================================================================
+// COMISSÃO POR COTAÇÃO GANHADA (do criador do sistema)
+// Independente da comissão dos vendedores no Caixa — aqui o cálculo
+// é sobre o valor de cotações aprovadas, não sobre vendas do PDV.
+// ================================================================
+async function carregarComissaoCriador() {
+  const [resConfig, resCotacoes] = await Promise.all([
+    buscarConfigComissaoCriador(),
+    listarCotacoesAprovadas()
+  ]);
+
+  _percentualComissaoCriador = resConfig.sucesso ? resConfig.percentual : 0;
+  document.getElementById("inputPercentualComissaoCriador").value = _percentualComissaoCriador || "";
+
+  _todasCotacoesAprovadasCache = resCotacoes.sucesso ? resCotacoes.cotacoes : [];
+
+  renderStatsComissaoCriador();
+  renderTabelaComissaoCriador();
+}
+
+async function salvarPercentualComissaoCriador() {
+  const valor = parseFloat(document.getElementById("inputPercentualComissaoCriador")?.value);
+  if (isNaN(valor) || valor < 0) {
+    window.mostrarToast?.("Informe um percentual válido.", "warning");
+    return;
+  }
+
+  const btn = document.getElementById("btnSalvarPercentualComissaoCriador");
+  btn.disabled = true;
+  btn.textContent = "Salvando...";
+
+  const resultado = await salvarConfigComissaoCriador(valor);
+
+  btn.disabled = false;
+  btn.textContent = "Salvar";
+
+  if (resultado.sucesso) {
+    _percentualComissaoCriador = valor;
+    window.mostrarToast?.("Percentual de comissão salvo com sucesso!", "success");
+    renderStatsComissaoCriador();
+    renderTabelaComissaoCriador();
+  } else {
+    window.mostrarToast?.("Erro ao salvar o percentual. Tente novamente.", "error");
+  }
+}
+
+function renderStatsComissaoCriador() {
+  const cotacoes = _todasCotacoesAprovadasCache;
+  const pct = _percentualComissaoCriador / 100;
+
+  const valorTotalAprovado = cotacoes.reduce((s, c) => s + (Number(c.valorTotal) || 0), 0);
+  const comissaoTotal = valorTotalAprovado * pct;
+
+  let comissaoPaga = 0;
+  let comissaoPendente = 0;
+  cotacoes.forEach(c => {
+    const comissaoCotacao = (Number(c.valorTotal) || 0) * pct;
+    if (c.comissaoCriadorPaga) comissaoPaga += comissaoCotacao;
+    else comissaoPendente += comissaoCotacao;
+  });
+
+  document.getElementById("ccgQtd").textContent = cotacoes.length;
+  document.getElementById("ccgValorAprovado").textContent = formatarMoeda(valorTotalAprovado);
+  document.getElementById("ccgComissaoTotal").textContent = formatarMoeda(comissaoTotal);
+  document.getElementById("ccgPendentePaga").innerHTML =
+    `<span style="color:#B45309">${formatarMoeda(comissaoPendente)}</span> / <span style="color:#047857">${formatarMoeda(comissaoPaga)}</span>`;
+}
+
+function renderTabelaComissaoCriador(termoBusca = "") {
+  const tbody = document.getElementById("tbodyComissaoCriador");
+  if (!tbody) return;
+
+  const termo = termoBusca.trim().toLowerCase();
+  const cotacoes = termo
+    ? _todasCotacoesAprovadasCache.filter(c => (c.cliente || "").toLowerCase().includes(termo))
+    : _todasCotacoesAprovadasCache;
+
+  if (cotacoes.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-cell">Nenhuma cotação aprovada encontrada.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = cotacoes.map(linhaComissaoCriadorHtml).join("");
+}
+
+function linhaComissaoCriadorHtml(c) {
+  const pct = _percentualComissaoCriador / 100;
+  const comissao = (Number(c.valorTotal) || 0) * pct;
+  const paga = !!c.comissaoCriadorPaga;
+
+  return `
+    <tr>
+      <td><strong>${escHtml(c.cliente || "—")}</strong></td>
+      <td>${formatarData(c.dataCriacao)}</td>
+      <td class="col-right">${formatarMoeda(c.valorTotal || 0)}</td>
+      <td class="col-right"><strong>${formatarMoeda(comissao)}</strong></td>
+      <td class="col-center">
+        <span class="role-badge ${paga ? "role-badge--vendedor" : "role-badge--user"}">
+          ${paga ? "Paga" : "Pendente"}
+        </span>
+      </td>
+      <td class="col-right">
+        <button class="btn-action ${paga ? "btn-action--edit" : "btn-action--view"}"
+          data-action="alternar-pagamento" data-id="${escHtml(c.id)}" data-pago="${!paga}">
+          ${paga ? "Marcar pendente" : "Marcar paga"}
+        </button>
+      </td>
+    </tr>`;
+}
+
+async function alternarPagamentoComissao(cotacaoId, novoPago) {
+  const resultado = await marcarComissaoCriadorPaga(cotacaoId, novoPago);
+  if (!resultado.sucesso) {
+    window.mostrarToast?.("Erro ao atualizar o pagamento. Tente novamente.", "error");
+    return;
+  }
+  const cotacao = _todasCotacoesAprovadasCache.find(c => c.id === cotacaoId);
+  if (cotacao) cotacao.comissaoCriadorPaga = novoPago;
+  window.mostrarToast?.(novoPago ? "Marcada como paga!" : "Marcada como pendente.", "success");
+  renderStatsComissaoCriador();
+  renderTabelaComissaoCriador(document.getElementById("filtroBuscaComissaoCriador")?.value.trim());
+}
+
+// ================================================================
 // RELATÓRIO POR DIA (calendário) — Geral + por vendedor
 // ================================================================
 let _relatorioDiaAtual = null;
@@ -782,6 +934,9 @@ function renderRelatorioDiaConteudo() {
 let _todasVendasCache = [];
 let _dashboardVendasCarregado = false;
 let _chartVendasDias = null;
+let _comissaoCriadorCarregado = false;
+let _todasCotacoesAprovadasCache = [];
+let _percentualComissaoCriador = 0;
 
 async function carregarVendas(termoBusca = "") {
   const tbody = document.getElementById("tbodyVendas");
