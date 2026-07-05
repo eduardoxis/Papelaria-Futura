@@ -517,3 +517,136 @@ export async function gerarPDF(cotacao) {
     window.mostrarToast?.("Erro ao gerar PDF. Tente novamente.", "error");
   }
 }
+
+// ============================================================
+// PDF — Fechamento de Caixa (relatório geral ou por vendedor)
+// ============================================================
+export function gerarPdfFechamentoCaixa(relatorio, vendedor = null) {
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+
+    const PW = 210;
+    const MX = 14;
+
+    function fmtMoeda(v) {
+      return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v) || 0);
+    }
+    function fmtData(d) {
+      const dt = d?.toDate ? d.toDate() : (d instanceof Date ? d : new Date(d));
+      return dt.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    }
+
+    let Y = 20;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text("Papelaria Futura — Fechamento de Caixa", MX, Y);
+
+    Y += 8;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(90, 90, 90);
+    doc.text(`Aberto em: ${fmtData(relatorio.abertoEm)}`, MX, Y);
+    Y += 5;
+    doc.text(`Fechamento gerado em: ${fmtData(relatorio.fechadoEm)}`, MX, Y);
+    Y += 5;
+    doc.text(`Responsável pelo fechamento: ${relatorio.operadorFechamento}`, MX, Y);
+    Y += 10;
+
+    doc.setTextColor(0, 0, 0);
+
+    if (!vendedor) {
+      // ── Relatório GERAL ─────────────────────────────────
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text("Resumo Geral", MX, Y);
+      Y += 4;
+
+      doc.autoTable({
+        startY: Y,
+        head: [["Total de vendas", "Valor total"]],
+        body: [[String(relatorio.qtdVendasGeral), fmtMoeda(relatorio.totalGeral)]],
+        margin: { left: MX, right: MX },
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [21, 82, 181] }
+      });
+      Y = doc.lastAutoTable.finalY + 10;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text("Por Forma de Pagamento", MX, Y);
+      Y += 4;
+
+      const formasBody = Object.entries(relatorio.porFormaPagamento).map(([forma, total]) => [forma, fmtMoeda(total)]);
+      doc.autoTable({
+        startY: Y,
+        head: [["Forma de Pagamento", "Total"]],
+        body: formasBody.length ? formasBody : [["—", "—"]],
+        margin: { left: MX, right: MX },
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [21, 82, 181] },
+        columnStyles: { 1: { halign: "right" } }
+      });
+      Y = doc.lastAutoTable.finalY + 10;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text("Por Vendedor", MX, Y);
+      Y += 4;
+
+      const vendedoresBody = relatorio.porVendedor.map(v => [v.nome, String(v.vendas.length), fmtMoeda(v.total)]);
+      doc.autoTable({
+        startY: Y,
+        head: [["Vendedor", "Vendas", "Total"]],
+        body: vendedoresBody.length ? vendedoresBody : [["—", "—", "—"]],
+        margin: { left: MX, right: MX },
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [21, 82, 181] },
+        columnStyles: { 2: { halign: "right" } }
+      });
+
+      doc.save(`Fechamento_Caixa_Geral_${new Date().toISOString().split("T")[0]}.pdf`);
+    } else {
+      // ── Relatório POR VENDEDOR ──────────────────────────
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.text(`Vendedor: ${vendedor.nome}`, MX, Y);
+      Y += 6;
+
+      doc.autoTable({
+        startY: Y,
+        head: [["Total de vendas", "Valor total"]],
+        body: [[String(vendedor.vendas.length), fmtMoeda(vendedor.total)]],
+        margin: { left: MX, right: MX },
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [21, 82, 181] }
+      });
+      Y = doc.lastAutoTable.finalY + 10;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text("Vendas", MX, Y);
+      Y += 4;
+
+      const vendasBody = vendedor.vendas.map(v => [
+        fmtData(v.criadoEm), `#${v.numero ?? "—"}`, v.formaPagamento || "—", fmtMoeda(v.total || 0)
+      ]);
+      doc.autoTable({
+        startY: Y,
+        head: [["Data", "Nº", "Forma Pagto.", "Total"]],
+        body: vendasBody.length ? vendasBody : [["—", "—", "—", "—"]],
+        margin: { left: MX, right: MX },
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [21, 82, 181] },
+        columnStyles: { 3: { halign: "right" } }
+      });
+
+      doc.save(`Fechamento_Caixa_${vendedor.nome.replace(/[^a-zA-Z0-9]/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`);
+    }
+
+    window.mostrarToast?.("PDF gerado com sucesso!", "success");
+  } catch (err) {
+    console.error("Erro ao gerar PDF de fechamento:", err);
+    window.mostrarToast?.("Erro ao gerar PDF. Tente novamente.", "error");
+  }
+}
