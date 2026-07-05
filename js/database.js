@@ -290,6 +290,78 @@ export async function listarUsuarios() {
 }
 
 // ----------------------------------------------------------------
+// Sessões de Caixa (abrir/fechar) + relatório de fechamento
+// ----------------------------------------------------------------
+const COL_CAIXA_SESSOES = "pf_caixa_sessoes";
+const COL_VENDAS_DB     = "pf_vendas";
+
+export async function buscarSessaoCaixaAberta() {
+  try {
+    const snap = await getDocs(
+      query(collection(db, COL_CAIXA_SESSOES), where("status", "==", "aberto"), limit(1))
+    );
+    if (snap.empty) return { sucesso: true, sessao: null };
+    const d = snap.docs[0];
+    return { sucesso: true, sessao: { id: d.id, ...d.data() } };
+  } catch (erro) {
+    console.error("Erro ao buscar sessão de caixa:", erro);
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
+export async function abrirCaixaSessao({ operadorUid, operadorNome, valorAbertura = 0 }) {
+  try {
+    const doc_ = {
+      status: "aberto",
+      operadorAberturaUid: operadorUid || null,
+      operadorAberturaNome: operadorNome || "—",
+      valorAbertura: Number(valorAbertura) || 0,
+      abertoEm: serverTimestamp(),
+      fechadoEm: null
+    };
+    const ref = await addDoc(collection(db, COL_CAIXA_SESSOES), doc_);
+    return { sucesso: true, id: ref.id };
+  } catch (erro) {
+    console.error("Erro ao abrir caixa:", erro);
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
+export async function fecharCaixaSessao(sessaoId, { operadorNome, resumo }) {
+  try {
+    await updateDoc(doc(db, COL_CAIXA_SESSOES, sessaoId), {
+      status: "fechado",
+      operadorFechamentoNome: operadorNome || "—",
+      fechadoEm: serverTimestamp(),
+      resumo: resumo || null
+    });
+    return { sucesso: true };
+  } catch (erro) {
+    console.error("Erro ao fechar caixa:", erro);
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
+// Lista vendas (pf_vendas) criadas a partir de um instante (Date ou Timestamp)
+export async function listarVendasDesde(dataInicio) {
+  try {
+    const inicioTs = dataInicio instanceof Date ? Timestamp.fromDate(dataInicio) : dataInicio;
+    const snap = await getDocs(
+      query(
+        collection(db, COL_VENDAS_DB),
+        where("criadoEm", ">=", inicioTs),
+        orderBy("criadoEm", "asc")
+      )
+    );
+    const vendas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return { sucesso: true, vendas };
+  } catch (erro) {
+    console.error("Erro ao listar vendas desde a abertura:", erro);
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
+// ----------------------------------------------------------------
 // Listar vendas finalizadas no Caixa (log — Administração)
 // ----------------------------------------------------------------
 const COL_VENDAS_LOG = "pf_vendas";
