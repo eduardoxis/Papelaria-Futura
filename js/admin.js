@@ -11,8 +11,9 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { auth } from "./firebase-config.js";
 import { escHtml } from "./index.js";
-import { formatarData, formatarDataHora, formatarMoeda } from "./database.js";
+import { formatarData, formatarDataHora, formatarMoeda, listarVendasEntre } from "./database.js";
 import { cargosDoUsuario, temCargo } from "./auth.js";
+import { gerarPdfFechamentoCaixa } from "./pdf.js";
 
 let _dadosUsuario = null;
 
@@ -83,6 +84,9 @@ export function iniciarAdmin(usuario, dadosUsuario) {
   document.getElementById("filtroBuscaVendas")?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") carregarVendas(e.target.value.trim());
   });
+
+  // Relatório por dia (calendário)
+  document.getElementById("btnGerarRelatorioDia")?.addEventListener("click", gerarRelatorioDoDia);
 }
 
 // ================================================================
@@ -493,6 +497,174 @@ function abrirModalSenhaCotacao() {
 // ================================================================
 // HISTÓRICO DE ALTERAÇÕES DAS COTAÇÕES
 // ================================================================
+// ================================================================
+// RELATÓRIO POR DIA (calendário) — Geral + por vendedor
+// ================================================================
+let _relatorioDiaAtual = null;
+let _relatorioDiaAbaAtiva = "geral";
+
+async function gerarRelatorioDoDia() {
+  const inputData = document.getElementById("inputDataRelatorioVendas");
+  const valor = inputData?.value; // formato yyyy-mm-dd
+  if (!valor) {
+    window.mostrarToast?.("Selecione uma data primeiro.", "warning");
+    return;
+  }
+
+  const btn = document.getElementById("btnGerarRelatorioDia");
+  btn.disabled = true;
+  btn.textContent = "Carregando...";
+
+  const [ano, mes, dia] = valor.split("-").map(Number);
+  const inicio = new Date(ano, mes - 1, dia, 0, 0, 0, 0);
+  const fim    = new Date(ano, mes - 1, dia, 23, 59, 59, 999);
+
+  const resultado = await listarVendasEntre(inicio, fim);
+
+  btn.disabled = false;
+  btn.textContent = "Ver Relatório";
+
+  if (!resultado.sucesso) {
+    window.mostrarToast?.("Erro ao carregar o relatório do dia.", "error");
+    return;
+  }
+
+  _relatorioDiaAtual = montarRelatorioPorVendedor(resultado.vendas, inicio, fim);
+  _relatorioDiaAbaAtiva = "geral";
+  renderRelatorioDiaTabs();
+  renderRelatorioDiaConteudo();
+
+  document.getElementById("vendasRelatorioDiaWrap").style.display = "";
+}
+
+function montarRelatorioPorVendedor(vendas, inicio, fim) {
+  const porFormaPagamento = {};
+  let totalGeral = 0;
+  const porVendedorMap = new Map();
+
+  vendas.forEach(v => {
+    totalGeral += Number(v.total) || 0;
+    const forma = v.formaPagamento || "—";
+    porFormaPagamento[forma] = (porFormaPagamento[forma] || 0) + (Number(v.total) || 0);
+
+    const uid  = v.vendedorId || "sem-vendedor";
+    const nome = v.vendedorNome || "Sem vendedor";
+    if (!porVendedorMap.has(uid)) porVendedorMap.set(uid, { uid, nome, vendas: [], total: 0 });
+    const bucket = porVendedorMap.get(uid);
+    bucket.vendas.push(v);
+    bucket.total += Number(v.total) || 0;
+  });
+
+  return {
+    abertoEm: inicio,
+    fechadoEm: fim,
+    operadorFechamento: _dadosUsuario?.nome || "—",
+    totalGeral,
+    qtdVendasGeral: vendas.length,
+    porFormaPagamento,
+    porVendedor: Array.from(porVendedorMap.values()).sort((a, b) => b.total - a.total),
+    vendas
+  };
+}
+
+function renderRelatorioDiaTabs() {
+  const abas = [{ id: "geral", label: "Geral" }, ..._relatorioDiaAtual.porVendedor.map(v => ({ id: v.uid, label: v.nome }))];
+  const wrap = document.getElementById("vendasRelatorioTabs");
+  wrap.innerHTML = abas.map(a => `
+    <button type="button" class="caixa-relatorio-tab ${a.id === _relatorioDiaAbaAtiva ? "caixa-relatorio-tab--ativa" : ""}" data-tab="${a.id}">
+      ${escHtml(a.label)}
+    </button>
+  `).join("");
+
+  wrap.querySelectorAll(".caixa-relatorio-tab").forEach(btn => {
+    btn.addEventListener("click", () => {
+      _relatorioDiaAbaAtiva = btn.dataset.tab;
+      renderRelatorioDiaTabs();
+      renderRelatorioDiaConteudo();
+    });
+  });
+}
+
+function renderRelatorioDiaConteudo() {
+  const r = _relatorioDiaAtual;
+  const cabecalho = `
+    <p style="color:var(--gray-500);font-size:13px;margin-bottom:14px">
+      Relatório de ${formatarData(r.abertoEm)}
+    </p>`;
+
+  let html;
+  if (_relatorioDiaAbaAtiva === "geral") {
+    const formasHTML = Object.entries(r.porFormaPagamento).map(([forma, total]) => `
+      <tr><td>${escHtml(forma)}</td><td style="text-align:right"><strong>${formatarMoeda(total)}</strong></td></tr>
+    `).join("");
+    const porVendedorHTML = r.porVendedor.map(v => `
+      <tr><td>${escHtml(v.nome)}</td><td>${v.vendas.length}</td><td style="text-align:right"><strong>${formatarMoeda(v.total)}</strong></td></tr>
+    `).join("");
+
+    html = `
+      ${cabecalho}
+      <h4 style="margin:0 0 8px">Resumo Geral</h4>
+      <table><tbody>
+        <tr><td>Total de vendas</td><td style="text-align:right"><strong>${r.qtdVendasGeral}</strong></td></tr>
+        <tr><td>Valor total</td><td style="text-align:right"><strong>${formatarMoeda(r.totalGeral)}</strong></td></tr>
+      </tbody></table>
+
+      <h4 style="margin:18px 0 8px">Por Forma de Pagamento</h4>
+      <table><tbody>${formasHTML || `<tr><td colspan="2">Nenhuma venda no dia.</td></tr>`}</tbody></table>
+
+      <h4 style="margin:18px 0 8px">Por Vendedor</h4>
+      <table>
+        <thead><tr><th>Vendedor</th><th>Vendas</th><th style="text-align:right">Total</th></tr></thead>
+        <tbody>${porVendedorHTML || `<tr><td colspan="3">Nenhuma venda no dia.</td></tr>`}</tbody>
+      </table>
+    `;
+  } else {
+    const vendedor = r.porVendedor.find(v => v.uid === _relatorioDiaAbaAtiva);
+    const linhasHTML = vendedor ? vendedor.vendas.map(v => `
+      <tr>
+        <td>${formatarDataHora(v.criadoEm)}</td>
+        <td>#${escHtml(String(v.numero ?? "—"))}</td>
+        <td>${escHtml(v.formaPagamento || "—")}</td>
+        <td style="text-align:right"><strong>${formatarMoeda(v.total || 0)}</strong></td>
+      </tr>`).join("") : "";
+
+    html = `
+      ${cabecalho}
+      <h4 style="margin:0 0 8px">${escHtml(vendedor?.nome || "—")}</h4>
+      <table><tbody>
+        <tr><td>Total de vendas</td><td style="text-align:right"><strong>${vendedor?.vendas.length || 0}</strong></td></tr>
+        <tr><td>Valor total</td><td style="text-align:right"><strong>${formatarMoeda(vendedor?.total || 0)}</strong></td></tr>
+      </tbody></table>
+
+      <h4 style="margin:18px 0 8px">Vendas</h4>
+      <table>
+        <thead><tr><th>Data</th><th>Nº</th><th>Forma Pagto.</th><th style="text-align:right">Total</th></tr></thead>
+        <tbody>${linhasHTML || `<tr><td colspan="4">Nenhuma venda.</td></tr>`}</tbody>
+      </table>
+    `;
+  }
+
+  document.getElementById("vendasRelatorioConteudo").innerHTML = html;
+
+  document.getElementById("btnPdfRelatorioDia").onclick = () => {
+    const vendedorAtivo = _relatorioDiaAbaAtiva === "geral" ? null : r.porVendedor.find(v => v.uid === _relatorioDiaAbaAtiva);
+    gerarPdfFechamentoCaixa(r, vendedorAtivo);
+  };
+
+  document.getElementById("btnImprimirRelatorioDia").onclick = () => {
+    const janela = window.open("", "_blank");
+    janela.document.write(`
+      <html><head><title>Relatório de Vendas</title>
+      <style>body{font-family:Arial,sans-serif;padding:24px;color:#111} table{width:100%;border-collapse:collapse;margin-top:12px}
+      th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:13px} th{background:#f3f4f6}</style>
+      </head><body>${document.getElementById("vendasRelatorioConteudo").innerHTML}</body></html>
+    `);
+    janela.document.close();
+    janela.focus();
+    setTimeout(() => janela.print(), 300);
+  };
+}
+
 // ================================================================
 // VENDAS REALIZADAS (log por vendedor)
 // ================================================================
