@@ -450,11 +450,21 @@
         <div>
           <h2 class="page-title">Caixa</h2>
           <p class="caixa-status-line">
-            <span class="caixa-status-dot"></span>
-            <span>Aberto</span>
+            <span class="caixa-status-dot" id="caixaStatusDot"></span>
+            <span id="caixaStatusTexto">Verificando...</span>
             <span class="caixa-status-sep">·</span>
             <span>por <strong id="caixaOperadorNome">—</strong> às <span id="caixaHoraAbertura">—</span></span>
           </p>
+        </div>
+        <div class="caixa-header-acoes">
+          <button class="btn-secondary" id="btnAbrirCaixa" style="display:none">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 4a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H3a1 1 0 01-1-1V4zM2 9h16v7a1 1 0 01-1 1H3a1 1 0 01-1-1V9zm4 3a1 1 0 100 2h4a1 1 0 100-2H6z"/></svg>
+            Abrir Caixa
+          </button>
+          <button class="btn-danger-outline" id="btnFecharCaixa" style="display:none">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 4a2 2 0 012-2h6a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V4zm8 8a1 1 0 100-2H9.414l1.293-1.293a1 1 0 10-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L9.414 12H13z" clip-rule="evenodd"/></svg>
+            Fechar Caixa
+          </button>
         </div>
       </div>
 
@@ -1281,12 +1291,34 @@
           <h2 class="page-title">Administração</h2>
           <p class="page-subtitle">Gerencie usuários e configurações do sistema</p>
         </div>
-        <button class="btn-primary" id="btnNovoUsuario">
+        <button class="btn-primary" id="btnNovoUsuario" data-admin-panel-btn="usuarios">
           <svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"/></svg>
           Novo Usuário
         </button>
       </div>
 
+      <!-- Menu de seções da Administração -->
+      <div class="admin-menu">
+        <button class="admin-menu-item admin-menu-item--ativo" data-admin-panel="usuarios">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+          Usuários do Sistema
+        </button>
+        <button class="admin-menu-item" data-admin-panel="senha">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
+          Senha Cotação
+        </button>
+        <button class="admin-menu-item" data-admin-panel="historico">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+          Histórico de Alterações
+        </button>
+        <button class="admin-menu-item" data-admin-panel="vendas">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/></svg>
+          Vendas Realizadas
+        </button>
+      </div>
+
+      <!-- Painel: Usuários do Sistema -->
+      <div class="admin-panel admin-panel--ativo" id="adminPanelUsuarios">
       <div class="card">
         <h3 class="card-section-title">Usuários do Sistema</h3>
         <div class="table-wrap">
@@ -1306,8 +1338,10 @@
           </table>
         </div>
       </div>
+      </div>
 
-      <!-- Senha Cotação -->
+      <!-- Painel: Senha Cotação -->
+      <div class="admin-panel" id="adminPanelSenha">
       <div class="card">
         <h3 class="card-section-title">Senha Cotação</h3>
         <p class="page-subtitle" style="margin: -8px 0 16px">Controle de acesso para editar e excluir cotações.</p>
@@ -1315,8 +1349,10 @@
           <div class="loading-cell">Carregando configurações...</div>
         </div>
       </div>
+      </div>
 
-      <!-- Histórico de Alterações -->
+      <!-- Painel: Histórico de Alterações -->
+      <div class="admin-panel" id="adminPanelHistorico">
       <div class="card">
         <h3 class="card-section-title">Histórico de Alterações</h3>
         <p class="page-subtitle" style="margin: -8px 0 16px">Veja quem criou e quem editou cada cotação.</p>
@@ -1346,8 +1382,10 @@
           </table>
         </div>
       </div>
+      </div>
 
-      <!-- Vendas Realizadas (log por vendedor) -->
+      <!-- Painel: Vendas Realizadas (log por vendedor) -->
+      <div class="admin-panel" id="adminPanelVendas">
       <div class="card">
         <h3 class="card-section-title">Vendas Realizadas</h3>
         <p class="page-subtitle" style="margin: -8px 0 16px">Acompanhe as vendas finalizadas no Caixa por cada vendedor.</p>
@@ -1379,6 +1417,7 @@
             </tbody>
           </table>
         </div>
+      </div>
       </div>
 
     </section>
