@@ -44,6 +44,11 @@ export function iniciarAdmin(usuario, dadosUsuario) {
   // Botão novo usuário
   document.getElementById("btnNovoUsuario")?.addEventListener("click", abrirModalNovoUsuario);
 
+  // Menu de seções (Usuários / Senha Cotação / Histórico / Vendas)
+  document.querySelectorAll(".admin-menu-item").forEach(btn => {
+    btn.addEventListener("click", () => trocarPainelAdmin(btn.dataset.adminPanel));
+  });
+
   // Histórico de alterações
   document.getElementById("btnBuscarHistorico")?.addEventListener("click", () => {
     const termo = document.getElementById("filtroBuscaHistorico").value.trim();
@@ -327,6 +332,28 @@ function confirmarExclusaoUsuario(id, nome) {
       window.mostrarToast?.("Erro ao excluir: " + resultado.erro, "error");
     }
   });
+}
+
+// ================================================================
+// MENU DE SEÇÕES DA ADMINISTRAÇÃO
+// ================================================================
+const PAINEIS_ADMIN = {
+  usuarios:  "adminPanelUsuarios",
+  senha:     "adminPanelSenha",
+  historico: "adminPanelHistorico",
+  vendas:    "adminPanelVendas"
+};
+
+function trocarPainelAdmin(painelId) {
+  document.querySelectorAll(".admin-menu-item").forEach(btn => {
+    btn.classList.toggle("admin-menu-item--ativo", btn.dataset.adminPanel === painelId);
+  });
+  Object.entries(PAINEIS_ADMIN).forEach(([chave, elId]) => {
+    document.getElementById(elId)?.classList.toggle("admin-panel--ativo", chave === painelId);
+  });
+  // Botão "Novo Usuário" só aparece na seção de Usuários
+  const btnNovo = document.getElementById("btnNovoUsuario");
+  if (btnNovo) btnNovo.style.display = painelId === "usuarios" ? "" : "none";
 }
 
 // ================================================================
