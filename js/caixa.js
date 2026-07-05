@@ -9,8 +9,10 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 import {
-  formatarMoeda, listarComissoes, adicionarRegistroComissao, listarUsuarios, verificarSenhaComissao
+  formatarMoeda, formatarDataHora, listarComissoes, adicionarRegistroComissao, listarUsuarios, verificarSenhaComissao,
+  buscarSessaoCaixaAberta, abrirCaixaSessao, fecharCaixaSessao, listarVendasDesde
 } from "./database.js";
+import { gerarPdfFechamentoCaixa } from "./pdf.js";
 import { COL_SERVICOS } from "./servicos.js";
 import { escHtml } from "./index.js";
 import { temCargo } from "./auth.js";
@@ -46,6 +48,7 @@ let _produtosCacheEm = 0;
 
 let _vendedorSelecionadoId = null;
 let _comissaoSelecionadaId = null;
+let _sessaoCaixa = null; // { id, abertoEm, operadorAberturaNome, ... } | null se fechado
 
 // ----------------------------------------------------------------
 // Inicialização
@@ -54,11 +57,10 @@ export function iniciarCaixa(usuario, dadosUsuario) {
   _usuario = usuario;
   _dadosUsuario = dadosUsuario;
 
-  const nome = dadosUsuario?.nome || usuario?.email?.split("@")[0] || "—";
-  const elNome = document.getElementById("caixaOperadorNome");
-  const elHora = document.getElementById("caixaHoraAbertura");
-  if (elNome) elNome.textContent = nome;
-  if (elHora) elHora.textContent = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  atualizarStatusCaixa();
+
+  document.getElementById("btnAbrirCaixa")?.addEventListener("click", abrirCaixaFluxo);
+  document.getElementById("btnFecharCaixa")?.addEventListener("click", fecharCaixaFluxo);
 
   document.addEventListener("navegacao", (e) => {
     if (e.detail.page === "caixa") {
@@ -109,6 +111,264 @@ export function iniciarCaixa(usuario, dadosUsuario) {
 
   renderTudo();
 }
+
+// ----------------------------------------------------------------
+// Abrir / Fechar Caixa
+// ----------------------------------------------------------------
+async function atualizarStatusCaixa() {
+  const resultado = await buscarSessaoCaixaAberta();
+  _sessaoCaixa = resultado.sucesso ? resultado.sessao : null;
+
+  const elDot   = document.getElementById("caixaStatusDot");
+  const elTexto = document.getElementById("caixaStatusTexto");
+  const elNome  = document.getElementById("caixaOperadorNome");
+  const elHora  = document.getElementById("caixaHoraAbertura");
+  const btnAbrir  = document.getElementById("btnAbrirCaixa");
+  const btnFechar = document.getElementById("btnFecharCaixa");
+
+  if (_sessaoCaixa) {
+    elDot?.classList.remove("caixa-status-dot--fechado");
+    if (elTexto) elTexto.textContent = "Aberto";
+    if (elNome)  elNome.textContent  = _sessaoCaixa.operadorAberturaNome || "—";
+    if (elHora)  elHora.textContent  = formatarDataHora(_sessaoCaixa.abertoEm)?.split(" ")[1] || "—";
+    if (btnAbrir)  btnAbrir.style.display  = "none";
+    if (btnFechar) btnFechar.style.display = "";
+  } else {
+    elDot?.classList.add("caixa-status-dot--fechado");
+    if (elTexto) elTexto.textContent = "Fechado";
+    if (elNome)  elNome.textContent  = "—";
+    if (elHora)  elHora.textContent  = "—";
+    if (btnAbrir)  btnAbrir.style.display  = "";
+    if (btnFechar) btnFechar.style.display = "none";
+  }
+}
+
+function abrirCaixaFluxo() {
+  const body = `
+    <p>Informe o valor inicial (fundo de troco) que está no caixa, se houver.</p>
+    <div class="field" style="margin-top:12px">
+      <label class="field-label" for="mAbrirCaixaValor">Valor de abertura (opcional)</label>
+      <input type="number" step="0.01" min="0" class="field-input--plain" id="mAbrirCaixaValor" placeholder="0,00" autocomplete="off" />
+    </div>
+  `;
+  window.abrirModal("Abrir Caixa", body, `
+    <button class="btn-ghost" id="btnCancelarAbrirCaixa">Cancelar</button>
+    <button class="btn-primary" id="btnConfirmarAbrirCaixa">Abrir Caixa</button>
+  `);
+
+  document.getElementById("btnCancelarAbrirCaixa").onclick = () => window.fecharModal();
+  document.getElementById("btnConfirmarAbrirCaixa").onclick = async () => {
+    const valorAbertura = parseFloat(document.getElementById("mAbrirCaixaValor")?.value) || 0;
+    const btn = document.getElementById("btnConfirmarAbrirCaixa");
+    btn.disabled = true;
+    btn.textContent = "Abrindo...";
+
+    const nome = _dadosUsuario?.nome || _usuario?.email?.split("@")[0] || "—";
+    const resultado = await abrirCaixaSessao({ operadorUid: _usuario?.uid, operadorNome: nome, valorAbertura });
+
+    if (resultado.sucesso) {
+      window.fecharModal();
+      window.mostrarToast?.("Caixa aberto com sucesso!", "success");
+      await atualizarStatusCaixa();
+    } else {
+      window.mostrarToast?.("Erro ao abrir o caixa. Tente novamente.", "error");
+      btn.disabled = false;
+      btn.textContent = "Abrir Caixa";
+    }
+  };
+}
+
+async function fecharCaixaFluxo() {
+  if (!_sessaoCaixa) return;
+
+  window.abrirModal("Fechar Caixa", `<p class="loading-cell">Calculando o relatório de fechamento...</p>`, "");
+
+  const abertoEmDate = _sessaoCaixa.abertoEm?.toDate ? _sessaoCaixa.abertoEm.toDate() : new Date(_sessaoCaixa.abertoEm);
+  const resultado = await listarVendasDesde(abertoEmDate);
+
+  if (!resultado.sucesso) {
+    window.mostrarToast?.("Erro ao calcular o relatório de fechamento.", "error");
+    window.fecharModal();
+    return;
+  }
+
+  const relatorio = montarRelatorioFechamento(resultado.vendas, abertoEmDate);
+  mostrarModalRelatorioFechamento(relatorio);
+}
+
+// Monta o relatório: totais gerais + quebra por vendedor
+function montarRelatorioFechamento(vendas, abertoEmDate) {
+  const porFormaPagamento = {};
+  let totalGeral = 0;
+
+  const porVendedorMap = new Map(); // uid -> { nome, vendas: [], total, qtdVendas }
+
+  vendas.forEach(v => {
+    totalGeral += Number(v.total) || 0;
+    const forma = v.formaPagamento || "—";
+    porFormaPagamento[forma] = (porFormaPagamento[forma] || 0) + (Number(v.total) || 0);
+
+    const uid  = v.vendedorId || "sem-vendedor";
+    const nome = v.vendedorNome || "Sem vendedor";
+    if (!porVendedorMap.has(uid)) {
+      porVendedorMap.set(uid, { uid, nome, vendas: [], total: 0 });
+    }
+    const bucket = porVendedorMap.get(uid);
+    bucket.vendas.push(v);
+    bucket.total += Number(v.total) || 0;
+  });
+
+  return {
+    abertoEm: abertoEmDate,
+    fechadoEm: new Date(),
+    operadorFechamento: _dadosUsuario?.nome || _usuario?.email?.split("@")[0] || "—",
+    totalGeral,
+    qtdVendasGeral: vendas.length,
+    porFormaPagamento,
+    porVendedor: Array.from(porVendedorMap.values()).sort((a, b) => b.total - a.total),
+    vendas
+  };
+}
+
+function mostrarModalRelatorioFechamento(relatorio) {
+  const abas = [{ id: "geral", label: "Geral" }, ...relatorio.porVendedor.map(v => ({ id: v.uid, label: v.nome }))];
+
+  const abasHTML = abas.map((a, i) => `
+    <button type="button" class="caixa-relatorio-tab ${i === 0 ? "caixa-relatorio-tab--ativa" : ""}" data-tab="${a.id}">
+      ${escHtml(a.label)}
+    </button>
+  `).join("");
+
+  const body = `
+    <div class="caixa-relatorio-tabs">${abasHTML}</div>
+    <div id="caixaRelatorioConteudo"></div>
+  `;
+
+  window.abrirModal("Fechamento de Caixa", body, `
+    <button class="btn-ghost" id="btnImprimirRelatorio">Imprimir</button>
+    <button class="btn-secondary" id="btnPdfRelatorio">Baixar PDF</button>
+    <button class="btn-primary" id="btnConfirmarFechamento">Confirmar Fechamento</button>
+  `);
+
+  let abaAtiva = "geral";
+  const renderAba = () => {
+    document.getElementById("caixaRelatorioConteudo").innerHTML = renderConteudoRelatorio(relatorio, abaAtiva);
+  };
+  renderAba();
+
+  document.querySelectorAll(".caixa-relatorio-tab").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".caixa-relatorio-tab").forEach(b => b.classList.remove("caixa-relatorio-tab--ativa"));
+      btn.classList.add("caixa-relatorio-tab--ativa");
+      abaAtiva = btn.dataset.tab;
+      renderAba();
+    });
+  });
+
+  document.getElementById("btnPdfRelatorio").onclick = () => {
+    gerarPdfFechamentoCaixa(relatorio, abaAtiva === "geral" ? null : relatorio.porVendedor.find(v => v.uid === abaAtiva));
+  };
+
+  document.getElementById("btnImprimirRelatorio").onclick = () => {
+    const janela = window.open("", "_blank");
+    janela.document.write(`
+      <html><head><title>Fechamento de Caixa</title>
+      <style>body{font-family:Arial,sans-serif;padding:24px;color:#111} table{width:100%;border-collapse:collapse;margin-top:12px}
+      th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:13px} th{background:#f3f4f6}</style>
+      </head><body>${document.getElementById("caixaRelatorioConteudo").innerHTML}</body></html>
+    `);
+    janela.document.close();
+    janela.focus();
+    setTimeout(() => janela.print(), 300);
+  };
+
+  document.getElementById("btnConfirmarFechamento").onclick = async () => {
+    const btn = document.getElementById("btnConfirmarFechamento");
+    btn.disabled = true;
+    btn.textContent = "Fechando...";
+    const resultado = await fecharCaixaSessao(_sessaoCaixa.id, {
+      operadorNome: relatorio.operadorFechamento,
+      resumo: {
+        totalGeral: relatorio.totalGeral,
+        qtdVendasGeral: relatorio.qtdVendasGeral,
+        porFormaPagamento: relatorio.porFormaPagamento,
+        porVendedor: relatorio.porVendedor.map(v => ({ uid: v.uid, nome: v.nome, total: v.total, qtdVendas: v.vendas.length }))
+      }
+    });
+    if (resultado.sucesso) {
+      window.mostrarToast?.("Caixa fechado com sucesso!", "success");
+      window.fecharModal();
+      await atualizarStatusCaixa();
+    } else {
+      window.mostrarToast?.("Erro ao fechar o caixa. Tente novamente.", "error");
+      btn.disabled = false;
+      btn.textContent = "Confirmar Fechamento";
+    }
+  };
+}
+
+function renderConteudoRelatorio(relatorio, abaId) {
+  const cabecalho = `
+    <p style="color:var(--gray-500);font-size:13px;margin-bottom:14px">
+      Aberto em ${formatarDataHora(relatorio.abertoEm instanceof Date ? relatorio.abertoEm : relatorio.abertoEm)}
+      — Fechamento gerado em ${formatarDataHora(relatorio.fechadoEm)}
+    </p>`;
+
+  if (abaId === "geral") {
+    const formasHTML = Object.entries(relatorio.porFormaPagamento).map(([forma, total]) => `
+      <tr><td>${escHtml(forma)}</td><td style="text-align:right"><strong>${formatarMoeda(total)}</strong></td></tr>
+    `).join("");
+
+    const porVendedorHTML = relatorio.porVendedor.map(v => `
+      <tr><td>${escHtml(v.nome)}</td><td>${v.vendas.length}</td><td style="text-align:right"><strong>${formatarMoeda(v.total)}</strong></td></tr>
+    `).join("");
+
+    return `
+      ${cabecalho}
+      <h4 style="margin:0 0 8px">Resumo Geral</h4>
+      <table><tbody>
+        <tr><td>Total de vendas</td><td style="text-align:right"><strong>${relatorio.qtdVendasGeral}</strong></td></tr>
+        <tr><td>Valor total</td><td style="text-align:right"><strong>${formatarMoeda(relatorio.totalGeral)}</strong></td></tr>
+      </tbody></table>
+
+      <h4 style="margin:18px 0 8px">Por Forma de Pagamento</h4>
+      <table><tbody>${formasHTML || `<tr><td colspan="2">Nenhuma venda no período.</td></tr>`}</tbody></table>
+
+      <h4 style="margin:18px 0 8px">Por Vendedor</h4>
+      <table>
+        <thead><tr><th>Vendedor</th><th>Vendas</th><th style="text-align:right">Total</th></tr></thead>
+        <tbody>${porVendedorHTML || `<tr><td colspan="3">Nenhuma venda no período.</td></tr>`}</tbody>
+      </table>
+    `;
+  }
+
+  const vendedor = relatorio.porVendedor.find(v => v.uid === abaId);
+  if (!vendedor) return `<p>Vendedor não encontrado.</p>`;
+
+  const linhasHTML = vendedor.vendas.map(v => `
+    <tr>
+      <td>${formatarDataHora(v.criadoEm)}</td>
+      <td>#${escHtml(String(v.numero ?? "—"))}</td>
+      <td>${escHtml(v.formaPagamento || "—")}</td>
+      <td style="text-align:right"><strong>${formatarMoeda(v.total || 0)}</strong></td>
+    </tr>`).join("");
+
+  return `
+    ${cabecalho}
+    <h4 style="margin:0 0 8px">${escHtml(vendedor.nome)}</h4>
+    <table><tbody>
+      <tr><td>Total de vendas</td><td style="text-align:right"><strong>${vendedor.vendas.length}</strong></td></tr>
+      <tr><td>Valor total</td><td style="text-align:right"><strong>${formatarMoeda(vendedor.total)}</strong></td></tr>
+    </tbody></table>
+
+    <h4 style="margin:18px 0 8px">Vendas</h4>
+    <table>
+      <thead><tr><th>Data</th><th>Nº</th><th>Forma Pagto.</th><th style="text-align:right">Total</th></tr></thead>
+      <tbody>${linhasHTML || `<tr><td colspan="4">Nenhuma venda.</td></tr>`}</tbody>
+    </table>
+  `;
+}
+
 
 // ----------------------------------------------------------------
 // Terminal — captura de teclas
