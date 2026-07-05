@@ -21,6 +21,57 @@
   width: 100%;
 }
 
+/* ── Menu de seções da Administração ─────────────────────────── */
+.admin-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.admin-menu-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--white);
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all var(--duration-fast) ease;
+}
+
+.admin-menu-item svg {
+  width: 16px;
+  height: 16px;
+}
+
+.admin-menu-item:hover {
+  border-color: var(--blue-300);
+  color: var(--blue-600);
+}
+
+.admin-menu-item--ativo {
+  background: var(--blue-600);
+  border-color: var(--blue-600);
+  color: var(--white);
+}
+
+.admin-menu-item--ativo:hover {
+  color: var(--white);
+}
+
+.admin-panel {
+  display: none;
+}
+
+.admin-panel--ativo {
+  display: block;
+}
+
 .form-usuario-cargos {
   display: flex;
   flex-direction: column;
