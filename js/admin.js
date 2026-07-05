@@ -650,6 +650,10 @@ async function carregarComissaoCriador() {
   _percentualComissaoCriador = resConfig.sucesso ? resConfig.percentual : 0;
   document.getElementById("inputPercentualComissaoCriador").value = _percentualComissaoCriador || "";
 
+  if (!resCotacoes.sucesso) {
+    window.mostrarToast?.(`Erro ao carregar cotações aprovadas: ${resCotacoes.erro || "erro desconhecido"}`, "error", 8000);
+  }
+
   _todasCotacoesAprovadasCache = resCotacoes.sucesso ? resCotacoes.cotacoes : [];
 
   renderStatsComissaoCriador();
