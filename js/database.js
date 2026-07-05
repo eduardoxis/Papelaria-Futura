@@ -361,6 +361,27 @@ export async function listarVendasDesde(dataInicio) {
   }
 }
 
+// Lista vendas (pf_vendas) entre duas datas (ex: um dia inteiro, 00:00 a 23:59:59)
+export async function listarVendasEntre(dataInicio, dataFim) {
+  try {
+    const inicioTs = dataInicio instanceof Date ? Timestamp.fromDate(dataInicio) : dataInicio;
+    const fimTs    = dataFim instanceof Date ? Timestamp.fromDate(dataFim) : dataFim;
+    const snap = await getDocs(
+      query(
+        collection(db, COL_VENDAS_DB),
+        where("criadoEm", ">=", inicioTs),
+        where("criadoEm", "<=", fimTs),
+        orderBy("criadoEm", "asc")
+      )
+    );
+    const vendas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return { sucesso: true, vendas };
+  } catch (erro) {
+    console.error("Erro ao listar vendas do período:", erro);
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
 // ----------------------------------------------------------------
 // Listar vendas finalizadas no Caixa (log — Administração)
 // ----------------------------------------------------------------
