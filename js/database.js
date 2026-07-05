@@ -517,6 +517,66 @@ export async function senhaCotacaoExiste() {
   }
 }
 
+// ================================================================
+// COMISSÃO POR COTAÇÃO GANHADA (do criador do sistema)
+// Totalmente separado da comissão dos vendedores no Caixa:
+// aqui o cálculo é sobre o valor de cada cotação com status
+// "aprovada", não sobre vendas do PDV.
+// ================================================================
+const DOC_COMISSAO_CRIADOR = "comissaoCriador";
+
+export async function buscarConfigComissaoCriador() {
+  try {
+    const snap = await getDoc(doc(db, COLECAO_CONFIG, DOC_COMISSAO_CRIADOR));
+    if (!snap.exists()) return { sucesso: true, percentual: 0 };
+    return { sucesso: true, percentual: Number(snap.data().percentual) || 0 };
+  } catch (erro) {
+    console.error("Erro ao buscar config de comissão do criador:", erro);
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
+export async function salvarConfigComissaoCriador(percentual) {
+  try {
+    await setDoc(doc(db, COLECAO_CONFIG, DOC_COMISSAO_CRIADOR), {
+      percentual: Number(percentual) || 0,
+      updatedAt: serverTimestamp()
+    });
+    return { sucesso: true };
+  } catch (erro) {
+    console.error("Erro ao salvar config de comissão do criador:", erro);
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
+// Lista todas as cotações com status "aprovada"
+export async function listarCotacoesAprovadas() {
+  try {
+    const snap = await getDocs(
+      query(collection(db, COLECAO_COTACOES), where("status", "==", "aprovada"), orderBy("dataCriacao", "desc"))
+    );
+    const cotacoes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return { sucesso: true, cotacoes };
+  } catch (erro) {
+    console.error("Erro ao listar cotações aprovadas:", erro);
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
+// Marca/desmarca a comissão de uma cotação aprovada como paga
+export async function marcarComissaoCriadorPaga(cotacaoId, paga) {
+  try {
+    await updateDoc(doc(db, COLECAO_COTACOES, cotacaoId), {
+      comissaoCriadorPaga: !!paga,
+      comissaoCriadorPagaEm: paga ? serverTimestamp() : null
+    });
+    return { sucesso: true };
+  } catch (erro) {
+    console.error("Erro ao atualizar status de pagamento da comissão:", erro);
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
 
 // ================================================================
 // PLANILHAS DE COMISSÃO
