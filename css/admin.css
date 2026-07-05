@@ -72,6 +72,13 @@
   display: block;
 }
 
+.ccg-config {
+  background: var(--gray-50, #F9FAFB);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
 /* ── Relatório por Dia (Vendas Realizadas) ───────────────────── */
 #vendasRelatorioConteudo table {
   width: 100%;
