@@ -72,6 +72,36 @@
   display: block;
 }
 
+/* ── Relatório por Dia (Vendas Realizadas) ───────────────────── */
+#vendasRelatorioConteudo table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  margin-bottom: 4px;
+}
+
+#vendasRelatorioConteudo th,
+#vendasRelatorioConteudo td {
+  border: 1px solid var(--gray-200);
+  padding: 10px 14px;
+  text-align: left;
+}
+
+#vendasRelatorioConteudo th {
+  background: var(--gray-50, #F9FAFB);
+  font-weight: 600;
+}
+
+/* Tabela "Por Vendedor" / "Vendas" — 1ª coluna (nome) ocupa o espaço
+   livre, as demais ficam compactas e alinhadas à direita */
+#vendasRelatorioConteudo table tr > *:first-child {
+  width: auto;
+}
+#vendasRelatorioConteudo table tr > *:not(:first-child) {
+  width: 1%;
+  white-space: nowrap;
+}
+
 .form-usuario-cargos {
   display: flex;
   flex-direction: column;
