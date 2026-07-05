@@ -584,6 +584,48 @@ export async function marcarComissaoCriadorPaga(cotacaoId, paga) {
   }
 }
 
+// ================================================================
+// LEMBRETE DE COTAÇÕES (follow-up com o cliente)
+// ================================================================
+const DOC_LEMBRETE_COTACAO = "lembreteCotacao";
+
+export async function buscarConfigLembreteCotacao() {
+  try {
+    const snap = await getDoc(doc(db, COLECAO_CONFIG, DOC_LEMBRETE_COTACAO));
+    if (!snap.exists()) return { sucesso: true, dias: 4 };
+    return { sucesso: true, dias: Number(snap.data().dias) || 4 };
+  } catch (erro) {
+    console.error("Erro ao buscar config de lembrete de cotações:", erro);
+    return { sucesso: false, erro: erro.message, dias: 4 };
+  }
+}
+
+export async function salvarConfigLembreteCotacao(dias) {
+  try {
+    await setDoc(doc(db, COLECAO_CONFIG, DOC_LEMBRETE_COTACAO), {
+      dias: Number(dias) || 4,
+      updatedAt: serverTimestamp()
+    });
+    return { sucesso: true };
+  } catch (erro) {
+    console.error("Erro ao salvar config de lembrete de cotações:", erro);
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
+// Registra que um lembrete foi enviado para a cotação (evita reenvio sem perceber)
+export async function marcarLembreteEnviado(cotacaoId) {
+  try {
+    await updateDoc(doc(db, COLECAO_COTACOES, cotacaoId), {
+      ultimoLembreteEm: serverTimestamp()
+    });
+    return { sucesso: true };
+  } catch (erro) {
+    console.error("Erro ao marcar lembrete como enviado:", erro);
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
 
 // ================================================================
 // PLANILHAS DE COMISSÃO
