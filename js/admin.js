@@ -343,6 +343,7 @@ function confirmarExclusaoUsuario(id, nome) {
 // ================================================================
 const PAINEIS_ADMIN = {
   usuarios:  "adminPanelUsuarios",
+  dashboardVendas: "adminPanelDashboardVendas",
   senha:     "adminPanelSenha",
   historico: "adminPanelHistorico",
   vendas:    "adminPanelVendas"
@@ -358,6 +359,11 @@ function trocarPainelAdmin(painelId) {
   // Botão "Novo Usuário" só aparece na seção de Usuários
   const btnNovo = document.getElementById("btnNovoUsuario");
   if (btnNovo) btnNovo.style.display = painelId === "usuarios" ? "" : "none";
+
+  if (painelId === "dashboardVendas" && !_dashboardVendasCarregado) {
+    _dashboardVendasCarregado = true;
+    carregarDashboardVendas();
+  }
 }
 
 // ================================================================
@@ -497,6 +503,110 @@ function abrirModalSenhaCotacao() {
 // ================================================================
 // HISTÓRICO DE ALTERAÇÕES DAS COTAÇÕES
 // ================================================================
+// ================================================================
+// DASHBOARD DE VENDAS
+// ================================================================
+async function carregarDashboardVendas() {
+  const agora = new Date();
+  const inicioHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 0, 0, 0, 0);
+  const fimHoje    = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 23, 59, 59, 999);
+  const inicioMes  = new Date(agora.getFullYear(), agora.getMonth(), 1, 0, 0, 0, 0);
+  const inicio14d  = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() - 13, 0, 0, 0, 0);
+
+  const [resHoje, resMes] = await Promise.all([
+    listarVendasEntre(inicioHoje, fimHoje),
+    listarVendasEntre(inicioMes, fimHoje)
+  ]);
+
+  const vendasHoje = resHoje.sucesso ? resHoje.vendas : [];
+  const vendasMes  = resMes.sucesso  ? resMes.vendas  : [];
+  // Os últimos 14 dias estão contidos no período do mês só se o mês tiver
+  // pelo menos 14 dias corridos; para garantir cobertura correta, busca à parte
+  // quando o intervalo de 14 dias ultrapassa o início do mês.
+  const vendas14d = inicio14d < inicioMes
+    ? (await listarVendasEntre(inicio14d, fimHoje)).vendas || []
+    : vendasMes;
+
+  const totalHoje = vendasHoje.reduce((s, v) => s + (Number(v.total) || 0), 0);
+  const totalMes  = vendasMes.reduce((s, v) => s + (Number(v.total) || 0), 0);
+  const ticketMedio = vendasMes.length ? totalMes / vendasMes.length : 0;
+
+  document.getElementById("dvHoje").textContent  = formatarMoeda(totalHoje);
+  document.getElementById("dvMes").textContent   = formatarMoeda(totalMes);
+  document.getElementById("dvTicket").textContent = formatarMoeda(ticketMedio);
+
+  // Ranking de vendedores (mês atual)
+  const porVendedor = new Map();
+  vendasMes.forEach(v => {
+    const uid  = v.vendedorId || "sem-vendedor";
+    const nome = v.vendedorNome || "Sem vendedor";
+    if (!porVendedor.has(uid)) porVendedor.set(uid, { nome, total: 0, qtd: 0 });
+    const b = porVendedor.get(uid);
+    b.total += Number(v.total) || 0;
+    b.qtd += 1;
+  });
+  const ranking = Array.from(porVendedor.values()).sort((a, b) => b.total - a.total);
+
+  document.getElementById("dvDestaque").textContent = ranking.length ? ranking[0].nome : "—";
+
+  const tbodyRanking = document.getElementById("tbodyRankingVendedores");
+  if (ranking.length === 0) {
+    tbodyRanking.innerHTML = `<tr><td colspan="4" class="empty-cell">Nenhuma venda no mês.</td></tr>`;
+  } else {
+    tbodyRanking.innerHTML = ranking.map(v => `
+      <tr>
+        <td><strong>${escHtml(v.nome)}</strong></td>
+        <td>${v.qtd}</td>
+        <td class="col-right"><strong>${formatarMoeda(v.total)}</strong></td>
+        <td class="col-right">${totalMes ? ((v.total / totalMes) * 100).toFixed(1) : "0.0"}%</td>
+      </tr>`).join("");
+  }
+
+  // Gráfico — vendas por dia (últimos 14 dias)
+  const diasLabels = [];
+  const diasValores = [];
+  for (let i = 13; i >= 0; i--) {
+    const dia = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() - i);
+    const diaStr = dia.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+    diasLabels.push(diaStr);
+    const totalDia = vendas14d
+      .filter(v => {
+        const dtVenda = v.criadoEm?.toDate ? v.criadoEm.toDate() : new Date(v.criadoEm);
+        return dtVenda.getFullYear() === dia.getFullYear() &&
+               dtVenda.getMonth() === dia.getMonth() &&
+               dtVenda.getDate() === dia.getDate();
+      })
+      .reduce((s, v) => s + (Number(v.total) || 0), 0);
+    diasValores.push(totalDia);
+  }
+
+  const canvas = document.getElementById("chartVendasDias");
+  if (canvas && window.Chart) {
+    _chartVendasDias?.destroy();
+    _chartVendasDias = new window.Chart(canvas, {
+      type: "bar",
+      data: {
+        labels: diasLabels,
+        datasets: [{
+          label: "Vendas (R$)",
+          data: diasValores,
+          backgroundColor: "#2563EB",
+          borderRadius: 6,
+          maxBarThickness: 28
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { callback: (v) => formatarMoeda(v) } }
+        }
+      }
+    });
+  }
+}
+
 // ================================================================
 // RELATÓRIO POR DIA (calendário) — Geral + por vendedor
 // ================================================================
@@ -669,6 +779,8 @@ function renderRelatorioDiaConteudo() {
 // VENDAS REALIZADAS (log por vendedor)
 // ================================================================
 let _todasVendasCache = [];
+let _dashboardVendasCarregado = false;
+let _chartVendasDias = null;
 
 async function carregarVendas(termoBusca = "") {
   const tbody = document.getElementById("tbodyVendas");
