@@ -86,6 +86,7 @@ export function iniciarCotacao(usuario, dadosUsuario) {
     if (action === "editar")  exigirSenhaCotacao(() => editarCotacaoById(id), "Editar Cotação");
     if (action === "pdf")     gerarPDFById(id);
     if (action === "excluir") exigirSenhaCotacao(() => excluirCotacaoById(id, cliente), "Excluir Cotação");
+    if (action === "lembrete") abrirLembreteCotacao(id);
   });
 
   // Expor globais para o index.js usar via window.*
@@ -184,6 +185,7 @@ function atualizarBotaoCarregarMais() {
 }
 
 function linhaCotacaoHtml(c) {
+  const lembrete = precisaLembrete(c);
   return `
     <tr>
       <td class="td-cliente-row" title="${escHtml(c.cliente || "—")}">
@@ -193,6 +195,11 @@ function linhaCotacaoHtml(c) {
       <td class="col-right td-valor-col"><strong class="valor-protegido">${formatarMoeda(c.valorTotal)}</strong></td>
       <td class="td-status-actions-row">
         ${badgeStatus(c.status)}
+        ${lembrete ? `
+          <button class="btn-lembrete" data-action="lembrete" data-id="${escHtml(c.id)}" title="Cotação parada há ${lembrete}+ dias — enviar lembrete">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 00-6 6c0 1.887.87 3.4 2.026 4.474.66.614 1.05 1.155 1.208 1.526h5.532c.158-.371.548-.912 1.208-1.526A5.99 5.99 0 0016 8a6 6 0 00-6-6zM8.5 17a.5.5 0 000 1h3a.5.5 0 000-1h-3z"/></svg>
+            Lembrete
+          </button>` : ""}
       </td>
       <td class="td-actions-col col-center">
         <div class="td-actions-wrap td-actions-wrap--cotacoes">
@@ -220,6 +227,85 @@ function linhaCotacaoHtml(c) {
       </td>
     </tr>
   `;
+}
+
+// ================================================================
+// LEMBRETE DE FOLLOW-UP (4+ dias sem fechar)
+// ================================================================
+const DIAS_PARA_LEMBRETE = 4;
+
+// Retorna a quantidade de dias parada se a cotação precisar de lembrete
+// (ainda "ativa" e criada há DIAS_PARA_LEMBRETE dias ou mais), ou 0 se não.
+function precisaLembrete(c) {
+  if (c.status !== "ativa" || !c.dataCriacao) return 0;
+  const dataCriacao = c.dataCriacao?.toDate ? c.dataCriacao.toDate() : new Date(c.dataCriacao);
+  const diffDias = Math.floor((Date.now() - dataCriacao.getTime()) / 86400000);
+  return diffDias >= DIAS_PARA_LEMBRETE ? diffDias : 0;
+}
+
+// Monta a mensagem de lembrete com saudação de acordo com o horário atual
+function gerarMensagemLembrete(cliente) {
+  const hora = new Date().getHours();
+  let saudacao;
+  if (hora >= 5 && hora < 12) saudacao = "Bom dia";
+  else if (hora >= 12 && hora < 18) saudacao = "Boa tarde";
+  else saudacao = "Boa noite";
+
+  const nomeCliente = cliente ? `, ${cliente}` : "";
+  return `Oi${nomeCliente}! ${saudacao}! Passando pra saber se restou alguma dúvida sobre a cotação que te enviamos. Ficamos à disposição para fechar quando for melhor pra você 😊`;
+}
+
+// Normaliza um número de telefone para o formato usado pelo link do WhatsApp
+function _telefoneParaWhatsapp(telefone) {
+  const digitos = String(telefone || "").replace(/\D/g, "");
+  if (!digitos) return null;
+  return digitos.startsWith("55") ? digitos : `55${digitos}`;
+}
+
+async function abrirLembreteCotacao(id) {
+  const resultado = await buscarCotacao(id);
+  if (!resultado.sucesso) {
+    window.mostrarToast?.("Cotação não encontrada.", "error");
+    return;
+  }
+  const c = { id, ...resultado.dados };
+  const mensagem = gerarMensagemLembrete(c.cliente);
+  const numeroWhats = _telefoneParaWhatsapp(c.telefone);
+
+  const body = `
+    <p style="color:var(--gray-500);font-size:13px;margin-bottom:10px">
+      Essa cotação está parada há ${precisaLembrete(c)} dias sem retorno do cliente.
+    </p>
+    <label class="field-label">Mensagem sugerida</label>
+    <textarea class="field-input--plain field-textarea" id="textoLembreteCotacao" rows="5" style="width:100%">${escHtml(mensagem)}</textarea>
+    ${!numeroWhats ? `<p style="color:#B45309;font-size:13px;margin-top:8px">Essa cotação não tem telefone cadastrado — copie a mensagem e envie manualmente, ou edite a cotação para adicionar o número.</p>` : ""}
+  `;
+
+  const footer = `
+    <button class="btn-ghost" id="btnFecharLembrete">Fechar</button>
+    <button class="btn-secondary" id="btnCopiarLembrete">Copiar Mensagem</button>
+    ${numeroWhats ? `<button class="btn-primary" id="btnEnviarWhatsapp">Enviar pelo WhatsApp</button>` : ""}
+  `;
+
+  window.abrirModal(`Lembrete — ${c.cliente || "Cliente"}`, body, footer);
+
+  document.getElementById("btnFecharLembrete").onclick = () => window.fecharModal();
+
+  document.getElementById("btnCopiarLembrete").onclick = () => {
+    const texto = document.getElementById("textoLembreteCotacao").value;
+    navigator.clipboard.writeText(texto).then(() => {
+      window.mostrarToast?.("Mensagem copiada!", "success");
+    }).catch(() => {
+      window.mostrarToast?.("Não foi possível copiar. Selecione o texto manualmente.", "error");
+    });
+  };
+
+  document.getElementById("btnEnviarWhatsapp")?.addEventListener("click", () => {
+    const texto = document.getElementById("textoLembreteCotacao").value;
+    const url = `https://wa.me/${numeroWhats}?text=${encodeURIComponent(texto)}`;
+    window.open(url, "_blank");
+    window.fecharModal();
+  });
 }
 
 // ================================================================
@@ -389,13 +475,14 @@ function coletarItens() {
 function coletarDadosCotacao() {
   const cliente  = document.getElementById("cotCliente").value.trim();
   const cnpj     = document.getElementById("cotCnpj").value.trim();
+  const telefone = document.getElementById("cotTelefone")?.value.trim() || "";
   const validade = document.getElementById("cotValidade").value;
   const obs      = document.getElementById("cotObs").value.trim();
   const status   = document.getElementById("cotStatus").value;
   const itens    = coletarItens();
   const valorTotal = itens.reduce((s, i) => s + i.valorTotal, 0);
 
-  return { cliente, cnpj, validade, observacoes: obs, status, itens, valorTotal, funcionario: nomeFuncionarioLogado() };
+  return { cliente, cnpj, telefone, validade, observacoes: obs, status, itens, valorTotal, funcionario: nomeFuncionarioLogado() };
 }
 
 // ================================================================
@@ -467,12 +554,13 @@ async function abrirCotacaoSomenteLeitura(id) {
   const tituloMobile = document.getElementById("titleFormCotacaoMobile");
   if (tituloMobile) tituloMobile.textContent = "Visualizar Cotação";
 
-  ["cotCliente","cotCnpj","cotValidade","cotStatus","cotObs"].forEach(campoId => {
+  ["cotCliente","cotCnpj","cotTelefone","cotValidade","cotStatus","cotObs"].forEach(campoId => {
     const el = document.getElementById(campoId);
     if (el) el.disabled = true;
   });
   document.getElementById("cotCliente").value  = c.cliente     || "";
   document.getElementById("cotCnpj").value     = c.cnpj        || "";
+  document.getElementById("cotTelefone").value = c.telefone    || "";
   document.getElementById("cotValidade").value = c.validade    || "";
   document.getElementById("cotObs").value      = c.observacoes || "";
   document.getElementById("cotStatus").value   = c.status      || "ativa";
@@ -498,7 +586,7 @@ async function abrirCotacaoSomenteLeitura(id) {
 function restaurarModoEdicao() {
   if (!_modoSomenteLeitura) return;
   _modoSomenteLeitura = false;
-  ["cotCliente","cotCnpj","cotValidade","cotStatus","cotObs"].forEach(campoId => {
+  ["cotCliente","cotCnpj","cotTelefone","cotValidade","cotStatus","cotObs"].forEach(campoId => {
     const el = document.getElementById(campoId);
     if (el) el.disabled = false;
   });
@@ -526,6 +614,7 @@ async function editarCotacaoById(id) {
   document.getElementById("titleFormCotacao").textContent  = "Editar Cotação";
   document.getElementById("cotCliente").value  = c.cliente    || "";
   document.getElementById("cotCnpj").value     = c.cnpj       || "";
+  document.getElementById("cotTelefone").value = c.telefone   || "";
   document.getElementById("cotValidade").value = c.validade   || "";
   document.getElementById("cotObs").value      = c.observacoes || "";
   document.getElementById("cotStatus").value   = c.status     || "ativa";
