@@ -103,6 +103,15 @@
   font-weight: 600;
 }
 
+/* 1ª coluna ocupa o espaço livre; as demais ficam compactas à direita */
+#caixaRelatorioConteudo table tr > *:first-child {
+  width: auto;
+}
+#caixaRelatorioConteudo table tr > *:not(:first-child) {
+  width: 1%;
+  white-space: nowrap;
+}
+
 
 .caixa-grid {
   display: grid;
