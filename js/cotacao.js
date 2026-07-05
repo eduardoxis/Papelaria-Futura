@@ -244,15 +244,16 @@ function precisaLembrete(c) {
 }
 
 // Monta a mensagem de lembrete com saudação de acordo com o horário atual
-function gerarMensagemLembrete(cliente) {
+function gerarMensagemLembrete() {
   const hora = new Date().getHours();
   let saudacao;
   if (hora >= 5 && hora < 12) saudacao = "Bom dia";
   else if (hora >= 12 && hora < 18) saudacao = "Boa tarde";
   else saudacao = "Boa noite";
 
-  const nomeCliente = cliente ? `, ${cliente}` : "";
-  return `Oi${nomeCliente}! ${saudacao}! Passando pra saber se restou alguma dúvida sobre a cotação que te enviamos. Ficamos à disposição para fechar quando for melhor pra você 😊`;
+  const nomeAtendente = nomeFuncionarioLogado();
+
+  return `Oi, tudo bem? ${saudacao}! Me chamo ${nomeAtendente}, sou o responsável pelo setor de cotações aqui da Papelaria Futura do Centro, e queria saber se restou alguma dúvida sobre a cotação que te enviamos. Ficamos à disposição para fechar quando for melhor pra você.`;
 }
 
 // Normaliza um número de telefone para o formato usado pelo link do WhatsApp
@@ -269,7 +270,7 @@ async function abrirLembreteCotacao(id) {
     return;
   }
   const c = { id, ...resultado.dados };
-  const mensagem = gerarMensagemLembrete(c.cliente);
+  const mensagem = gerarMensagemLembrete();
   const numeroWhats = _telefoneParaWhatsapp(c.telefone);
 
   const body = `
