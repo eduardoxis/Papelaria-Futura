@@ -766,7 +766,8 @@ function renderRelatorioDiaConteudo() {
     janela.document.write(`
       <html><head><title>Relatório de Vendas</title>
       <style>body{font-family:Arial,sans-serif;padding:24px;color:#111} table{width:100%;border-collapse:collapse;margin-top:12px}
-      th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:13px} th{background:#f3f4f6}</style>
+      th,td{border:1px solid #ddd;padding:10px 14px;text-align:left;font-size:13px} th{background:#f3f4f6}
+      table tr > *:first-child{width:auto} table tr > *:not(:first-child){width:1%;white-space:nowrap}</style>
       </head><body>${document.getElementById("vendasRelatorioConteudo").innerHTML}</body></html>
     `);
     janela.document.close();
