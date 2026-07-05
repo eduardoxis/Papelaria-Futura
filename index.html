@@ -1387,6 +1387,25 @@
       <!-- Painel: Vendas Realizadas (log por vendedor) -->
       <div class="admin-panel" id="adminPanelVendas">
       <div class="card">
+        <h3 class="card-section-title">Relatório por Dia</h3>
+        <p class="page-subtitle" style="margin: -8px 0 16px">Selecione um dia para ver o relatório de vendas — geral e por vendedor.</p>
+
+        <div class="filter-bar" style="align-items:center">
+          <input type="date" class="filter-input" id="inputDataRelatorioVendas" style="max-width:220px" autocomplete="off" />
+          <button class="btn-primary" id="btnGerarRelatorioDia">Ver Relatório</button>
+        </div>
+
+        <div id="vendasRelatorioDiaWrap" style="display:none;margin-top:18px">
+          <div class="caixa-relatorio-tabs" id="vendasRelatorioTabs"></div>
+          <div id="vendasRelatorioConteudo"></div>
+          <div style="display:flex;gap:10px;margin-top:16px">
+            <button class="btn-ghost" id="btnImprimirRelatorioDia">Imprimir</button>
+            <button class="btn-secondary" id="btnPdfRelatorioDia">Baixar PDF</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
         <h3 class="card-section-title">Vendas Realizadas</h3>
         <p class="page-subtitle" style="margin: -8px 0 16px">Acompanhe as vendas finalizadas no Caixa por cada vendedor.</p>
 
