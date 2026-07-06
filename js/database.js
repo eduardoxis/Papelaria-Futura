@@ -750,6 +750,9 @@ export async function listarRegistrosComissao(comissaoId) {
     const registros = snap.docs
       .map(d => ({ id: d.id, ...d.data() }))
       .sort((a, b) => {
+        // Prioriza o campo "ordem" (posição definida manualmente na planilha).
+        // Garante que a ordem das linhas não mude ao salvar/recarregar.
+        if (a.ordem !== undefined && b.ordem !== undefined) return a.ordem - b.ordem;
         if (a.data && b.data) return a.data.localeCompare(b.data);
         const da = a.dataCriacao?.toDate?.() || new Date(a.dataCriacao || 0);
         const db_ = b.dataCriacao?.toDate?.() || new Date(b.dataCriacao || 0);
