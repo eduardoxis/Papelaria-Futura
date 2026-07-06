@@ -219,8 +219,8 @@ function linhaCotacaoHtml(c) {
             Lembrete
           </button>` : ""}
         ${!diasParado && ultimoEnvioDias !== null ? `
-          <span class="lembrete-enviado-tag" title="Último lembrete enviado">
-            Lembrete enviado ${ultimoEnvioDias === 0 ? "hoje" : `há ${ultimoEnvioDias} dia${ultimoEnvioDias > 1 ? "s" : ""}`}
+          <span class="lembrete-enviado-tag" title="${escHtml(c.ultimoLembreteTipo || "Mensagem enviada")}">
+            ${escHtml(c.ultimoLembreteTipo || "Lembrete enviado")} ${ultimoEnvioDias === 0 ? "hoje" : `há ${ultimoEnvioDias} dia${ultimoEnvioDias > 1 ? "s" : ""}`}
           </span>` : ""}
       </td>
       <td class="td-actions-col col-center">
@@ -315,6 +315,13 @@ async function abrirLembreteCotacao(id) {
     <label class="field-label">Mensagem sugerida</label>
     <textarea class="field-input--plain field-textarea" id="textoLembreteCotacao" rows="5" style="width:100%">${escHtml(mensagem)}</textarea>
     ${!numeroWhats ? `<p style="color:#B45309;font-size:13px;margin-top:8px">Essa cotação não tem telefone cadastrado — copie a mensagem e envie manualmente, ou edite a cotação para adicionar o número.</p>` : ""}
+    <label class="field-label" style="margin-top:12px">Tipo de contato</label>
+    <select class="field-input--plain" id="tipoLembreteCotacao" style="width:100%">
+      <option value="Mensagem enviada">Mensagem enviada</option>
+      <option value="Conversei com o cliente">Conversei com o cliente</option>
+      <option value="Cliente confirmou (OK)">Cliente confirmou (OK)</option>
+      <option value="Sem retorno">Sem retorno</option>
+    </select>
   `;
 
   const footer = `
@@ -329,9 +336,10 @@ async function abrirLembreteCotacao(id) {
 
   document.getElementById("btnCopiarLembrete").onclick = () => {
     const texto = document.getElementById("textoLembreteCotacao").value;
+    const tipo = document.getElementById("tipoLembreteCotacao")?.value;
     navigator.clipboard.writeText(texto).then(async () => {
       window.mostrarToast?.("Mensagem copiada!", "success");
-      await marcarLembreteEnviado(id);
+      await marcarLembreteEnviado(id, tipo);
       carregarListaCotacoes(document.getElementById("filtroBusca")?.value.trim() || "");
     }).catch(() => {
       window.mostrarToast?.("Não foi possível copiar. Selecione o texto manualmente.", "error");
@@ -340,10 +348,11 @@ async function abrirLembreteCotacao(id) {
 
   document.getElementById("btnEnviarWhatsapp")?.addEventListener("click", async () => {
     const texto = document.getElementById("textoLembreteCotacao").value;
+    const tipo = document.getElementById("tipoLembreteCotacao")?.value;
     const url = `https://wa.me/${numeroWhats}?text=${encodeURIComponent(texto)}`;
     window.open(url, "_blank");
     window.fecharModal();
-    await marcarLembreteEnviado(id);
+    await marcarLembreteEnviado(id, tipo);
     carregarListaCotacoes(document.getElementById("filtroBusca")?.value.trim() || "");
   });
 }
