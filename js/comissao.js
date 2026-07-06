@@ -617,8 +617,8 @@ async function salvarTodosRegistros() {
   btn.disabled = true; btn.textContent = "Salvando...";
 
   const promises = [];
-  linhas.forEach(tr => {
-    const dados      = coletarDadosLinha(tr);
+  linhas.forEach((tr, i) => {
+    const dados      = coletarDadosLinha(tr, i);
     const registroId = tr.dataset.registroId;
     if (registroId) {
       promises.push(atualizarRegistroComissao(_comissaoAtual.id, registroId, dados).then(res => ({ res, tr, tipo: "update" })));
@@ -644,7 +644,7 @@ async function salvarTodosRegistros() {
   }
 }
 
-function coletarDadosLinha(tr) {
+function coletarDadosLinha(tr, ordem) {
   const get = campo => tr.querySelector(`[data-campo="${campo}"]`);
   return {
     cliente:   get("cliente")?.value.trim() || "",
@@ -653,7 +653,8 @@ function coletarDadosLinha(tr) {
     valor:     parsearMoeda(get("valor")?.value),
     data:      get("data")?.value || "",
     categoria: get("categoria")?.value || "",
-    fotos:     _fotosPorLinha.get(tr) || []
+    fotos:     _fotosPorLinha.get(tr) || [],
+    ordem:     ordem
   };
 }
 
