@@ -287,6 +287,19 @@ async function carregarDashboardProm() {
     if (el("dashIndTicket"))       el("dashIndTicket").textContent       = formatarMoeda(ticketMedio);
     if (el("dashIndInadimplencia")) el("dashIndInadimplencia").textContent = inadimplencia.toFixed(1) + "%";
 
+    // ── Comparativo Mês Atual x Mês Anterior ───────────────────
+    const mesAtualRef = { ano: hoje.getFullYear(), mes: hoje.getMonth() };
+    const dataAnterior = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+    const mesAnteriorRef = { ano: dataAnterior.getFullYear(), mes: dataAnterior.getMonth() };
+
+    const vendidoMesAtual     = _somaPorMes(compras, "dataCompra", mesAtualRef);
+    const vendidoMesAnterior  = _somaPorMes(compras, "dataCompra", mesAnteriorRef);
+    const recebidoMesAtual    = _somaPorMes(pagamentos, "dataPagamento", mesAtualRef);
+    const recebidoMesAnterior = _somaPorMes(pagamentos, "dataPagamento", mesAnteriorRef);
+
+    _definirComparativo("dashCompVendido", vendidoMesAtual, vendidoMesAnterior);
+    _definirComparativo("dashCompRecebido", recebidoMesAtual, recebidoMesAnterior);
+
     // ── Gráfico 1: Vendas x Recebimentos (últimos 6 meses) ─────
     const meses6 = _ultimosMeses(6);
     const vendasPorMes6 = meses6.map(m => _somaPorMes(compras, "dataCompra", m));
@@ -396,10 +409,182 @@ async function carregarDashboardProm() {
       })
     });
 
+    // ── Gráfico 6: Aging de Inadimplência (dias em atraso) ──────
+    // Agrupa o valor das compras vencidas (de clientes com saldo em
+    // aberto) por faixa de atraso — o clássico "aging de recebíveis".
+    const faixasAging = [
+      { label: "1–30 dias",  min: 1,   max: 30 },
+      { label: "31–60 dias", min: 31,  max: 60 },
+      { label: "61–90 dias", min: 61,  max: 90 },
+      { label: "90+ dias",   min: 91,  max: Infinity }
+    ];
+    const valoresAging = faixasAging.map(() => 0);
+
+    compras.forEach(c => {
+      const saldoCli = saldoPorCliente[c.clienteId];
+      if (!saldoCli || (saldoCli.compras - saldoCli.pagamentos) <= 0) return; // cliente já quitado
+      if (!c.vencimento) return;
+      const venc = c.vencimento.toDate?.() || new Date(c.vencimento);
+      const diasAtraso = Math.floor((hoje - venc) / 86400000);
+      if (diasAtraso <= 0) return; // ainda não venceu
+      const idxFaixa = faixasAging.findIndex(f => diasAtraso >= f.min && diasAtraso <= f.max);
+      if (idxFaixa >= 0) valoresAging[idxFaixa] += (c.valor || 0);
+    });
+
+    _destruirChart("chartAging");
+    _promCharts.chartAging = new Chart(el("chartAging"), {
+      type: "bar",
+      data: {
+        labels: faixasAging.map(f => f.label),
+        datasets: [{
+          label: "Valor em Atraso",
+          data: valoresAging,
+          backgroundColor: [PROM_CORES.amarelo, PROM_CORES.laranja, PROM_CORES.vermelho, "#991B1B"],
+          borderRadius: 4
+        }]
+      },
+      options: _opcoesBase({
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { callback: v => formatarMoeda(v) } } }
+      })
+    });
+
+    // ── Gráfico 7: Previsão de Recebimentos (vencimentos futuros) ──
+    // Ajuda no planejamento de caixa: quanto está previsto pra
+    // entrar nos próximos dias, agrupado por janela de vencimento.
+    const faixasFuturo = [
+      { label: "Próx. 7 dias",   min: 0,  max: 7 },
+      { label: "8–15 dias",      min: 8,  max: 15 },
+      { label: "16–30 dias",     min: 16, max: 30 },
+      { label: "31–60 dias",     min: 31, max: 60 },
+      { label: "60+ dias",       min: 61, max: Infinity }
+    ];
+    const valoresFuturo = faixasFuturo.map(() => 0);
+
+    compras.forEach(c => {
+      const saldoCli = saldoPorCliente[c.clienteId];
+      if (!saldoCli || (saldoCli.compras - saldoCli.pagamentos) <= 0) return;
+      if (!c.vencimento) return;
+      const venc = c.vencimento.toDate?.() || new Date(c.vencimento);
+      const diasRestantes = Math.ceil((venc - hoje) / 86400000);
+      if (diasRestantes < 0) return; // já vencido (entra no aging acima)
+      const idxFaixa = faixasFuturo.findIndex(f => diasRestantes >= f.min && diasRestantes <= f.max);
+      if (idxFaixa >= 0) valoresFuturo[idxFaixa] += (c.valor || 0);
+    });
+
+    _destruirChart("chartVencimentosFuturos");
+    _promCharts.chartVencimentosFuturos = new Chart(el("chartVencimentosFuturos"), {
+      type: "bar",
+      data: {
+        labels: faixasFuturo.map(f => f.label),
+        datasets: [{
+          label: "Previsto a Receber",
+          data: valoresFuturo,
+          backgroundColor: PROM_CORES.verde,
+          borderRadius: 4
+        }]
+      },
+      options: _opcoesBase({
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { callback: v => formatarMoeda(v) } } }
+      })
+    });
+
+    // ── Gráfico 8: Novos Clientes por Mês (últimos 12 meses) ────
+    const novosClientesPorMes12 = meses12.map(m => _contagemPorMes(clientes, "criadoEm", m));
+
+    _destruirChart("chartNovosClientes");
+    _promCharts.chartNovosClientes = new Chart(el("chartNovosClientes"), {
+      type: "bar",
+      data: {
+        labels: meses12.map(m => m.label),
+        datasets: [{
+          label: "Novos Clientes",
+          data: novosClientesPorMes12,
+          backgroundColor: PROM_CORES.roxo,
+          borderRadius: 4
+        }]
+      },
+      options: _opcoesBase({
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+      })
+    });
+
+    // ── Gráfico 9: Ranking de Atraso — Top 10 clientes ──────────
+    // Quem está inadimplente há mais tempo (dias desde o vencimento
+    // mais antigo em aberto), não só quem deve mais.
+    const vencimentoMaisAntigoPorCliente = {};
+    compras.forEach(c => {
+      const saldoCli = saldoPorCliente[c.clienteId];
+      if (!saldoCli || (saldoCli.compras - saldoCli.pagamentos) <= 0) return;
+      if (!c.vencimento) return;
+      const venc = c.vencimento.toDate?.() || new Date(c.vencimento);
+      if (venc >= hoje) return; // só compras já vencidas
+      if (!vencimentoMaisAntigoPorCliente[c.clienteId] || venc < vencimentoMaisAntigoPorCliente[c.clienteId]) {
+        vencimentoMaisAntigoPorCliente[c.clienteId] = venc;
+      }
+    });
+
+    const rankingAtraso = Object.entries(vencimentoMaisAntigoPorCliente)
+      .map(([id, venc]) => ({
+        nome: nomePorId[id] || "—",
+        dias: Math.floor((hoje - venc) / 86400000)
+      }))
+      .sort((a, b) => b.dias - a.dias)
+      .slice(0, 10);
+
+    _destruirChart("chartRankingAtraso");
+    _promCharts.chartRankingAtraso = new Chart(el("chartRankingAtraso"), {
+      type: "bar",
+      data: {
+        labels: rankingAtraso.map(r => r.nome),
+        datasets: [{
+          label: "Dias em Atraso",
+          data: rankingAtraso.map(r => r.dias),
+          backgroundColor: PROM_CORES.laranja,
+          borderRadius: 4
+        }]
+      },
+      options: _opcoesBase({
+        indexAxis: "y",
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: (ctx) => `${ctx.raw} dias em atraso` } }
+        },
+        scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
+      })
+    });
+
   } catch (err) {
     console.error("Erro ao carregar dashboard:", err);
     window.mostrarToast?.("Erro ao carregar dashboard.", "error");
   }
+}
+
+// Preenche um par valor+variação percentual (mês atual x mês anterior)
+function _definirComparativo(idPrefix, atual, anterior) {
+  const elValor = document.getElementById(`${idPrefix}Valor`);
+  const elDelta = document.getElementById(`${idPrefix}Delta`);
+  if (elValor) elValor.textContent = formatarMoeda(atual);
+  if (!elDelta) return;
+
+  if (anterior <= 0) {
+    if (atual > 0) {
+      elDelta.textContent = "Novo mês de movimento";
+      elDelta.className = "prom-delta prom-delta--up";
+    } else {
+      elDelta.textContent = "Sem dados no período";
+      elDelta.className = "prom-delta prom-delta--neutro";
+    }
+    return;
+  }
+
+  const variacao = ((atual - anterior) / anterior) * 100;
+  const seta = variacao > 0 ? "▲" : variacao < 0 ? "▼" : "—";
+  const classe = variacao > 0 ? "prom-delta--up" : variacao < 0 ? "prom-delta--down" : "prom-delta--neutro";
+  elDelta.textContent = `${seta} ${Math.abs(variacao).toFixed(1)}% vs mês anterior`;
+  elDelta.className = `prom-delta ${classe}`;
 }
 
 // Opções padrão dos gráficos (visual clean, estilo Power BI)
