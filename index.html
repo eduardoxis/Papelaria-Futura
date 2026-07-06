@@ -1738,9 +1738,10 @@
     // Dados do usuário no sidebar
     const nome   = dadosUsuario?.nome   || usuario.email.split("@")[0];
     const isAdmin = temCargo(dadosUsuario, "admin");
+    const isVendedor = temCargo(dadosUsuario, "vendedor");
 
     document.getElementById("userName").textContent  = nome;
-    document.getElementById("userRole").textContent  = isAdmin ? "Administrador" : "Usuário";
+    document.getElementById("userRole").textContent  = isAdmin ? "Administrador" : (isVendedor ? "Vendedor" : "Usuário");
     document.getElementById("userAvatar").textContent = nome.charAt(0).toUpperCase();
 
     // Saudação dinâmica
