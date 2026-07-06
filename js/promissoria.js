@@ -72,6 +72,12 @@ export function iniciarPromissoria(usuario, dadosUsuario) {
     carregarListaClientes();
   });
 
+  // Seta de voltar no header mobile (mesmo comportamento do botão "Voltar à lista")
+  document.getElementById("btnVoltarPromMobile")?.addEventListener("click", () => {
+    mostrarPainel("lista");
+    carregarListaClientes();
+  });
+
   // Event delegation na tabela de clientes
   document.getElementById("tbodyClientesProm")?.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-action]");
@@ -114,6 +120,9 @@ function mostrarPainel(painel) {
   document.getElementById("painelListaClientesProm").hidden   = painel !== "lista";
   document.getElementById("painelDetalhesClienteProm").hidden = painel !== "detalhes";
   document.getElementById("painelDashboardProm").hidden       = painel !== "dashboard";
+
+  const btnVoltarMobile = document.getElementById("btnVoltarPromMobile");
+  if (btnVoltarMobile) btnVoltarMobile.hidden = painel !== "detalhes";
 }
 
 // ── Abas Clientes / Dashboard ─────────────────────────────────
