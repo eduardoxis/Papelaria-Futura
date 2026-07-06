@@ -77,18 +77,53 @@ export async function gerarPDF(cotacao) {
       }
     }
 
-    // ── Ícone pino localização ─────────────────────────────
+    // ── Gradiente radial pra dar efeito "esfera" nos ícones ──
+    function gradCircle(cx, cy, r, cEdge, cCenter) {
+      const steps = 16;
+      for (let i = steps; i >= 0; i--) {
+        const t = i / steps;
+        const rad = r * (i / steps);
+        const col = [
+          Math.round(cCenter[0] + (cEdge[0] - cCenter[0]) * t),
+          Math.round(cCenter[1] + (cEdge[1] - cCenter[1]) * t),
+          Math.round(cCenter[2] + (cEdge[2] - cCenter[2]) * t)
+        ];
+        fill(col);
+        doc.circle(cx, cy, Math.max(rad, 0.01), "F");
+      }
+    }
+
+    // ── Sombra suave sob o ícone (dá sensação de profundidade) ──
+    function iconShadow(cx, cy, r) {
+      doc.setGState(doc.GState({ opacity: 0.16 }));
+      fill([0, 20, 60]);
+      doc.circle(cx + 0.4, cy + 0.9, r * 0.96, "F");
+      doc.setGState(doc.GState({ opacity: 1 }));
+    }
+
+    // ── Ícone pino localização (formato de gota, como no mapa) ──
     function drawPin(x, y, r) {
-      fill(C.azulMedio);
-      doc.circle(x, y, r, "F");
+      iconShadow(x, y, r);
+      const topCy = y - r * 0.18;
+      // corpo da gota: círculo em cima + ponta triangular embaixo
+      fill(C.azulClaro);
+      doc.circle(x, topCy, r, "F");
+      doc.triangle(
+        x - r * 0.82, topCy + r * 0.42,
+        x + r * 0.82, topCy + r * 0.42,
+        x, y + r * 1.15,
+        "F"
+      );
+      gradCircle(x, topCy, r, C.azulMedio, C.azulClaro);
+      // furo branco central
       fill(C.branco);
-      doc.circle(x, y + r * 0.5, r * 0.35, "F");
+      doc.circle(x, topCy, r * 0.42, "F");
     }
 
     // ── Ícone pessoa ───────────────────────────────────────
     function drawPerson(cx, cy, r) {
-      fill(C.azulMedio);
-      doc.circle(cx, cy, r, "F");
+      iconShadow(cx, cy, r);
+      gradCircle(cx, cy, r, C.azulMedio, C.azulClaro);
       fill(C.branco);
       doc.circle(cx, cy - r*0.22, r*0.33, "F");
       doc.ellipse(cx, cy + r*0.5, r*0.42, r*0.3, "F");
@@ -113,24 +148,39 @@ export async function gerarPDF(cotacao) {
 
     // ── Ícone carrinho ─────────────────────────────────────
     function drawCart(cx, cy, r) {
-      fill(C.azulMedio);
-      doc.circle(cx, cy, r, "F");
-      draw(C.branco);
-      doc.setLineWidth(0.7);
+      iconShadow(cx, cy, r);
+      gradCircle(cx, cy, r, C.azulMedio, C.azulClaro);
+
+      // cesto do carrinho (trapézio preenchido)
       fill(C.branco);
-      doc.triangle(cx-r*0.55, cy-r*0.15, cx+r*0.55, cy-r*0.15, cx+r*0.4, cy+r*0.35, "F");
-      doc.setLineWidth(0.3);
-      doc.circle(cx-r*0.2, cy+r*0.52, r*0.14, "F");
-      doc.circle(cx+r*0.3, cy+r*0.52, r*0.14, "F");
+      doc.lines(
+        [
+          [r*1.0, 0],
+          [-r*0.18, r*0.5],
+          [-r*0.64, 0]
+        ],
+        cx - r*0.5, cy - r*0.15,
+        [1, 1], "F", true
+      );
+      // divisórias do cesto (detalhe)
+      draw(C.azulClaro);
+      doc.setLineWidth(0.35);
+      doc.line(cx - r*0.18, cy - r*0.15, cx - r*0.24, cy + r*0.32);
+      doc.line(cx + r*0.18, cy - r*0.15, cx + r*0.12, cy + r*0.32);
+      // rodas
+      fill(C.branco);
+      doc.circle(cx - r*0.2, cy + r*0.62, r*0.15, "F");
+      doc.circle(cx + r*0.28, cy + r*0.62, r*0.15, "F");
+      // alça
       doc.setDrawColor(255,255,255);
-      doc.setLineWidth(0.7);
-      doc.line(cx-r*0.7, cy-r*0.5, cx-r*0.55, cy-r*0.15);
+      doc.setLineWidth(0.8);
+      doc.line(cx - r*0.75, cy - r*0.55, cx - r*0.5, cy - r*0.15);
     }
 
     // ── Ícone check ────────────────────────────────────────
     function drawCheck(cx, cy, r) {
-      fill(C.verde);
-      doc.circle(cx, cy, r, "F");
+      iconShadow(cx, cy, r);
+      gradCircle(cx, cy, r, [10, 130, 60], [34, 197, 110]);
       doc.setDrawColor(255,255,255);
       doc.setLineWidth(0.9);
       doc.line(cx-r*0.4, cy, cx-r*0.05, cy+r*0.4);
