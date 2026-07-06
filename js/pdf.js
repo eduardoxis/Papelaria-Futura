@@ -31,6 +31,7 @@ export async function gerarPDF(cotacao) {
       azulMedio  : [0,  45, 148],
       azulClaro  : [0,  56, 184],
       azulTH     : [21,  82, 181],
+      verde      : [16, 163, 74],
       branco     : [255, 255, 255],
       cinzaLinha : [220, 228, 240],
       cinzaFundo : [247, 249, 252],
@@ -128,7 +129,7 @@ export async function gerarPDF(cotacao) {
 
     // ── Ícone check ────────────────────────────────────────
     function drawCheck(cx, cy, r) {
-      fill(C.azulMedio);
+      fill(C.verde);
       doc.circle(cx, cy, r, "F");
       doc.setDrawColor(255,255,255);
       doc.setLineWidth(0.9);
@@ -270,20 +271,20 @@ export async function gerarPDF(cotacao) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(6.5);
     rgb(C.azulMedio);
-    doc.text("EMISSÃO", CX2 + 14, Y + 7);
+    doc.text("EMISSÃO", CX2 + 14, Y + 6.5);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     rgb(C.pretoTexto);
-    doc.text(dataEmissao, CX2 + 14, Y + 14);
+    doc.text(dataEmissao, CX2 + 14, Y + 12.5);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(6.5);
     rgb(C.azulMedio);
-    doc.text("VALIDADE", CX2 + 14, Y + 20);
+    doc.text("VALIDADE", CX2 + 14, Y + 18.5);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     rgb(C.pretoTexto);
-    doc.text(validadeTexto, CX2 + 14, Y + 26);
+    doc.text(validadeTexto, CX2 + 14, Y + 24);
 
     Y += CARD_H + 8;
 
