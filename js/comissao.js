@@ -49,6 +49,11 @@ export function iniciarComissao(usuario, dadosUsuario) {
   document.getElementById("btnAplicarFiltro")?.addEventListener("click", aplicarFiltro);
   document.getElementById("btnLimparFiltro")?.addEventListener("click", limparFiltro);
 
+  // Delegação de clique nos cards da lista — registrado uma única vez para
+  // evitar handlers duplicados (bug: cada recarregamento da lista adicionava
+  // um novo listener no mesmo container, acumulando cliques/travamentos).
+  document.getElementById("comissaoCards")?.addEventListener("click", onCardClick);
+
   document.addEventListener("keydown", (e) => {
     const ctrlZ = (e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z";
     if (!ctrlZ) return;
@@ -130,9 +135,27 @@ async function carregarListaComissoes() {
   const container = document.getElementById("comissaoCards");
   container.innerHTML = `<p class="loading-cell">Carregando...</p>`;
 
-  const resultado = await listarComissoes();
+  // Timeout de segurança: em alguns navegadores mobile (Safari em especial),
+  // a conexão do Firestore pode ficar "presa" depois que o app volta do
+  // background, fazendo a Promise nunca resolver e a tela travar em
+  // "Carregando..." para sempre. Se isso acontecer, mostramos um erro com
+  // botão de tentar novamente em vez de travar a interface.
+  const timeoutPromise = new Promise(resolve =>
+    setTimeout(() => resolve({ sucesso: false, erro: "tempo-esgotado" }), 12000)
+  );
+
+  const resultado = await Promise.race([listarComissoes(), timeoutPromise]);
+
   if (!resultado.sucesso) {
-    container.innerHTML = `<p class="empty-cell">Erro ao carregar planilhas: ${resultado.erro}</p>`;
+    const msg = resultado.erro === "tempo-esgotado"
+      ? "A conexão demorou demais para responder."
+      : `Erro ao carregar planilhas: ${resultado.erro}`;
+    container.innerHTML = `
+      <div class="comissao-empty">
+        <p>${msg}</p>
+        <button class="btn-secondary" id="btnRetryComissoes">Tentar novamente</button>
+      </div>`;
+    document.getElementById("btnRetryComissoes")?.addEventListener("click", carregarListaComissoes);
     return;
   }
 
@@ -195,8 +218,6 @@ async function carregarListaComissoes() {
       </div>
     </div>
   `).join("");
-
-  container.addEventListener("click", onCardClick);
 }
 
 function onCardClick(e) {
@@ -229,9 +250,15 @@ async function carregarRegistros(comissaoId) {
   tbody.innerHTML = `<tr><td colspan="8" class="loading-cell">Carregando...</td></tr>`;
   _contadorLinhas = 0;
 
-  const resultado = await listarRegistrosComissao(comissaoId);
+  const timeoutPromise = new Promise(resolve =>
+    setTimeout(() => resolve({ sucesso: false, erro: "tempo-esgotado" }), 12000)
+  );
+  const resultado = await Promise.race([listarRegistrosComissao(comissaoId), timeoutPromise]);
+
   if (!resultado.sucesso) {
-    tbody.innerHTML = `<tr><td colspan="8" class="empty-cell">Erro ao carregar registros.</td></tr>`;
+    const msg = resultado.erro === "tempo-esgotado" ? "A conexão demorou demais para responder." : "Erro ao carregar registros.";
+    tbody.innerHTML = `<tr><td colspan="8" class="empty-cell">${msg} <button class="btn-secondary" id="btnRetryRegistros" style="margin-left:8px">Tentar novamente</button></td></tr>`;
+    document.getElementById("btnRetryRegistros")?.addEventListener("click", () => carregarRegistros(comissaoId));
     return;
   }
 
