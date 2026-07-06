@@ -318,6 +318,21 @@
     flex: 1;
   }
 
+  .mobile-page-header .btn-icon {
+    color: var(--white);
+    background: rgba(255,255,255,0.12);
+    flex-shrink: 0;
+  }
+
+  .mobile-page-header .btn-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .mobile-page-header .btn-icon:active {
+    transform: scale(0.94);
+  }
+
   /* Esconde page-header padrão em outras páginas no mobile */
   #page-cotacoes .page-header,
   #page-nova-cotacao .page-header,
