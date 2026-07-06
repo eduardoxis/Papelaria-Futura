@@ -614,10 +614,12 @@ export async function salvarConfigLembreteCotacao(dias) {
 }
 
 // Registra que um lembrete foi enviado para a cotação (evita reenvio sem perceber)
-export async function marcarLembreteEnviado(cotacaoId) {
+// `tipo` identifica o tipo de contato feito (ex: "Mensagem enviada", "Conversei com o cliente")
+export async function marcarLembreteEnviado(cotacaoId, tipo) {
   try {
     await updateDoc(doc(db, COLECAO_COTACOES, cotacaoId), {
-      ultimoLembreteEm: serverTimestamp()
+      ultimoLembreteEm: serverTimestamp(),
+      ultimoLembreteTipo: tipo || "Mensagem enviada"
     });
     return { sucesso: true };
   } catch (erro) {
