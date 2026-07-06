@@ -328,6 +328,7 @@ async function abrirLembreteCotacao(id) {
     <button class="btn-ghost" id="btnFecharLembrete">Fechar</button>
     <button class="btn-secondary" id="btnCopiarLembrete">Copiar Mensagem</button>
     ${numeroWhats ? `<button class="btn-primary" id="btnEnviarWhatsapp">Enviar pelo WhatsApp</button>` : ""}
+    <button class="btn-primary" id="btnConfirmarTipoLembrete">Confirmar</button>
   `;
 
   window.abrirModal(`Lembrete — ${c.cliente || "Cliente"}`, body, footer);
@@ -355,6 +356,14 @@ async function abrirLembreteCotacao(id) {
     await marcarLembreteEnviado(id, tipo);
     carregarListaCotacoes(document.getElementById("filtroBusca")?.value.trim() || "");
   });
+
+  document.getElementById("btnConfirmarTipoLembrete").onclick = async () => {
+    const tipo = document.getElementById("tipoLembreteCotacao")?.value;
+    await marcarLembreteEnviado(id, tipo);
+    window.mostrarToast?.("Lembrete atualizado!", "success");
+    window.fecharModal();
+    carregarListaCotacoes(document.getElementById("filtroBusca")?.value.trim() || "");
+  };
 }
 
 // ================================================================
