@@ -12,7 +12,7 @@ service cloud.firestore {
       return estaAutenticado() && request.auth.uid == uid;
     }
     match /usuarios/{uid} {
-      allow read: if ehDono(uid) || ehAdmin();
+      allow read: if estaAutenticado();
       allow create: if estaAutenticado() && request.auth.uid == uid;
       allow update: if ehDono(uid) || ehAdmin();
       allow delete: if ehAdmin();
@@ -57,6 +57,12 @@ service cloud.firestore {
     }
     match /pf_custo_historico/{histId} {
       allow read: if ehAdmin();
+      allow create, update, delete: if ehAdmin();
+    }
+    // ── Serviços Personalizados — cadastro admin, leitura liberada
+    //     pro Caixa (PDV) buscar/adicionar na venda ───────────────
+    match /pf_servicos/{servicoId} {
+      allow read: if estaAutenticado();
       allow create, update, delete: if ehAdmin();
     }
     // ── Caixa (PDV) — vendas ────────────────────────────────────
