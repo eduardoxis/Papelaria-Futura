@@ -493,7 +493,7 @@ export async function gerarPDF(cotacao) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(170, 205, 255);
-    doc.text("futurapapelaria", PW/2, ROD_Y + 11, { align:"center" });
+    doc.text("@futurapapelaria", PW/2, ROD_Y + 11, { align:"center" });
 
     // WhatsApp
     doc.text("(61) 99918-4452", PW/6*5, ROD_Y + 11, { align:"center" });
