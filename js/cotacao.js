@@ -396,7 +396,7 @@ function definirValidadePadrao() {
   const validade = document.getElementById("cotValidade");
   if (!validade) return;
   const data = new Date();
-  data.setDate(data.getDate() + 7);
+  data.setDate(data.getDate() + 30);
   validade.value = data.toISOString().split("T")[0];
 }
 
