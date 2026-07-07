@@ -762,7 +762,7 @@ function renderTabelaComissaoCriador(termoBusca = "") {
     : _todasCotacoesAprovadasCache;
 
   if (cotacoes.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty-cell">Nenhuma cotação aprovada encontrada.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-cell">Nenhuma cotação aprovada encontrada.</td></tr>`;
     return;
   }
 
@@ -777,30 +777,31 @@ function linhaComissaoCriadorHtml(c) {
 
   return `
     <tr>
-      <td><strong>${escHtml(c.cliente || "—")}</strong></td>
+      <td><strong class="truncate-cell" title="${escHtml(c.cliente || "—")}">${escHtml(c.cliente || "—")}</strong></td>
       <td>${formatarData(c.dataCriacao)}</td>
       <td class="col-right">${formatarMoeda(c.valorTotal || 0)}</td>
       <td class="col-center">
-        <span class="role-badge ${pagoLoja ? "role-badge--vendedor" : "role-badge--user"}">
-          ${pagoLoja ? "Paga" : "Pendente"}
-        </span>
-        <br/>
-        <button class="btn-action ${pagoLoja ? "btn-action--edit" : "btn-action--view"}" style="margin-top:4px"
-          data-action="alternar-pago-loja" data-id="${escHtml(c.id)}" data-pago="${!pagoLoja}">
-          ${pagoLoja ? "Marcar pendente" : "Marcar paga"}
-        </button>
+        <div class="status-inline">
+          <span class="role-badge ${pagoLoja ? "role-badge--vendedor" : "role-badge--user"}">
+            ${pagoLoja ? "Paga" : "Pendente"}
+          </span>
+          <button class="btn-action ${pagoLoja ? "btn-action--edit" : "btn-action--view"}"
+            data-action="alternar-pago-loja" data-id="${escHtml(c.id)}" data-pago="${!pagoLoja}">
+            ${pagoLoja ? "Marcar pendente" : "Marcar paga"}
+          </button>
+        </div>
       </td>
       <td class="col-right"><strong>${formatarMoeda(comissao)}</strong></td>
       <td class="col-center">
-        <span class="role-badge ${paga ? "role-badge--vendedor" : "role-badge--user"}">
-          ${paga ? "Paga" : "Pendente"}
-        </span>
-      </td>
-      <td class="col-right">
-        <button class="btn-action ${paga ? "btn-action--edit" : "btn-action--view"}"
-          data-action="alternar-pagamento" data-id="${escHtml(c.id)}" data-pago="${!paga}">
-          ${paga ? "Marcar pendente" : "Marcar paga"}
-        </button>
+        <div class="status-inline">
+          <span class="role-badge ${paga ? "role-badge--vendedor" : "role-badge--user"}">
+            ${paga ? "Paga" : "Pendente"}
+          </span>
+          <button class="btn-action ${paga ? "btn-action--edit" : "btn-action--view"}"
+            data-action="alternar-pagamento" data-id="${escHtml(c.id)}" data-pago="${!paga}">
+            ${paga ? "Marcar pendente" : "Marcar paga"}
+          </button>
+        </div>
       </td>
     </tr>`;
 }
