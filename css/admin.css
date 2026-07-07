@@ -489,9 +489,24 @@ body {
 }
 
 /* ----------------------------------------------------------------
-   Card container
+   Comissão por Cotação Ganhada — status + ação lado a lado
    ---------------------------------------------------------------- */
-.card {
+.status-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: nowrap;
+  justify-content: center;
+}
+
+.truncate-cell {
+  display: inline-block;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
   background: var(--white);
   border-radius: var(--radius-lg);
   border: 1px solid var(--gray-100);
