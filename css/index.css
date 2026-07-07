@@ -301,6 +301,16 @@ body {
   flex-wrap: wrap;
 }
 
+.page-title-com-voltar {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+.page-title-com-voltar .btn-icon {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
 .page-title {
   font-family: var(--font-display);
   font-size: var(--text-2xl);
