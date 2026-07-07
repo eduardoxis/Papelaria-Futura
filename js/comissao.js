@@ -7,7 +7,7 @@ import {
   excluirComissao, verificarSenhaComissao,
   adicionarRegistroComissao, listarRegistrosComissao,
   atualizarRegistroComissao, excluirRegistroComissao,
-  formatarMoeda, formatarData
+  formatarMoeda, formatarData, listarUsuarios
 } from "./database.js";
 
 const CATEGORIAS = ["Dinheiro", "Débito", "Crédito", "Pix celular", "Pix maquininha", "Convênio"];
@@ -160,6 +160,25 @@ async function carregarListaComissoes() {
   }
 
   const { comissoes } = resultado;
+
+  // Fallback para planilhas antigas: se faltar o nome do criador mas existir
+  // o uid (criadoPor), busca o nome na coleção de usuários. Feito com
+  // try/catch e de forma silenciosa — se o usuário logado não tiver
+  // permissão para listar todos os usuários, apenas mantém "—".
+  const precisamDeNome = comissoes.filter(c => !c.criadoPorNome && c.criadoPor);
+  if (precisamDeNome.length) {
+    try {
+      const resUsuarios = await listarUsuarios();
+      if (resUsuarios.sucesso) {
+        const mapaNomes = new Map(resUsuarios.usuarios.map(u => [u.id, u.nome]));
+        precisamDeNome.forEach(c => {
+          const nome = mapaNomes.get(c.criadoPor);
+          if (nome) c.criadoPorNome = nome;
+        });
+      }
+    } catch { /* sem permissão ou offline — mantém "—" */ }
+  }
+
   if (comissoes.length === 0) {
     container.innerHTML = `
       <div class="comissao-empty">
