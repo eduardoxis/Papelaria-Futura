@@ -1825,6 +1825,12 @@
 
       document.getElementById("topbarTitle").textContent = titles[pageId] || pageId;
 
+      // Botões "Ocultar valores" e "Nova Cotação" só aparecem nas
+      // páginas de Cotações (lista e nova/editar/visualizar cotação).
+      const exibirBotoesCotacao = pageId === "cotacoes" || pageId === "nova-cotacao";
+      document.getElementById("btnToggleValores").hidden   = !exibirBotoesCotacao;
+      document.getElementById("btnNovaCotacaoTop").hidden  = !exibirBotoesCotacao;
+
       // Fechar sidebar no mobile
       fecharSidebar();
 
