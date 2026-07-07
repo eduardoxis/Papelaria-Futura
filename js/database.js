@@ -584,6 +584,21 @@ export async function marcarComissaoCriadorPaga(cotacaoId, paga) {
   }
 }
 
+// Status de pagamento da cotação PARA A LOJA (o cliente pagou o pedido?)
+// — independente do status de pagamento da comissão do criador.
+export async function marcarCotacaoPagaLoja(cotacaoId, paga) {
+  try {
+    await updateDoc(doc(db, COLECAO_COTACOES, cotacaoId), {
+      pagoLoja: !!paga,
+      pagoLojaEm: paga ? serverTimestamp() : null
+    });
+    return { sucesso: true };
+  } catch (erro) {
+    console.error("Erro ao atualizar status de pagamento da cotação:", erro);
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
 // ================================================================
 // LEMBRETE DE COTAÇÕES (follow-up com o cliente)
 // ================================================================
