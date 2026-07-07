@@ -758,50 +758,53 @@ async function gerarPDFComissao(id) {
   const registros = regs.registros || [];
   const total     = registros.reduce((s, r) => s + (Number(r.valor) || 0), 0);
 
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
+  const pageW = doc.internal.pageSize.getWidth();
+
+  doc.setFillColor(30, 58, 95);
+  doc.rect(0, 0, pageW, 20, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(15);
+  doc.text(comissao.titulo || "Comissão", 12, 12);
+
+  doc.setTextColor(60, 60, 60);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  if (comissao.descricao) doc.text(comissao.descricao, 12, 27);
+
   const linhas = registros.map((r, i) => {
     const dataFmt = r.data ? new Date(r.data + "T00:00:00").toLocaleDateString("pt-BR") : "—";
-    return `<tr>
-      <td>${i + 1}</td>
-      <td>${escHtml(r.cliente || "—")}</td>
-      <td>${escHtml(r.descricao || "—")}</td>
-      <td style="text-align:center">${r.qtdFolhas ?? "—"}</td>
-      <td style="text-align:right">${formatarMoeda(r.valor)}</td>
-      <td>${dataFmt}</td>
-      <td>${escHtml(r.categoria || "—")}</td>
-    </tr>`;
-  }).join("");
+    return [
+      i + 1,
+      r.cliente || "—",
+      r.descricao || "—",
+      r.qtdFolhas ?? "—",
+      formatarMoeda(r.valor),
+      dataFmt,
+      r.categoria || "—"
+    ];
+  });
 
-  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
-  <title>${escHtml(comissao.titulo)}</title>
-  <style>
-    body { font-family: Arial, sans-serif; font-size: 12px; color: #1a1a1a; margin: 24px; }
-    h1 { font-size: 18px; margin: 0 0 4px; }
-    p  { margin: 0 0 16px; color: #666; }
-    table { width: 100%; border-collapse: collapse; }
-    th { background: #1e3a5f; color: #fff; padding: 8px 10px; text-align: left; font-size: 11px; text-transform: uppercase; }
-    td { padding: 7px 10px; border-bottom: 1px solid #e5e7eb; }
-    tr:nth-child(even) td { background: #f9fafb; }
-    .total-row td { background: #1e3a5f; color: #fff; font-weight: bold; text-align: right; padding: 10px; font-size: 14px; }
-  </style></head><body>
-  <h1>${escHtml(comissao.titulo)}</h1>
-  <p>${escHtml(comissao.descricao || "")}</p>
-  <table>
-    <thead><tr>
-      <th>#</th><th>Cliente</th><th>Descrição</th>
-      <th>Folhas</th><th>Valor</th><th>Data</th><th>Forma de Pagamento</th>
-    </tr></thead>
-    <tbody>${linhas}</tbody>
-    <tfoot><tr class="total-row"><td colspan="4">TOTAL</td><td colspan="3">${formatarMoeda(total)}</td></tr></tfoot>
-  </table>
-  </body></html>`;
+  doc.autoTable({
+    startY: comissao.descricao ? 33 : 26,
+    head: [["#", "Cliente", "Descrição", "Folhas", "Valor", "Data", "Forma de Pagamento"]],
+    body: linhas,
+    foot: [["", "", "", "", "", "TOTAL", formatarMoeda(total)]],
+    theme: "grid",
+    headStyles: { fillColor: [30, 58, 95], textColor: 255, fontStyle: "bold", fontSize: 9 },
+    footStyles: { fillColor: [30, 58, 95], textColor: 255, fontStyle: "bold", fontSize: 10 },
+    styles: { fontSize: 9, cellPadding: 2.5 },
+    alternateRowStyles: { fillColor: [249, 250, 251] },
+    columnStyles: {
+      0: { cellWidth: 10, halign: "center" },
+      3: { halign: "center" },
+      4: { halign: "right" }
+    }
+  });
 
-  const blob = new Blob([html], { type: "text/html" });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
-  a.download = `${comissao.titulo.replace(/\s+/g, "_")}.html`;
-  a.click();
-  URL.revokeObjectURL(url);
+  doc.save(`${comissao.titulo.replace(/\s+/g, "_")}.pdf`);
   window.mostrarToast?.("PDF gerado com sucesso!", "success");
 }
 
