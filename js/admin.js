@@ -742,7 +742,8 @@ function renderStatsComissaoCriador() {
   document.getElementById("ccgValorAprovado").textContent = formatarMoeda(valorTotalAprovado);
   document.getElementById("ccgComissaoTotal").textContent = formatarMoeda(comissaoTotal);
   document.getElementById("ccgPendentePaga").innerHTML =
-    `<span style="color:#B45309">${formatarMoeda(comissaoPendente)}</span> / <span style="color:#047857">${formatarMoeda(comissaoPaga)}</span>`;
+    `<span class="ccg-pp-linha"><span class="ccg-pp-dot" style="background:#B45309"></span>Pendente: ${formatarMoeda(comissaoPendente)}</span>` +
+    `<span class="ccg-pp-linha"><span class="ccg-pp-dot" style="background:#047857"></span>Paga: ${formatarMoeda(comissaoPaga)}</span>`;
 }
 
 function renderTabelaComissaoCriador(termoBusca = "") {
