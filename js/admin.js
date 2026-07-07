@@ -14,7 +14,7 @@ import { escHtml } from "./index.js";
 import { formatarData, formatarDataHora, formatarMoeda, listarVendasEntre } from "./database.js";
 import {
   buscarConfigComissaoCriador, salvarConfigComissaoCriador,
-  listarCotacoesAprovadas, marcarComissaoCriadorPaga,
+  listarCotacoesAprovadas, marcarComissaoCriadorPaga, marcarCotacaoPagaLoja,
   buscarConfigLembreteCotacao, salvarConfigLembreteCotacao
 } from "./database.js";
 import { cargosDoUsuario, temCargo } from "./auth.js";
@@ -111,9 +111,15 @@ export function iniciarAdmin(usuario, dadosUsuario) {
     if (e.key === "Enter") renderTabelaComissaoCriador(e.target.value.trim());
   });
   document.getElementById("tbodyComissaoCriador")?.addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-action='alternar-pagamento']");
-    if (!btn) return;
-    alternarPagamentoComissao(btn.dataset.id, btn.dataset.pago === "true");
+    const btnPagamento = e.target.closest("[data-action='alternar-pagamento']");
+    if (btnPagamento) {
+      alternarPagamentoComissao(btnPagamento.dataset.id, btnPagamento.dataset.pago === "true");
+      return;
+    }
+    const btnPagoLoja = e.target.closest("[data-action='alternar-pago-loja']");
+    if (btnPagoLoja) {
+      alternarPagoLoja(btnPagoLoja.dataset.id, btnPagoLoja.dataset.pago === "true");
+    }
   });
 }
 
@@ -756,7 +762,7 @@ function renderTabelaComissaoCriador(termoBusca = "") {
     : _todasCotacoesAprovadasCache;
 
   if (cotacoes.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="empty-cell">Nenhuma cotação aprovada encontrada.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-cell">Nenhuma cotação aprovada encontrada.</td></tr>`;
     return;
   }
 
@@ -767,12 +773,23 @@ function linhaComissaoCriadorHtml(c) {
   const pct = _percentualComissaoCriador / 100;
   const comissao = (Number(c.valorTotal) || 0) * pct;
   const paga = !!c.comissaoCriadorPaga;
+  const pagoLoja = !!c.pagoLoja;
 
   return `
     <tr>
       <td><strong>${escHtml(c.cliente || "—")}</strong></td>
       <td>${formatarData(c.dataCriacao)}</td>
       <td class="col-right">${formatarMoeda(c.valorTotal || 0)}</td>
+      <td class="col-center">
+        <span class="role-badge ${pagoLoja ? "role-badge--vendedor" : "role-badge--user"}">
+          ${pagoLoja ? "Paga" : "Pendente"}
+        </span>
+        <br/>
+        <button class="btn-action ${pagoLoja ? "btn-action--edit" : "btn-action--view"}" style="margin-top:4px"
+          data-action="alternar-pago-loja" data-id="${escHtml(c.id)}" data-pago="${!pagoLoja}">
+          ${pagoLoja ? "Marcar pendente" : "Marcar paga"}
+        </button>
+      </td>
       <td class="col-right"><strong>${formatarMoeda(comissao)}</strong></td>
       <td class="col-center">
         <span class="role-badge ${paga ? "role-badge--vendedor" : "role-badge--user"}">
@@ -786,6 +803,18 @@ function linhaComissaoCriadorHtml(c) {
         </button>
       </td>
     </tr>`;
+}
+
+async function alternarPagoLoja(cotacaoId, novoPago) {
+  const resultado = await marcarCotacaoPagaLoja(cotacaoId, novoPago);
+  if (!resultado.sucesso) {
+    window.mostrarToast?.("Erro ao atualizar o pagamento da cotação. Tente novamente.", "error");
+    return;
+  }
+  const cotacao = _todasCotacoesAprovadasCache.find(c => c.id === cotacaoId);
+  if (cotacao) cotacao.pagoLoja = novoPago;
+  window.mostrarToast?.(novoPago ? "Cotação marcada como paga!" : "Cotação marcada como pendente.", "success");
+  renderTabelaComissaoCriador(document.getElementById("filtroBuscaComissaoCriador")?.value.trim());
 }
 
 async function alternarPagamentoComissao(cotacaoId, novoPago) {
