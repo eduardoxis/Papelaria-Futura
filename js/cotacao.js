@@ -425,6 +425,10 @@ function adicionarLinha(dados = {}) {
       <input class="excel-input" type="text" placeholder="Marca" ${dis}
         data-campo="marca" value="${escHtml(dados.marca || "")}" autocomplete="off" />
     </td>
+    <td class="col-unidade">
+      <input class="excel-input excel-input--center" type="text" list="listaUnidadesMedida" placeholder="UND" ${dis}
+        data-campo="unidade" value="${escHtml(dados.unidade || "")}" autocomplete="off" />
+    </td>
     <td class="col-qtd">
       <input class="excel-input excel-input--center" type="number" ${dis}
         min="0" step="any" placeholder="0"
@@ -519,12 +523,13 @@ function coletarItens() {
     const get = (campo) => tr.querySelector(`[data-campo="${campo}"]`);
     const descricao  = get("descricao")?.value?.trim()   || "";
     const marca      = get("marca")?.value?.trim()       || "";
+    const unidade    = get("unidade")?.value?.trim()     || "";
     const quantidade = parsearNumero(get("quantidade")?.value) || 0;
     const valorUnit  = parsearMoeda(get("valorUnitario")?.value) || 0;
     const valorTotal = calcularTotal(quantidade, valorUnit);
 
     if (descricao || quantidade || valorUnit) {
-      itens.push({ item: idx + 1, descricao, marca, quantidade, valorUnitario: valorUnit, valorTotal });
+      itens.push({ item: idx + 1, descricao, marca, unidade, quantidade, valorUnitario: valorUnit, valorTotal });
     }
   });
   return itens;
