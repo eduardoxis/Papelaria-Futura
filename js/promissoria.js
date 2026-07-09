@@ -8,7 +8,10 @@ import {
   updateDoc, deleteDoc, query, where, orderBy,
   serverTimestamp, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { db } from "./firebase-config.js";
+import {
+  ref, uploadBytes, getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+import { db, storage } from "./firebase-config.js";
 import { formatarMoeda } from "./database.js";
 import { temCargo } from "./auth.js";
 
@@ -24,7 +27,28 @@ const JUROS_MENSAL     = 0.02;
 let _dadosUsuario = null;
 let _usuarioAtual = null;
 
-// Grava um registro de auditoria (quem fez o quê e quando)
+// Gera os links clicáveis de anexos (fotos/PDF) pra exibir nas tabelas
+function _htmlAnexos(anexos) {
+  if (!anexos || !anexos.length) return "";
+  return `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">${
+    anexos.map(a => `<a href="${a.url}" target="_blank" rel="noopener" title="${escHtml(a.nome || "Anexo")}" style="display:inline-flex;align-items:center;gap:2px;font-size:0.7rem;color:var(--blue-600);text-decoration:none;background:var(--blue-050);padding:1px 6px;border-radius:9999px">📎 Anexo</a>`).join("")
+  }</div>`;
+}
+
+// Envia os arquivos escolhidos (fotos/PDF) pro Storage e devolve [{nome, url}]
+async function _uploadAnexos(files, pastaBase) {
+  if (!files || !files.length) return [];
+  const enviados = [];
+  for (const file of Array.from(files)) {
+    const nomeSeguro = `${Date.now()}_${file.name}`.replace(/[^\w.\-]/g, "_");
+    const caminho = `prom_anexos/${pastaBase}/${nomeSeguro}`;
+    const storageRef = ref(storage, caminho);
+    await uploadBytes(storageRef, file);
+    const url = await getDownloadURL(storageRef);
+    enviados.push({ nome: file.name, url });
+  }
+  return enviados;
+}
 async function _registrarHistorico(tipo, acao, clienteId, refId, valor, detalhes = "") {
   try {
     await addDoc(collection(db, COL_HISTORICO), {
@@ -124,6 +148,7 @@ export function iniciarPromissoria(usuario, dadosUsuario) {
     if (action === "novo-pagamento")   abrirModalNovoPagamento(clienteId);
     if (action === "excluir-compra")   confirmarExcluirCompra(id);
     if (action === "imprimir-cliente") imprimirCliente(clienteId);
+    if (action === "voltar-lista-prom") mostrarPainel("lista");
     if (action === "historico-cliente") abrirModalHistoricoCliente(clienteId);
   });
 
@@ -987,12 +1012,17 @@ async function abrirPainelCliente(clienteId) {
       <div data-cliente-id="${clienteId}">
         <!-- Cabeçalho do cliente -->
         <div class="page-header">
-          <div>
-            <h2 class="page-title">${escHtml(cliente.nome)}</h2>
-            <p class="page-subtitle">
-              ${cliente.telefone ? `📱 ${escHtml(cliente.telefone)}` : ""}
-              ${cliente.observacoes ? ` · ${escHtml(cliente.observacoes)}` : ""}
-            </p>
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <button class="btn-icon" id="btnVoltarClienteProm" data-action="voltar-lista-prom" title="Voltar para Promissórias" style="flex-shrink:0;margin-top:2px">
+              <svg viewBox="0 0 20 20" fill="currentColor" style="width:20px;height:20px"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+            </button>
+            <div>
+              <h2 class="page-title">${escHtml(cliente.nome)}</h2>
+              <p class="page-subtitle">
+                ${cliente.telefone ? `📱 ${escHtml(cliente.telefone)}` : ""}
+                ${cliente.observacoes ? ` · ${escHtml(cliente.observacoes)}` : ""}
+              </p>
+            </div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn-secondary" data-action="historico-cliente" data-cliente-id="${clienteId}">
@@ -1100,7 +1130,7 @@ async function abrirPainelCliente(clienteId) {
                         <td>${c.pagoCompra > 0 ? `<span style="color:var(--color-success)">${formatarMoeda(c.pagoCompra)}</span>` : "—"}</td>
                         <td>${c.saldoCompra > 0 ? `<strong style="color:var(--color-danger)">${formatarMoeda(c.saldoCompra)}</strong>` : `<span style="color:var(--color-success)">Quitado</span>`}</td>
                         <td>${c.juros > 0 ? badgeSituacao("Atrasado") : (venc ? badgeSituacao("Pendente") : "—")}</td>
-                        <td style="max-width:140px;white-space:normal;font-size:var(--text-xs);color:var(--gray-500)">${escHtml(c.observacoes || "")}</td>
+                        <td style="max-width:140px;white-space:normal;font-size:var(--text-xs);color:var(--gray-500)">${escHtml(c.observacoes || "")}${_htmlAnexos(c.anexos)}</td>
                         <td class="col-center">
                           <button class="btn-table-action btn-table-action--delete" data-action="excluir-compra" data-id="${c.id}" title="Excluir compra">
                             <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
@@ -1141,7 +1171,7 @@ async function abrirPainelCliente(clienteId) {
                       <td><strong style="color:var(--color-success)">${formatarMoeda(p.valor)}</strong></td>
                       <td style="font-size:var(--text-xs);color:var(--gray-500)">${compraRel ? `Compra de ${formatarDataLocal(compraRel.dataCompra)}` : "Crédito geral"}</td>
                       <td>${escHtml(p.forma || "—")}</td>
-                      <td style="font-size:var(--text-xs);color:var(--gray-500)">${escHtml(p.observacoes || "")}</td>
+                      <td style="font-size:var(--text-xs);color:var(--gray-500)">${escHtml(p.observacoes || "")}${_htmlAnexos(p.anexos)}</td>
                     </tr>`;
                   }).join("")}
               </tbody>
@@ -1255,6 +1285,11 @@ function abrirModalNovaCompra(clienteId) {
       <div id="comprasRowsContainer">${linhaCompraHtml(hojeStr, vencStr)}</div>
       <button type="button" class="btn-ghost" id="btnAddCompraRow" style="font-size:var(--text-sm)">+ Adicionar outra compra</button>
       <p style="font-size:var(--text-xs);color:var(--gray-500);margin-top:8px">Você pode lançar quantas compras quiser de uma vez. Se "Parcelas" for maior que 1, o valor é dividido igualmente e as parcelas seguintes vencem a cada 30 dias a partir do 1º vencimento. Linhas em branco são ignoradas.</p>
+      <div style="margin-top:var(--space-3)">
+        <label class="field-label">Anexos (fotos ou PDF da compra)</label>
+        <input type="file" id="mCompraAnexos" accept="image/*,.pdf" multiple class="field-input--plain" />
+        <p style="font-size:var(--text-xs);color:var(--gray-500);margin-top:4px">Os anexos serão vinculados a todas as compras registradas nesta janela.</p>
+      </div>
     </div>`;
 
   const footer = `
@@ -1332,6 +1367,14 @@ async function salvarNovaCompra(clienteId) {
   btn.disabled = true; btn.textContent = "Salvando...";
 
   try {
+    const arquivos = document.getElementById("mCompraAnexos")?.files;
+    let anexos = [];
+    if (arquivos && arquivos.length) {
+      btn.textContent = "Enviando anexos...";
+      anexos = await _uploadAnexos(arquivos, `compras/${clienteId}`);
+      btn.textContent = "Salvando...";
+    }
+
     const refs = await Promise.all(compras.map(c => addDoc(collection(db, COL_COMPRAS), {
       clienteId,
       valor: c.valor,
@@ -1341,10 +1384,11 @@ async function salvarNovaCompra(clienteId) {
       parcelaGrupoId:  c.parcelaGrupoId,
       parcelaNumero:   c.parcelaNumero,
       parcelaTotal:    c.parcelaTotal,
+      anexos,
       criadoEm:        serverTimestamp()
     })));
-    await Promise.all(refs.map((ref, idx) => _registrarHistorico(
-      "compra", "criado", clienteId, ref.id, compras[idx].valor,
+    await Promise.all(refs.map((docRef, idx) => _registrarHistorico(
+      "compra", "criado", clienteId, docRef.id, compras[idx].valor,
       compras[idx].parcelaTotal ? `Parcela ${compras[idx].parcelaNumero}/${compras[idx].parcelaTotal}` : ""
     )));
     fecharModal();
@@ -1430,6 +1474,10 @@ async function abrirModalNovoPagamento(clienteId) {
         <label class="field-label">Observações</label>
         <input type="text" id="mPagObs" class="field-input--plain" placeholder="Informações do pagamento..." autocomplete="off" />
       </div>
+      <div>
+        <label class="field-label">Anexos (comprovante, fotos ou PDF)</label>
+        <input type="file" id="mPagAnexos" accept="image/*,.pdf" multiple class="field-input--plain" />
+      </div>
       ${comprasAbertas.length > 0 ? `<div style="text-align:right;font-size:var(--text-sm);color:var(--gray-600);padding-top:4px;border-top:1px solid var(--gray-100)">Total a pagar: <strong id="mPagTotalPreview" style="color:var(--color-success)">—</strong></div>` : `
       <div>
         <label class="field-label">Valor do Pagamento (R$) *</label>
@@ -1502,6 +1550,14 @@ async function salvarNovoPagamento(clienteId, temComprasAbertas) {
   btn.disabled = true; btn.textContent = "Salvando...";
 
   try {
+    const arquivos = document.getElementById("mPagAnexos")?.files;
+    let anexos = [];
+    if (arquivos && arquivos.length) {
+      btn.textContent = "Enviando anexos...";
+      anexos = await _uploadAnexos(arquivos, `pagamentos/${clienteId}`);
+      btn.textContent = "Salvando...";
+    }
+
     const refs = await Promise.all(lancamentos.map(l => addDoc(collection(db, COL_PAGAMENTOS), {
       clienteId,
       compraId:      l.compraId || null,
@@ -1509,10 +1565,11 @@ async function salvarNovoPagamento(clienteId, temComprasAbertas) {
       dataPagamento: Timestamp.fromDate(new Date(dataStr + "T12:00:00")),
       forma,
       observacoes:   obs,
+      anexos,
       criadoEm:      serverTimestamp()
     })));
-    await Promise.all(refs.map((ref, idx) => _registrarHistorico(
-      "pagamento", "criado", clienteId, ref.id, lancamentos[idx].valor, forma ? `Forma: ${forma}` : ""
+    await Promise.all(refs.map((docRef, idx) => _registrarHistorico(
+      "pagamento", "criado", clienteId, docRef.id, lancamentos[idx].valor, forma ? `Forma: ${forma}` : ""
     )));
     fecharModal();
     window.mostrarToast?.("Pagamento registrado com sucesso!", "success");
