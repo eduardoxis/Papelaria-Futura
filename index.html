@@ -1200,56 +1200,45 @@
         </div>
 
         <!-- KPIs -->
-        <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:var(--space-6)">
-          <div class="stat-card stat-card--blue">
-            <div class="stat-card__icon"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4z" clip-rule="evenodd"/></svg></div>
-            <div class="stat-card__body">
-              <span class="stat-card__label">Total Vendido</span>
-              <strong class="stat-card__value stat-card__value--sm" id="dashIndVendido">—</strong>
+        <div class="prom-kpi-grid">
+          <div class="prom-kpi-card">
+            <div class="prom-kpi-icon prom-kpi-icon--blue"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4z" clip-rule="evenodd"/></svg></div>
+            <div class="prom-kpi-body">
+              <span class="prom-kpi-label">Total Vendido</span>
+              <strong class="prom-kpi-value" id="dashKpiVendido">—</strong>
+              <span class="prom-delta prom-delta--neutro" id="dashKpiVendidoDelta">—</span>
             </div>
           </div>
-          <div class="stat-card stat-card--green">
-            <div class="stat-card__icon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"/></svg></div>
-            <div class="stat-card__body">
-              <span class="stat-card__label">Total Recebido</span>
-              <strong class="stat-card__value stat-card__value--sm" id="dashIndRecebido">—</strong>
+          <div class="prom-kpi-card">
+            <div class="prom-kpi-icon prom-kpi-icon--green"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"/></svg></div>
+            <div class="prom-kpi-body">
+              <span class="prom-kpi-label">Total Recebido</span>
+              <strong class="prom-kpi-value" id="dashKpiRecebido">—</strong>
+              <span class="prom-delta prom-delta--neutro" id="dashKpiRecebidoDelta">—</span>
             </div>
           </div>
-          <div class="stat-card stat-card--gold">
-            <div class="stat-card__icon"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg></div>
-            <div class="stat-card__body">
-              <span class="stat-card__label">Em Aberto</span>
-              <strong class="stat-card__value stat-card__value--sm" id="dashIndAberto">—</strong>
+          <div class="prom-kpi-card">
+            <div class="prom-kpi-icon prom-kpi-icon--gold"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg></div>
+            <div class="prom-kpi-body">
+              <span class="prom-kpi-label">Total em Aberto</span>
+              <strong class="prom-kpi-value" id="dashKpiAberto">—</strong>
+              <span class="prom-delta prom-delta--neutro" id="dashKpiAbertoDelta">—</span>
             </div>
           </div>
-          <div class="stat-card stat-card--purple">
-            <div class="stat-card__icon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg></div>
-            <div class="stat-card__body">
-              <span class="stat-card__label">Ticket Médio</span>
-              <strong class="stat-card__value stat-card__value--sm" id="dashIndTicket">—</strong>
+          <div class="prom-kpi-card">
+            <div class="prom-kpi-icon prom-kpi-icon--red"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg></div>
+            <div class="prom-kpi-body">
+              <span class="prom-kpi-label">Inadimplentes</span>
+              <strong class="prom-kpi-value" id="dashKpiInadimplentes">—</strong>
+              <span class="prom-delta prom-delta--neutro" id="dashKpiInadimplentesDelta">—</span>
             </div>
           </div>
-          <div class="stat-card" style="border-color:#FECACA">
-            <div class="stat-card__icon" style="background:#FEE2E2;color:#DC2626"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg></div>
-            <div class="stat-card__body">
-              <span class="stat-card__label">Inadimplência</span>
-              <strong class="stat-card__value stat-card__value--sm" id="dashIndInadimplencia" style="color:#DC2626">—</strong>
-            </div>
-          </div>
-          <div class="stat-card stat-card--blue">
-            <div class="stat-card__icon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z"/></svg></div>
-            <div class="stat-card__body">
-              <span class="stat-card__label">Vendido este Mês</span>
-              <strong class="stat-card__value stat-card__value--sm" id="dashCompVendidoValor">—</strong>
-              <span class="prom-delta prom-delta--neutro" id="dashCompVendidoDelta">—</span>
-            </div>
-          </div>
-          <div class="stat-card stat-card--green">
-            <div class="stat-card__icon"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z"/></svg></div>
-            <div class="stat-card__body">
-              <span class="stat-card__label">Recebido este Mês</span>
-              <strong class="stat-card__value stat-card__value--sm" id="dashCompRecebidoValor">—</strong>
-              <span class="prom-delta prom-delta--neutro" id="dashCompRecebidoDelta">—</span>
+          <div class="prom-kpi-card">
+            <div class="prom-kpi-icon prom-kpi-icon--blue"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg></div>
+            <div class="prom-kpi-body">
+              <span class="prom-kpi-label">Total de Clientes</span>
+              <strong class="prom-kpi-value" id="dashKpiClientes">—</strong>
+              <span class="prom-delta prom-delta--neutro" id="dashKpiClientesDelta">—</span>
             </div>
           </div>
         </div>
@@ -1259,7 +1248,7 @@
 
           <div class="card prom-chart-card prom-chart-card--lg">
             <div class="card-header">
-              <h3 class="card-section-title" style="margin:0">Vendas x Recebimentos (últimos 6 meses)</h3>
+              <h3 class="card-section-title" style="margin:0">Evolução das Promissórias</h3>
             </div>
             <div class="prom-chart-wrap prom-chart-wrap--lg">
               <canvas id="chartEvolucao"></canvas>
@@ -1268,25 +1257,27 @@
 
           <div class="card prom-chart-card">
             <div class="card-header">
-              <h3 class="card-section-title" style="margin:0">Situação dos Clientes</h3>
+              <h3 class="card-section-title" style="margin:0">Situação das Promissórias</h3>
             </div>
             <div class="prom-chart-wrap">
               <canvas id="chartSituacao"></canvas>
             </div>
+            <div class="prom-situacao-legend" id="situacaoLegend"></div>
           </div>
 
           <div class="card prom-chart-card">
             <div class="card-header">
-              <h3 class="card-section-title" style="margin:0">Recebimentos por Forma de Pagamento</h3>
+              <h3 class="card-section-title" style="margin:0">Clientes Novos x Recorrentes</h3>
             </div>
             <div class="prom-chart-wrap">
-              <canvas id="chartFormaPagamento"></canvas>
+              <canvas id="chartNovosRecorrentes"></canvas>
             </div>
+            <div class="prom-situacao-legend" id="novosRecorrentesLegend"></div>
           </div>
 
           <div class="card prom-chart-card prom-chart-card--lg">
             <div class="card-header">
-              <h3 class="card-section-title" style="margin:0">Top 10 Clientes — Saldo Devedor</h3>
+              <h3 class="card-section-title" style="margin:0">Top 10 Clientes Devedores</h3>
             </div>
             <div class="prom-chart-wrap prom-chart-wrap--lg">
               <canvas id="chartTopDevedores"></canvas>
@@ -1295,49 +1286,44 @@
 
           <div class="card prom-chart-card prom-chart-card--lg">
             <div class="card-header">
-              <h3 class="card-section-title" style="margin:0">Novas Compras por Mês (últimos 12 meses)</h3>
+              <h3 class="card-section-title" style="margin:0">Recebimentos por Mês</h3>
             </div>
             <div class="prom-chart-wrap prom-chart-wrap--lg">
-              <canvas id="chartComprasMes"></canvas>
+              <canvas id="chartRecebimentosMes"></canvas>
             </div>
           </div>
 
           <div class="card prom-chart-card prom-chart-card--lg">
             <div class="card-header">
-              <h3 class="card-section-title" style="margin:0">Aging de Inadimplência (dias em atraso)</h3>
-              <p class="card-section-subtitle" style="margin:2px 0 0">Valor vencido em aberto, agrupado por tempo de atraso</p>
+              <h3 class="card-section-title" style="margin:0" id="calendarioVendasTitulo">Calendário de Vendas</h3>
+              <p class="card-section-subtitle" style="margin:2px 0 0">Valor vendido por dia, mês atual</p>
             </div>
-            <div class="prom-chart-wrap prom-chart-wrap--lg">
-              <canvas id="chartAging"></canvas>
-            </div>
+            <div id="calendarioVendas" class="prom-calendario"></div>
           </div>
 
           <div class="card prom-chart-card prom-chart-card--lg">
             <div class="card-header">
-              <h3 class="card-section-title" style="margin:0">Previsão de Recebimentos</h3>
-              <p class="card-section-subtitle" style="margin:2px 0 0">Vencimentos futuros em aberto, por janela de tempo</p>
+              <h3 class="card-section-title" style="margin:0">Metas</h3>
             </div>
-            <div class="prom-chart-wrap prom-chart-wrap--lg">
-              <canvas id="chartVencimentosFuturos"></canvas>
-            </div>
-          </div>
-
-          <div class="card prom-chart-card">
-            <div class="card-header">
-              <h3 class="card-section-title" style="margin:0">Novos Clientes por Mês</h3>
-            </div>
-            <div class="prom-chart-wrap">
-              <canvas id="chartNovosClientes"></canvas>
-            </div>
-          </div>
-
-          <div class="card prom-chart-card prom-chart-card--lg">
-            <div class="card-header">
-              <h3 class="card-section-title" style="margin:0">Ranking de Atraso — Top 10 Clientes</h3>
-              <p class="card-section-subtitle" style="margin:2px 0 0">Quem está inadimplente há mais tempo (dias desde o vencimento mais antigo)</p>
-            </div>
-            <div class="prom-chart-wrap prom-chart-wrap--lg">
-              <canvas id="chartRankingAtraso"></canvas>
+            <div class="prom-metas-grid">
+              <div class="prom-meta-card">
+                <span class="prom-meta-label">Meta de Vendas</span>
+                <div class="prom-gauge-wrap"><canvas id="gaugeVendas" width="180" height="100"></canvas><strong class="prom-gauge-pct" id="gaugeVendasPct">—</strong></div>
+                <span class="prom-meta-valores" id="gaugeVendasValores">—</span>
+                <button type="button" class="btn-ghost prom-meta-editar" data-meta="vendas">Editar meta</button>
+              </div>
+              <div class="prom-meta-card">
+                <span class="prom-meta-label">Meta de Recebimentos</span>
+                <div class="prom-gauge-wrap"><canvas id="gaugeRecebimentos" width="180" height="100"></canvas><strong class="prom-gauge-pct" id="gaugeRecebimentosPct">—</strong></div>
+                <span class="prom-meta-valores" id="gaugeRecebimentosValores">—</span>
+                <button type="button" class="btn-ghost prom-meta-editar" data-meta="recebimentos">Editar meta</button>
+              </div>
+              <div class="prom-meta-card">
+                <span class="prom-meta-label">Meta de Cobrança</span>
+                <div class="prom-gauge-wrap"><canvas id="gaugeCobranca" width="180" height="100"></canvas><strong class="prom-gauge-pct" id="gaugeCobrancaPct">—</strong></div>
+                <span class="prom-meta-valores" id="gaugeCobrancaValores">—</span>
+                <button type="button" class="btn-ghost prom-meta-editar" data-meta="cobranca">Editar meta</button>
+              </div>
             </div>
           </div>
 
