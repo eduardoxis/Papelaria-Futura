@@ -87,13 +87,14 @@
 }
 
 /* Larguras das colunas */
-.col-item  { width: 48px; text-align: center; }
-.col-desc  { min-width: 220px; }
-.col-marca { min-width: 120px; }
-.col-qtd   { width: 80px; text-align: center; }
-.col-unit  { width: 130px; text-align: right; }
-.col-total { width: 130px; text-align: right; }
-.col-acao  { width: 44px; text-align: center; }
+.col-item     { width: 48px; text-align: center; }
+.col-desc     { min-width: 220px; }
+.col-marca    { min-width: 120px; }
+.col-unidade  { width: 100px; text-align: center; }
+.col-qtd      { width: 80px; text-align: center; }
+.col-unit     { width: 130px; text-align: right; }
+.col-total    { width: 130px; text-align: right; }
+.col-acao     { width: 44px; text-align: center; }
 
 /* Células */
 .excel-table td {
