@@ -630,6 +630,34 @@ body {
   color: var(--gray-800);
 }
 
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 9px var(--space-5);
+  background: linear-gradient(135deg, #DC2626, #E54957);
+  color: var(--white);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.35);
+  transition: all var(--duration-fast) ease;
+  white-space: nowrap;
+}
+.btn-danger:hover {
+  background: linear-gradient(135deg, #B91C1C, #DC2626);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.45);
+}
+.btn-danger:disabled {
+  opacity: .6;
+  cursor: default;
+  transform: none;
+}
+.btn-danger svg { width: 16px; height: 16px; }
+
 .btn-sm {
   padding: 6px var(--space-4);
   font-size: var(--text-xs);
