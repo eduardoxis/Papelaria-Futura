@@ -78,6 +78,11 @@ service cloud.firestore {
       allow update: if estaAutenticado();
       allow delete: if ehAdmin();
     }
+    match /prom_historico/{registroId} {
+      allow read:   if ehAdmin();
+      allow create: if estaAutenticado();
+      allow update, delete: if ehAdmin();
+    }
     match /prom_clientes/{clienteId} {
       allow read:   if ehAdmin();
       allow create: if ehAdmin();
