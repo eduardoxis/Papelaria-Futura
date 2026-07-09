@@ -1216,12 +1216,27 @@ let _compraRowSeq = 0;
 function linhaCompraHtml(hojeStr, vencStr) {
   const rid = `cr${++_compraRowSeq}`;
   return `
-    <div class="compra-row" data-row-id="${rid}" style="display:grid;grid-template-columns:1.4fr 1.1fr 1.1fr 0.7fr 1.6fr 32px;gap:8px;align-items:center;margin-bottom:8px">
-      <input type="number" class="compra-valor field-input--plain" style="min-width:80px" placeholder="0,00" min="0.01" step="0.01" autocomplete="off" />
-      <input type="date" class="compra-data field-input--plain" value="${hojeStr}" autocomplete="off" />
-      <input type="date" class="compra-venc field-input--plain" value="${vencStr}" autocomplete="off" />
-      <input type="number" class="compra-parcelas field-input--plain" placeholder="1" min="1" max="24" step="1" value="1" autocomplete="off" title="Número de parcelas" />
-      <input type="text" class="compra-obs field-input--plain" placeholder="Descrição da compra..." autocomplete="off" />
+    <div class="compra-row" data-row-id="${rid}">
+      <div class="compra-field compra-field--valor">
+        <label class="field-label">Valor (R$) *</label>
+        <input type="number" class="compra-valor field-input--plain" placeholder="0,00" min="0.01" step="0.01" autocomplete="off" />
+      </div>
+      <div class="compra-field">
+        <label class="field-label">Data *</label>
+        <input type="date" class="compra-data field-input--plain" value="${hojeStr}" autocomplete="off" />
+      </div>
+      <div class="compra-field">
+        <label class="field-label">1º Vencimento</label>
+        <input type="date" class="compra-venc field-input--plain" value="${vencStr}" autocomplete="off" />
+      </div>
+      <div class="compra-field compra-field--parcelas">
+        <label class="field-label">Parcelas</label>
+        <input type="number" class="compra-parcelas field-input--plain" placeholder="1" min="1" max="24" step="1" value="1" autocomplete="off" title="Número de parcelas" />
+      </div>
+      <div class="compra-field compra-field--obs">
+        <label class="field-label">Observação</label>
+        <input type="text" class="compra-obs field-input--plain" placeholder="Descrição da compra..." autocomplete="off" />
+      </div>
       <button type="button" class="btn-table-action btn-table-action--delete btn-remove-compra-row" title="Remover esta compra">
         <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
       </button>
@@ -1237,14 +1252,6 @@ function abrirModalNovaCompra(clienteId) {
 
   const body = `
     <div class="form-usuario">
-      <div style="display:grid;grid-template-columns:1.4fr 1.1fr 1.1fr 0.7fr 1.6fr 32px;gap:8px;margin-bottom:2px">
-        <label class="field-label">Valor (R$) *</label>
-        <label class="field-label">Data *</label>
-        <label class="field-label">1º Venc.</label>
-        <label class="field-label">Parcelas</label>
-        <label class="field-label">Obs.</label>
-        <span></span>
-      </div>
       <div id="comprasRowsContainer">${linhaCompraHtml(hojeStr, vencStr)}</div>
       <button type="button" class="btn-ghost" id="btnAddCompraRow" style="font-size:var(--text-sm)">+ Adicionar outra compra</button>
       <p style="font-size:var(--text-xs);color:var(--gray-500);margin-top:8px">Você pode lançar quantas compras quiser de uma vez. Se "Parcelas" for maior que 1, o valor é dividido igualmente e as parcelas seguintes vencem a cada 30 dias a partir do 1º vencimento. Linhas em branco são ignoradas.</p>
