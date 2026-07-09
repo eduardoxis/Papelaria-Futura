@@ -411,3 +411,40 @@
 }
 .prom-meta-valores { font-size: var(--text-xs); color: var(--gray-500); }
 .prom-meta-editar { font-size: var(--text-xs); padding: 4px var(--space-3); }
+
+/* ── Linha de "Nova Compra" (valor/data/venc/parcelas/obs) ───── */
+.compra-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-3);
+  border-bottom: 1px solid var(--gray-100);
+}
+.compra-row:last-of-type { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+.compra-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 110px;
+  min-width: 100px;
+}
+.compra-field--valor    { flex: 1 1 110px; min-width: 100px; }
+.compra-field--parcelas { flex: 0 1 80px;  min-width: 70px; }
+.compra-field--obs      { flex: 2 1 200px; min-width: 160px; }
+
+.compra-field .field-label { font-size: var(--text-xs); margin-bottom: 0; }
+.compra-field .field-input--plain { width: 100%; }
+
+.compra-row .btn-remove-compra-row {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-bottom: 2px;
+}
+
+@media (max-width: 520px) {
+  .compra-field--valor, .compra-field--parcelas { flex-basis: 45%; }
+  .compra-field--obs { flex-basis: 100%; }
+}
