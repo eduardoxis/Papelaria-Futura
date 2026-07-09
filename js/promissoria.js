@@ -455,8 +455,105 @@ async function carregarDashboardProm() {
       })
     });
 
-    // ── Calendário de Vendas (heatmap por dia, mês atual) ───────
-    _renderCalendarioVendas(compras, hoje);
+    // ── Gráfico 6: Recebimentos por Forma de Pagamento ──────────
+    const porForma = {};
+    pagamentos.forEach(p => {
+      const f = p.forma || "Não informado";
+      porForma[f] = (porForma[f] || 0) + (p.valor || 0);
+    });
+    const formasLabels = Object.keys(porForma);
+    const formasValores = formasLabels.map(f => porForma[f]);
+
+    _destruirChart("chartFormaPagamento");
+    _promCharts.chartFormaPagamento = new Chart(el("chartFormaPagamento"), {
+      type: "pie",
+      data: {
+        labels: formasLabels.length ? formasLabels : ["Sem dados"],
+        datasets: [{
+          data: formasValores.length ? formasValores : [1],
+          backgroundColor: [PROM_CORES.azul, PROM_CORES.verde, PROM_CORES.amarelo, PROM_CORES.roxo, PROM_CORES.laranja, PROM_CORES.cinza],
+          borderWidth: 0
+        }]
+      },
+      options: _opcoesBase({ scales: undefined })
+    });
+
+    // ── Gráfico 7: Aging de Inadimplência (dias em atraso) ──────
+    const faixasAging = [
+      { label: "1–30 dias",  min: 1,  max: 30 },
+      { label: "31–60 dias", min: 31, max: 60 },
+      { label: "61–90 dias", min: 61, max: 90 },
+      { label: "90+ dias",   min: 91, max: Infinity }
+    ];
+    const valoresAging = faixasAging.map(() => 0);
+
+    compras.forEach(c => {
+      const saldoCli = saldoPorCliente[c.clienteId];
+      if (!saldoCli || (saldoCli.compras - saldoCli.pagamentos) <= 0) return;
+      if (!c.vencimento) return;
+      const venc = c.vencimento.toDate?.() || new Date(c.vencimento);
+      const diasAtraso = Math.floor((hoje - venc) / 86400000);
+      if (diasAtraso <= 0) return;
+      const idxFaixa = faixasAging.findIndex(f => diasAtraso >= f.min && diasAtraso <= f.max);
+      if (idxFaixa >= 0) valoresAging[idxFaixa] += (c.valor || 0);
+    });
+
+    _destruirChart("chartAging");
+    _promCharts.chartAging = new Chart(el("chartAging"), {
+      type: "bar",
+      data: {
+        labels: faixasAging.map(f => f.label),
+        datasets: [{
+          label: "Valor em Atraso",
+          data: valoresAging,
+          backgroundColor: [PROM_CORES.amarelo, PROM_CORES.laranja, PROM_CORES.vermelho, "#991B1B"],
+          borderRadius: 4
+        }]
+      },
+      options: _opcoesBase({
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { callback: v => formatarMoeda(v) } } }
+      })
+    });
+
+    // ── Gráfico 8: Previsão de Recebimentos (vencimentos futuros) ──
+    const faixasFuturo = [
+      { label: "Próx. 7 dias", min: 0,  max: 7 },
+      { label: "8–15 dias",    min: 8,  max: 15 },
+      { label: "16–30 dias",   min: 16, max: 30 },
+      { label: "31–60 dias",   min: 31, max: 60 },
+      { label: "60+ dias",     min: 61, max: Infinity }
+    ];
+    const valoresFuturo = faixasFuturo.map(() => 0);
+
+    compras.forEach(c => {
+      const saldoCli = saldoPorCliente[c.clienteId];
+      if (!saldoCli || (saldoCli.compras - saldoCli.pagamentos) <= 0) return;
+      if (!c.vencimento) return;
+      const venc = c.vencimento.toDate?.() || new Date(c.vencimento);
+      const diasRestantes = Math.ceil((venc - hoje) / 86400000);
+      if (diasRestantes < 0) return;
+      const idxFaixa = faixasFuturo.findIndex(f => diasRestantes >= f.min && diasRestantes <= f.max);
+      if (idxFaixa >= 0) valoresFuturo[idxFaixa] += (c.valor || 0);
+    });
+
+    _destruirChart("chartVencimentosFuturos");
+    _promCharts.chartVencimentosFuturos = new Chart(el("chartVencimentosFuturos"), {
+      type: "bar",
+      data: {
+        labels: faixasFuturo.map(f => f.label),
+        datasets: [{
+          label: "Previsto a Receber",
+          data: valoresFuturo,
+          backgroundColor: PROM_CORES.verde,
+          borderRadius: 4
+        }]
+      },
+      options: _opcoesBase({
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { callback: v => formatarMoeda(v) } } }
+      })
+    });
 
     // ── Metas (gauges) ──────────────────────────────────────────
     const recebidoInadimplentesMesAtual = pagamentos.reduce((soma, p) => {
@@ -519,67 +616,6 @@ function _renderLegendaDonut(containerId, itens, total, { moeda = true, totalLab
       <span class="psl-valor">${fmt(i.valor)}</span>
     </div>
   `).join("") + `<div class="psl-total">${totalLabel}: ${fmt(total)}</div>`;
-}
-
-// ── Calendário de vendas (heatmap por dia do mês atual) ─────────
-function _renderCalendarioVendas(compras, hoje) {
-  const container = document.getElementById("calendarioVendas");
-  if (!container) return;
-
-  const titulo = document.getElementById("calendarioVendasTitulo");
-  if (titulo) titulo.textContent = `Calendário de Vendas — ${hoje.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}`;
-
-  const ano = hoje.getFullYear(), mes = hoje.getMonth();
-  const primeiroDia = new Date(ano, mes, 1);
-  const ultimoDia = new Date(ano, mes + 1, 0);
-  const diasNoMes = ultimoDia.getDate();
-
-  const valorPorDia = {};
-  compras.forEach(c => {
-    const d = c.dataCompra?.toDate?.() || (c.dataCompra ? new Date(c.dataCompra) : null);
-    if (!d || d.getFullYear() !== ano || d.getMonth() !== mes) return;
-    valorPorDia[d.getDate()] = (valorPorDia[d.getDate()] || 0) + (c.valor || 0);
-  });
-
-  const maiorValor = Math.max(1, ...Object.values(valorPorDia));
-
-  // Monta a grade: semanas (linhas) x Dom..Sáb (colunas)
-  const semanas = [];
-  let semanaAtual = new Array(7).fill(null);
-  let diaCursor = 1 - primeiroDia.getDay();
-  while (diaCursor <= diasNoMes) {
-    for (let dow = 0; dow < 7; dow++, diaCursor++) {
-      semanaAtual[dow] = (diaCursor >= 1 && diaCursor <= diasNoMes) ? diaCursor : null;
-    }
-    semanas.push([...semanaAtual]);
-  }
-
-  const corCelula = (valor) => {
-    if (!valor) return "var(--gray-050)";
-    const intensidade = Math.min(1, valor / maiorValor);
-    const alpha = 0.15 + intensidade * 0.75;
-    return `rgba(0,56,184,${alpha.toFixed(2)})`;
-  };
-
-  let html = `<table class="prom-cal-table"><thead><tr>${
-    ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].map(d => `<th>${d}</th>`).join("")
-  }</tr></thead><tbody>`;
-
-  semanas.forEach(semana => {
-    html += "<tr>" + semana.map(dia => {
-      if (!dia) return `<td class="prom-cal-cell prom-cal-cell--vazia"></td>`;
-      const valor = valorPorDia[dia] || 0;
-      const cor = corCelula(valor);
-      const corTexto = valor / maiorValor > 0.55 ? "#fff" : "var(--gray-700)";
-      const titulo = valor ? `${dia}: ${formatarMoeda(valor)}` : `${dia}: sem vendas`;
-      return `<td class="prom-cal-cell" style="background:${cor};color:${corTexto}" title="${titulo}">${dia}</td>`;
-    }).join("") + "</tr>";
-  });
-
-  html += "</tbody></table>";
-  html += `<div class="prom-cal-legenda"><span>Menor valor</span><span class="prom-cal-legenda-barra"></span><span>Maior valor</span></div>`;
-
-  container.innerHTML = html;
 }
 
 // ── Gauge (semicírculo) de metas ────────────────────────────────
