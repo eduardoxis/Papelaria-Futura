@@ -1216,8 +1216,8 @@ let _compraRowSeq = 0;
 function linhaCompraHtml(hojeStr, vencStr) {
   const rid = `cr${++_compraRowSeq}`;
   return `
-    <div class="compra-row" data-row-id="${rid}" style="display:grid;grid-template-columns:1fr 1fr 1fr 0.7fr 1.6fr 32px;gap:8px;align-items:center;margin-bottom:8px">
-      <input type="number" class="compra-valor field-input--plain" placeholder="0,00" min="0.01" step="0.01" autocomplete="off" />
+    <div class="compra-row" data-row-id="${rid}" style="display:grid;grid-template-columns:1.4fr 1.1fr 1.1fr 0.7fr 1.6fr 32px;gap:8px;align-items:center;margin-bottom:8px">
+      <input type="number" class="compra-valor field-input--plain" style="min-width:80px" placeholder="0,00" min="0.01" step="0.01" autocomplete="off" />
       <input type="date" class="compra-data field-input--plain" value="${hojeStr}" autocomplete="off" />
       <input type="date" class="compra-venc field-input--plain" value="${vencStr}" autocomplete="off" />
       <input type="number" class="compra-parcelas field-input--plain" placeholder="1" min="1" max="24" step="1" value="1" autocomplete="off" title="Número de parcelas" />
@@ -1237,7 +1237,7 @@ function abrirModalNovaCompra(clienteId) {
 
   const body = `
     <div class="form-usuario">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 0.7fr 1.6fr 32px;gap:8px;margin-bottom:2px">
+      <div style="display:grid;grid-template-columns:1.4fr 1.1fr 1.1fr 0.7fr 1.6fr 32px;gap:8px;margin-bottom:2px">
         <label class="field-label">Valor (R$) *</label>
         <label class="field-label">Data *</label>
         <label class="field-label">1º Venc.</label>
