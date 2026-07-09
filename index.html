@@ -422,12 +422,24 @@
         </div>
 
         <div class="excel-wrap">
+          <datalist id="listaUnidadesMedida">
+            <option value="UND"></option>
+            <option value="PCT"></option>
+            <option value="CX"></option>
+            <option value="RESMA"></option>
+            <option value="KG"></option>
+            <option value="L"></option>
+            <option value="M"></option>
+            <option value="PAR"></option>
+            <option value="DZ"></option>
+          </datalist>
           <table class="excel-table" id="tabelaItens">
             <thead>
               <tr>
                 <th class="col-item">#</th>
                 <th class="col-desc">Descrição / Produto</th>
                 <th class="col-marca">Marca</th>
+                <th class="col-unidade">Unid. Medida</th>
                 <th class="col-qtd">Qtd.</th>
                 <th class="col-unit">Valor Unit.</th>
                 <th class="col-total">Valor Total</th>
@@ -1193,10 +1205,17 @@
             <h2 class="page-title">Dashboard de Promissórias</h2>
             <p class="page-subtitle">Visão geral de vendas, recebimentos e inadimplência</p>
           </div>
-          <button class="btn-secondary" id="btnAtualizarDashProm">
-            <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
-            Atualizar
-          </button>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="filtroPeriodoDash" class="filter-input" style="min-width:160px">
+              <option value="mes">Este Mês</option>
+              <option value="trimestre">Este Trimestre</option>
+              <option value="ano" selected>Este Ano</option>
+            </select>
+            <button class="btn-secondary" id="btnAtualizarDashProm">
+              <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+              Atualizar
+            </button>
+          </div>
         </div>
 
         <!-- KPIs -->
