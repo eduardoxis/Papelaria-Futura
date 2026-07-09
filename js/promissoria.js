@@ -4,7 +4,7 @@
 // ============================================================
 
 import {
-  collection, doc, addDoc, getDoc, getDocs,
+  collection, doc, addDoc, getDoc, getDocs, setDoc,
   updateDoc, deleteDoc, query, where, orderBy,
   serverTimestamp, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -44,6 +44,10 @@ export function iniciarPromissoria(usuario, dadosUsuario) {
   document.getElementById("tabPromClientes")?.addEventListener("click", () => trocarAbaProm("clientes"));
   document.getElementById("tabPromDashboard")?.addEventListener("click", () => trocarAbaProm("dashboard"));
   document.getElementById("btnAtualizarDashProm")?.addEventListener("click", carregarDashboardProm);
+  document.getElementById("painelDashboardProm")?.addEventListener("click", (e) => {
+    const btn = e.target.closest(".prom-meta-editar");
+    if (btn) abrirModalEditarMeta(btn.dataset.meta);
+  });
 
   // Filtros da listagem
   document.getElementById("btnBuscarProm")?.addEventListener("click", () => {
@@ -220,7 +224,10 @@ const PROM_CORES = {
   laranja:  "#FD625E"
 };
 
-const _promCharts = {}; // guarda instâncias do Chart.js para destruir/recriar
+const COL_CONFIG   = "config";
+const DOC_METAS    = "prom_metas";
+const _promCharts  = {}; // guarda instâncias do Chart.js para destruir/recriar
+let   _metasCache  = { vendas: 0, recebimentos: 0, cobranca: 0 };
 
 function _destruirChart(id) {
   if (_promCharts[id]) {
@@ -236,16 +243,23 @@ async function carregarDashboardProm() {
   }
 
   const el = id => document.getElementById(id);
-  ["dashIndVendido","dashIndRecebido","dashIndAberto","dashIndTicket","dashIndInadimplencia"].forEach(i => {
-    const e = el(i); if (e) e.textContent = "—";
-  });
 
   try {
-    const [clientesSnap, comprasSnap, pagamentosSnap] = await Promise.all([
+    const [clientesSnap, comprasSnap, pagamentosSnap, metasSnap] = await Promise.all([
       getDocs(collection(db, COL_CLIENTES)),
       getDocs(collection(db, COL_COMPRAS)),
-      getDocs(collection(db, COL_PAGAMENTOS))
+      getDocs(collection(db, COL_PAGAMENTOS)),
+      getDoc(doc(db, COL_CONFIG, DOC_METAS)).catch(() => null)
     ]);
+
+    if (metasSnap && metasSnap.exists()) {
+      const m = metasSnap.data();
+      _metasCache = {
+        vendas:       m.vendas       || 0,
+        recebimentos: m.recebimentos || 0,
+        cobranca:     m.cobranca     || 0
+      };
+    }
 
     const hoje = new Date();
 
@@ -258,121 +272,155 @@ async function carregarDashboardProm() {
     const clientes = [];
     clientesSnap.forEach(d => clientes.push({ id: d.id, ...d.data() }));
 
-    // ── KPIs ──────────────────────────────────────────────────
-    const totalVendido   = compras.reduce((s, c) => s + (c.valor || 0), 0);
-    const totalRecebido  = pagamentos.reduce((s, p) => s + (p.valor || 0), 0);
-    const totalAberto    = Math.max(0, totalVendido - totalRecebido);
-    const ticketMedio    = compras.length ? totalVendido / compras.length : 0;
+    const nomePorId = {};
+    clientes.forEach(c => nomePorId[c.id] = c.nome || "—");
 
-    // ── Situação por cliente (para inadimplência e gráfico de pizza) ──
+    // ── Situação por cliente (saldo, atraso) ───────────────────
     const saldoPorCliente = {};
     compras.forEach(c => {
-      if (!saldoPorCliente[c.clienteId]) saldoPorCliente[c.clienteId] = { compras: 0, pagamentos: 0, vencido: false };
+      if (!saldoPorCliente[c.clienteId]) saldoPorCliente[c.clienteId] = { compras: 0, pagamentos: 0, vencido: false, qtdCompras: 0 };
       saldoPorCliente[c.clienteId].compras += c.valor || 0;
+      saldoPorCliente[c.clienteId].qtdCompras++;
       if (c.vencimento) {
         const venc = c.vencimento.toDate?.() || new Date(c.vencimento);
         if (venc < hoje) saldoPorCliente[c.clienteId].vencido = true;
       }
     });
     pagamentos.forEach(p => {
-      if (!saldoPorCliente[p.clienteId]) saldoPorCliente[p.clienteId] = { compras: 0, pagamentos: 0, vencido: false };
+      if (!saldoPorCliente[p.clienteId]) saldoPorCliente[p.clienteId] = { compras: 0, pagamentos: 0, vencido: false, qtdCompras: 0 };
       saldoPorCliente[p.clienteId].pagamentos += p.valor || 0;
     });
 
-    let quitados = 0, pendentes = 0, atrasados = 0;
-    clientes.forEach(c => {
-      const s = saldoPorCliente[c.id] || { compras: 0, pagamentos: 0, vencido: false };
+    // ── KPIs principais ─────────────────────────────────────────
+    const totalVendido  = compras.reduce((s, c) => s + (c.valor || 0), 0);
+    const totalRecebido = pagamentos.reduce((s, p) => s + (p.valor || 0), 0);
+    const totalAberto   = Math.max(0, totalVendido - totalRecebido);
+
+    const clientesInadimplentesSet = new Set();
+    Object.entries(saldoPorCliente).forEach(([id, s]) => {
       const saldo = s.compras - s.pagamentos;
-      if (saldo <= 0) quitados++;
-      else if (s.vencido) atrasados++;
-      else pendentes++;
+      if (saldo > 0 && s.vencido) clientesInadimplentesSet.add(id);
     });
 
-    const inadimplencia = clientes.length ? (atrasados / clientes.length) * 100 : 0;
+    if (el("dashKpiVendido"))      el("dashKpiVendido").textContent      = formatarMoeda(totalVendido);
+    if (el("dashKpiRecebido"))     el("dashKpiRecebido").textContent     = formatarMoeda(totalRecebido);
+    if (el("dashKpiAberto"))       el("dashKpiAberto").textContent       = formatarMoeda(totalAberto);
+    if (el("dashKpiInadimplentes")) el("dashKpiInadimplentes").textContent = clientesInadimplentesSet.size;
+    if (el("dashKpiClientes"))     el("dashKpiClientes").textContent     = clientes.length;
 
-    if (el("dashIndVendido"))      el("dashIndVendido").textContent      = formatarMoeda(totalVendido);
-    if (el("dashIndRecebido"))     el("dashIndRecebido").textContent     = formatarMoeda(totalRecebido);
-    if (el("dashIndAberto"))       el("dashIndAberto").textContent       = formatarMoeda(totalAberto);
-    if (el("dashIndTicket"))       el("dashIndTicket").textContent       = formatarMoeda(ticketMedio);
-    if (el("dashIndInadimplencia")) el("dashIndInadimplencia").textContent = inadimplencia.toFixed(1) + "%";
-
-    // ── Comparativo Mês Atual x Mês Anterior ───────────────────
-    const mesAtualRef = { ano: hoje.getFullYear(), mes: hoje.getMonth() };
-    const dataAnterior = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+    // ── Comparativo vs mês anterior (para os deltas dos KPIs) ───
+    const mesAtualRef    = { ano: hoje.getFullYear(), mes: hoje.getMonth() };
+    const dataAnterior   = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
     const mesAnteriorRef = { ano: dataAnterior.getFullYear(), mes: dataAnterior.getMonth() };
+    const fimMesAnterior = new Date(hoje.getFullYear(), hoje.getMonth(), 0, 23, 59, 59);
 
     const vendidoMesAtual     = _somaPorMes(compras, "dataCompra", mesAtualRef);
     const vendidoMesAnterior  = _somaPorMes(compras, "dataCompra", mesAnteriorRef);
     const recebidoMesAtual    = _somaPorMes(pagamentos, "dataPagamento", mesAtualRef);
     const recebidoMesAnterior = _somaPorMes(pagamentos, "dataPagamento", mesAnteriorRef);
 
-    _definirComparativo("dashCompVendido", vendidoMesAtual, vendidoMesAnterior);
-    _definirComparativo("dashCompRecebido", recebidoMesAtual, recebidoMesAnterior);
+    // Aberto "até o fim do mês anterior" (snapshot), pra comparar com o aberto de hoje
+    const vendidoAteFimMesAnterior = _somaAte(compras, "dataCompra", fimMesAnterior);
+    const recebidoAteFimMesAnterior = _somaAte(pagamentos, "dataPagamento", fimMesAnterior);
+    const abertoFimMesAnterior = Math.max(0, vendidoAteFimMesAnterior - recebidoAteFimMesAnterior);
 
-    // ── Gráfico 1: Vendas x Recebimentos (últimos 6 meses) ─────
-    const meses6 = _ultimosMeses(6);
-    const vendasPorMes6 = meses6.map(m => _somaPorMes(compras, "dataCompra", m));
-    const recebPorMes6  = meses6.map(m => _somaPorMes(pagamentos, "dataPagamento", m));
+    const clientesAteFimMesAnterior = clientes.filter(c => {
+      const d = c.criadoEm?.toDate?.() || (c.criadoEm ? new Date(c.criadoEm) : null);
+      return !d || d <= fimMesAnterior;
+    }).length;
+
+    _definirDeltaKpi("dashKpiVendido",       vendidoMesAtual, vendidoMesAnterior, "moeda");
+    _definirDeltaKpi("dashKpiRecebido",      recebidoMesAtual, recebidoMesAnterior, "moeda");
+    _definirDeltaKpi("dashKpiAberto",        totalAberto, abertoFimMesAnterior, "moeda");
+    _definirDeltaKpi("dashKpiClientes",      clientes.length, clientesAteFimMesAnterior, "contagem");
+    if (el("dashKpiInadimplentesDelta")) {
+      el("dashKpiInadimplentesDelta").textContent = "vs mês anterior";
+      el("dashKpiInadimplentesDelta").className = "prom-delta prom-delta--neutro";
+    }
+
+    // ── Gráfico 1: Evolução das Promissórias (Jan–Dez do ano atual) ──
+    const mesesAno = _mesesDoAno(hoje.getFullYear());
+    const vendidoPorMes = mesesAno.map(m => _somaPorMes(compras, "dataCompra", m));
+    const recebidoPorMes = mesesAno.map(m => _somaPorMes(pagamentos, "dataPagamento", m));
+    // Saldo em aberto acumulado até o fim de cada mês
+    let acumVendido = 0, acumRecebido = 0;
+    const abertoPorMes = mesesAno.map((m, idx) => {
+      acumVendido  += vendidoPorMes[idx];
+      acumRecebido += recebidoPorMes[idx];
+      return Math.max(0, acumVendido - acumRecebido);
+    });
 
     _destruirChart("chartEvolucao");
     _promCharts.chartEvolucao = new Chart(el("chartEvolucao"), {
-      type: "bar",
+      type: "line",
       data: {
-        labels: meses6.map(m => m.label),
+        labels: mesesAno.map(m => m.label),
         datasets: [
-          { label: "Vendido",   data: vendasPorMes6, backgroundColor: PROM_CORES.azul,  borderRadius: 4 },
-          { label: "Recebido",  data: recebPorMes6,  backgroundColor: PROM_CORES.verde, borderRadius: 4 }
+          { label: "Valor Vendido",  data: vendidoPorMes,  borderColor: PROM_CORES.azul,     backgroundColor: PROM_CORES.azul,     tension: .35, pointRadius: 3 },
+          { label: "Valor Recebido", data: recebidoPorMes, borderColor: PROM_CORES.verde,    backgroundColor: PROM_CORES.verde,    tension: .35, pointRadius: 3 },
+          { label: "Valor em Aberto", data: abertoPorMes,  borderColor: PROM_CORES.laranja,  backgroundColor: PROM_CORES.laranja,  tension: .35, pointRadius: 3 }
         ]
       },
       options: _opcoesBase({
-        scales: {
-          y: { beginAtZero: true, ticks: { callback: v => formatarMoeda(v) } }
-        }
+        scales: { y: { beginAtZero: true, ticks: { callback: v => formatarMoeda(v) } } }
       })
     });
 
-    // ── Gráfico 2: Situação dos clientes (donut) ───────────────
+    // ── Gráfico 2: Situação das Promissórias (por valor) ────────
+    let valorAtrasado = 0, valorPendente = 0;
+    Object.values(saldoPorCliente).forEach(s => {
+      const saldo = s.compras - s.pagamentos;
+      if (saldo <= 0) return;
+      if (s.vencido) valorAtrasado += saldo; else valorPendente += saldo;
+    });
+    const totalSituacao = totalRecebido + valorPendente + valorAtrasado;
+
     _destruirChart("chartSituacao");
     _promCharts.chartSituacao = new Chart(el("chartSituacao"), {
       type: "doughnut",
       data: {
-        labels: ["Quitado", "Pendente", "Atrasado"],
+        labels: ["Pagas", "Pendentes", "Atrasadas"],
         datasets: [{
-          data: [quitados, pendentes, atrasados],
-          backgroundColor: [PROM_CORES.verde, PROM_CORES.amarelo, PROM_CORES.vermelho],
+          data: [totalRecebido, valorPendente, valorAtrasado],
+          backgroundColor: [PROM_CORES.azul, PROM_CORES.amarelo, PROM_CORES.vermelho],
           borderWidth: 0
         }]
       },
-      options: _opcoesBase({ cutout: "65%", scales: undefined })
+      options: _opcoesBase({ cutout: "65%", plugins: { legend: { display: false } }, scales: undefined })
     });
+    _renderLegendaDonut("situacaoLegend", [
+      { cor: PROM_CORES.azul,     label: "Pagas",      valor: totalRecebido },
+      { cor: PROM_CORES.amarelo,  label: "Pendentes",  valor: valorPendente },
+      { cor: PROM_CORES.vermelho, label: "Atrasadas",  valor: valorAtrasado }
+    ], totalSituacao);
 
-    // ── Gráfico 3: Recebimentos por forma de pagamento (pizza) ──
-    const porForma = {};
-    pagamentos.forEach(p => {
-      const f = p.forma || "Não informado";
-      porForma[f] = (porForma[f] || 0) + (p.valor || 0);
+    // ── Gráfico 3: Clientes Novos x Recorrentes ─────────────────
+    let novos = 0, recorrentes = 0;
+    clientes.forEach(c => {
+      const qtd = saldoPorCliente[c.id]?.qtdCompras || 0;
+      if (qtd >= 2) recorrentes++; else novos++;
     });
-    const formasLabels = Object.keys(porForma);
-    const formasValores = formasLabels.map(f => porForma[f]);
+    const totalNR = novos + recorrentes;
 
-    _destruirChart("chartFormaPagamento");
-    _promCharts.chartFormaPagamento = new Chart(el("chartFormaPagamento"), {
-      type: "pie",
+    _destruirChart("chartNovosRecorrentes");
+    _promCharts.chartNovosRecorrentes = new Chart(el("chartNovosRecorrentes"), {
+      type: "doughnut",
       data: {
-        labels: formasLabels.length ? formasLabels : ["Sem dados"],
+        labels: ["Recorrentes", "Novos"],
         datasets: [{
-          data: formasValores.length ? formasValores : [1],
-          backgroundColor: [PROM_CORES.azul, PROM_CORES.verde, PROM_CORES.amarelo, PROM_CORES.roxo, PROM_CORES.laranja, PROM_CORES.cinza],
+          data: [recorrentes, novos],
+          backgroundColor: [PROM_CORES.azulEsc, PROM_CORES.azul],
           borderWidth: 0
         }]
       },
-      options: _opcoesBase({ scales: undefined })
+      options: _opcoesBase({ cutout: "65%", plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.raw}` } } }, scales: undefined })
     });
+    _renderLegendaDonut("novosRecorrentesLegend", [
+      { cor: PROM_CORES.azulEsc, label: "Recorrentes", valor: recorrentes, unidade: "" },
+      { cor: PROM_CORES.azul,    label: "Novos",       valor: novos, unidade: "" }
+    ], totalNR, { moeda: false, totalLabel: "Total de clientes" });
 
-    // ── Gráfico 4: Top 10 clientes por saldo devedor (barra horizontal) ──
-    const nomePorId = {};
-    clientes.forEach(c => nomePorId[c.id] = c.nome || "—");
-
+    // ── Gráfico 4: Top 10 Clientes Devedores ────────────────────
     const devedores = Object.entries(saldoPorCliente)
       .map(([id, s]) => ({ nome: nomePorId[id] || "—", saldo: s.compras - s.pagamentos }))
       .filter(d => d.saldo > 0)
@@ -384,73 +432,22 @@ async function carregarDashboardProm() {
       type: "bar",
       data: {
         labels: devedores.map(d => d.nome),
-        datasets: [{ label: "Saldo Devedor", data: devedores.map(d => d.saldo), backgroundColor: PROM_CORES.vermelho, borderRadius: 4 }]
+        datasets: [{ label: "Saldo Devedor", data: devedores.map(d => d.saldo), backgroundColor: PROM_CORES.azul, borderRadius: 4 }]
       },
       options: _opcoesBase({
         indexAxis: "y",
-        scales: {
-          x: { beginAtZero: true, ticks: { callback: v => formatarMoeda(v) } }
-        }
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true, ticks: { callback: v => formatarMoeda(v) } } }
       })
     });
 
-    // ── Gráfico 5: Novas compras por mês (últimos 12 meses) ─────
-    const meses12 = _ultimosMeses(12);
-    const comprasPorMes12 = meses12.map(m => _contagemPorMes(compras, "dataCompra", m));
-
-    _destruirChart("chartComprasMes");
-    _promCharts.chartComprasMes = new Chart(el("chartComprasMes"), {
-      type: "line",
-      data: {
-        labels: meses12.map(m => m.label),
-        datasets: [{
-          label: "Compras",
-          data: comprasPorMes12,
-          borderColor: PROM_CORES.azulEsc,
-          backgroundColor: "rgba(0,45,148,0.1)",
-          tension: 0.35,
-          fill: true,
-          pointRadius: 3
-        }]
-      },
-      options: _opcoesBase({
-        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
-      })
-    });
-
-    // ── Gráfico 6: Aging de Inadimplência (dias em atraso) ──────
-    // Agrupa o valor das compras vencidas (de clientes com saldo em
-    // aberto) por faixa de atraso — o clássico "aging de recebíveis".
-    const faixasAging = [
-      { label: "1–30 dias",  min: 1,   max: 30 },
-      { label: "31–60 dias", min: 31,  max: 60 },
-      { label: "61–90 dias", min: 61,  max: 90 },
-      { label: "90+ dias",   min: 91,  max: Infinity }
-    ];
-    const valoresAging = faixasAging.map(() => 0);
-
-    compras.forEach(c => {
-      const saldoCli = saldoPorCliente[c.clienteId];
-      if (!saldoCli || (saldoCli.compras - saldoCli.pagamentos) <= 0) return; // cliente já quitado
-      if (!c.vencimento) return;
-      const venc = c.vencimento.toDate?.() || new Date(c.vencimento);
-      const diasAtraso = Math.floor((hoje - venc) / 86400000);
-      if (diasAtraso <= 0) return; // ainda não venceu
-      const idxFaixa = faixasAging.findIndex(f => diasAtraso >= f.min && diasAtraso <= f.max);
-      if (idxFaixa >= 0) valoresAging[idxFaixa] += (c.valor || 0);
-    });
-
-    _destruirChart("chartAging");
-    _promCharts.chartAging = new Chart(el("chartAging"), {
+    // ── Gráfico 5: Recebimentos por Mês (Jan–Dez do ano atual) ──
+    _destruirChart("chartRecebimentosMes");
+    _promCharts.chartRecebimentosMes = new Chart(el("chartRecebimentosMes"), {
       type: "bar",
       data: {
-        labels: faixasAging.map(f => f.label),
-        datasets: [{
-          label: "Valor em Atraso",
-          data: valoresAging,
-          backgroundColor: [PROM_CORES.amarelo, PROM_CORES.laranja, PROM_CORES.vermelho, "#991B1B"],
-          borderRadius: 4
-        }]
+        labels: mesesAno.map(m => m.label),
+        datasets: [{ label: "Recebido", data: recebidoPorMes, backgroundColor: PROM_CORES.verde, borderRadius: 4 }]
       },
       options: _opcoesBase({
         plugins: { legend: { display: false } },
@@ -458,112 +455,20 @@ async function carregarDashboardProm() {
       })
     });
 
-    // ── Gráfico 7: Previsão de Recebimentos (vencimentos futuros) ──
-    // Ajuda no planejamento de caixa: quanto está previsto pra
-    // entrar nos próximos dias, agrupado por janela de vencimento.
-    const faixasFuturo = [
-      { label: "Próx. 7 dias",   min: 0,  max: 7 },
-      { label: "8–15 dias",      min: 8,  max: 15 },
-      { label: "16–30 dias",     min: 16, max: 30 },
-      { label: "31–60 dias",     min: 31, max: 60 },
-      { label: "60+ dias",       min: 61, max: Infinity }
-    ];
-    const valoresFuturo = faixasFuturo.map(() => 0);
+    // ── Calendário de Vendas (heatmap por dia, mês atual) ───────
+    _renderCalendarioVendas(compras, hoje);
 
-    compras.forEach(c => {
-      const saldoCli = saldoPorCliente[c.clienteId];
-      if (!saldoCli || (saldoCli.compras - saldoCli.pagamentos) <= 0) return;
-      if (!c.vencimento) return;
-      const venc = c.vencimento.toDate?.() || new Date(c.vencimento);
-      const diasRestantes = Math.ceil((venc - hoje) / 86400000);
-      if (diasRestantes < 0) return; // já vencido (entra no aging acima)
-      const idxFaixa = faixasFuturo.findIndex(f => diasRestantes >= f.min && diasRestantes <= f.max);
-      if (idxFaixa >= 0) valoresFuturo[idxFaixa] += (c.valor || 0);
-    });
+    // ── Metas (gauges) ──────────────────────────────────────────
+    const recebidoInadimplentesMesAtual = pagamentos.reduce((soma, p) => {
+      const d = p.dataPagamento?.toDate?.() || (p.dataPagamento ? new Date(p.dataPagamento) : null);
+      if (!d || d.getFullYear() !== mesAtualRef.ano || d.getMonth() !== mesAtualRef.mes) return soma;
+      if (!clientesInadimplentesSet.has(p.clienteId)) return soma;
+      return soma + (p.valor || 0);
+    }, 0);
 
-    _destruirChart("chartVencimentosFuturos");
-    _promCharts.chartVencimentosFuturos = new Chart(el("chartVencimentosFuturos"), {
-      type: "bar",
-      data: {
-        labels: faixasFuturo.map(f => f.label),
-        datasets: [{
-          label: "Previsto a Receber",
-          data: valoresFuturo,
-          backgroundColor: PROM_CORES.verde,
-          borderRadius: 4
-        }]
-      },
-      options: _opcoesBase({
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true, ticks: { callback: v => formatarMoeda(v) } } }
-      })
-    });
-
-    // ── Gráfico 8: Novos Clientes por Mês (últimos 12 meses) ────
-    const novosClientesPorMes12 = meses12.map(m => _contagemPorMes(clientes, "criadoEm", m));
-
-    _destruirChart("chartNovosClientes");
-    _promCharts.chartNovosClientes = new Chart(el("chartNovosClientes"), {
-      type: "bar",
-      data: {
-        labels: meses12.map(m => m.label),
-        datasets: [{
-          label: "Novos Clientes",
-          data: novosClientesPorMes12,
-          backgroundColor: PROM_CORES.roxo,
-          borderRadius: 4
-        }]
-      },
-      options: _opcoesBase({
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
-      })
-    });
-
-    // ── Gráfico 9: Ranking de Atraso — Top 10 clientes ──────────
-    // Quem está inadimplente há mais tempo (dias desde o vencimento
-    // mais antigo em aberto), não só quem deve mais.
-    const vencimentoMaisAntigoPorCliente = {};
-    compras.forEach(c => {
-      const saldoCli = saldoPorCliente[c.clienteId];
-      if (!saldoCli || (saldoCli.compras - saldoCli.pagamentos) <= 0) return;
-      if (!c.vencimento) return;
-      const venc = c.vencimento.toDate?.() || new Date(c.vencimento);
-      if (venc >= hoje) return; // só compras já vencidas
-      if (!vencimentoMaisAntigoPorCliente[c.clienteId] || venc < vencimentoMaisAntigoPorCliente[c.clienteId]) {
-        vencimentoMaisAntigoPorCliente[c.clienteId] = venc;
-      }
-    });
-
-    const rankingAtraso = Object.entries(vencimentoMaisAntigoPorCliente)
-      .map(([id, venc]) => ({
-        nome: nomePorId[id] || "—",
-        dias: Math.floor((hoje - venc) / 86400000)
-      }))
-      .sort((a, b) => b.dias - a.dias)
-      .slice(0, 10);
-
-    _destruirChart("chartRankingAtraso");
-    _promCharts.chartRankingAtraso = new Chart(el("chartRankingAtraso"), {
-      type: "bar",
-      data: {
-        labels: rankingAtraso.map(r => r.nome),
-        datasets: [{
-          label: "Dias em Atraso",
-          data: rankingAtraso.map(r => r.dias),
-          backgroundColor: PROM_CORES.laranja,
-          borderRadius: 4
-        }]
-      },
-      options: _opcoesBase({
-        indexAxis: "y",
-        plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: (ctx) => `${ctx.raw} dias em atraso` } }
-        },
-        scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
-      })
-    });
+    _renderGaugeMeta("gaugeVendas",       vendidoMesAtual,             _metasCache.vendas,       PROM_CORES.azul);
+    _renderGaugeMeta("gaugeRecebimentos", recebidoMesAtual,            _metasCache.recebimentos, PROM_CORES.verde);
+    _renderGaugeMeta("gaugeCobranca",     recebidoInadimplentesMesAtual, _metasCache.cobranca,    PROM_CORES.laranja);
 
   } catch (err) {
     console.error("Erro ao carregar dashboard:", err);
@@ -571,29 +476,179 @@ async function carregarDashboardProm() {
   }
 }
 
-// Preenche um par valor+variação percentual (mês atual x mês anterior)
-function _definirComparativo(idPrefix, atual, anterior) {
-  const elValor = document.getElementById(`${idPrefix}Valor`);
+// ── Delta genérico dos cards de KPI (moeda ou contagem) ─────────
+function _definirDeltaKpi(idPrefix, atual, anterior, tipo = "moeda") {
   const elDelta = document.getElementById(`${idPrefix}Delta`);
-  if (elValor) elValor.textContent = formatarMoeda(atual);
   if (!elDelta) return;
 
-  if (anterior <= 0) {
-    if (atual > 0) {
-      elDelta.textContent = "Novo mês de movimento";
-      elDelta.className = "prom-delta prom-delta--up";
-    } else {
-      elDelta.textContent = "Sem dados no período";
+  if (tipo === "contagem") {
+    const diff = atual - anterior;
+    if (diff === 0) {
+      elDelta.textContent = "— vs mês anterior";
       elDelta.className = "prom-delta prom-delta--neutro";
+      return;
     }
+    const seta = diff > 0 ? "▲" : "▼";
+    const classe = diff > 0 ? "prom-delta--up" : "prom-delta--down";
+    elDelta.textContent = `${seta} ${Math.abs(diff)} vs mês anterior`;
+    elDelta.className = `prom-delta ${classe}`;
     return;
   }
 
+  if (anterior <= 0) {
+    elDelta.textContent = atual > 0 ? "Novo mês de movimento" : "Sem dados no período";
+    elDelta.className = `prom-delta ${atual > 0 ? "prom-delta--up" : "prom-delta--neutro"}`;
+    return;
+  }
   const variacao = ((atual - anterior) / anterior) * 100;
   const seta = variacao > 0 ? "▲" : variacao < 0 ? "▼" : "—";
   const classe = variacao > 0 ? "prom-delta--up" : variacao < 0 ? "prom-delta--down" : "prom-delta--neutro";
   elDelta.textContent = `${seta} ${Math.abs(variacao).toFixed(1)}% vs mês anterior`;
   elDelta.className = `prom-delta ${classe}`;
+}
+
+// Renderiza a legenda ao lado de um donut (cor + label + valor + total)
+function _renderLegendaDonut(containerId, itens, total, { moeda = true, totalLabel = "Total" } = {}) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const fmt = v => moeda ? formatarMoeda(v) : v;
+  container.innerHTML = itens.map(i => `
+    <div class="psl-linha">
+      <span class="psl-dot" style="background:${i.cor}"></span>
+      <span class="psl-label">${i.label}</span>
+      <span class="psl-valor">${fmt(i.valor)}</span>
+    </div>
+  `).join("") + `<div class="psl-total">${totalLabel}: ${fmt(total)}</div>`;
+}
+
+// ── Calendário de vendas (heatmap por dia do mês atual) ─────────
+function _renderCalendarioVendas(compras, hoje) {
+  const container = document.getElementById("calendarioVendas");
+  if (!container) return;
+
+  const titulo = document.getElementById("calendarioVendasTitulo");
+  if (titulo) titulo.textContent = `Calendário de Vendas — ${hoje.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}`;
+
+  const ano = hoje.getFullYear(), mes = hoje.getMonth();
+  const primeiroDia = new Date(ano, mes, 1);
+  const ultimoDia = new Date(ano, mes + 1, 0);
+  const diasNoMes = ultimoDia.getDate();
+
+  const valorPorDia = {};
+  compras.forEach(c => {
+    const d = c.dataCompra?.toDate?.() || (c.dataCompra ? new Date(c.dataCompra) : null);
+    if (!d || d.getFullYear() !== ano || d.getMonth() !== mes) return;
+    valorPorDia[d.getDate()] = (valorPorDia[d.getDate()] || 0) + (c.valor || 0);
+  });
+
+  const maiorValor = Math.max(1, ...Object.values(valorPorDia));
+
+  // Monta a grade: semanas (linhas) x Dom..Sáb (colunas)
+  const semanas = [];
+  let semanaAtual = new Array(7).fill(null);
+  let diaCursor = 1 - primeiroDia.getDay();
+  while (diaCursor <= diasNoMes) {
+    for (let dow = 0; dow < 7; dow++, diaCursor++) {
+      semanaAtual[dow] = (diaCursor >= 1 && diaCursor <= diasNoMes) ? diaCursor : null;
+    }
+    semanas.push([...semanaAtual]);
+  }
+
+  const corCelula = (valor) => {
+    if (!valor) return "var(--gray-050)";
+    const intensidade = Math.min(1, valor / maiorValor);
+    const alpha = 0.15 + intensidade * 0.75;
+    return `rgba(0,56,184,${alpha.toFixed(2)})`;
+  };
+
+  let html = `<table class="prom-cal-table"><thead><tr>${
+    ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].map(d => `<th>${d}</th>`).join("")
+  }</tr></thead><tbody>`;
+
+  semanas.forEach(semana => {
+    html += "<tr>" + semana.map(dia => {
+      if (!dia) return `<td class="prom-cal-cell prom-cal-cell--vazia"></td>`;
+      const valor = valorPorDia[dia] || 0;
+      const cor = corCelula(valor);
+      const corTexto = valor / maiorValor > 0.55 ? "#fff" : "var(--gray-700)";
+      const titulo = valor ? `${dia}: ${formatarMoeda(valor)}` : `${dia}: sem vendas`;
+      return `<td class="prom-cal-cell" style="background:${cor};color:${corTexto}" title="${titulo}">${dia}</td>`;
+    }).join("") + "</tr>";
+  });
+
+  html += "</tbody></table>";
+  html += `<div class="prom-cal-legenda"><span>Menor valor</span><span class="prom-cal-legenda-barra"></span><span>Maior valor</span></div>`;
+
+  container.innerHTML = html;
+}
+
+// ── Gauge (semicírculo) de metas ────────────────────────────────
+function _renderGaugeMeta(canvasId, valorAtual, meta, cor) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const pct = meta > 0 ? Math.min(1, valorAtual / meta) : 0;
+  const pctTexto = meta > 0 ? Math.round((valorAtual / meta) * 100) : 0;
+
+  _destruirChart(canvasId);
+  _promCharts[canvasId] = new Chart(canvas, {
+    type: "doughnut",
+    data: {
+      datasets: [{
+        data: [pct, 1 - pct],
+        backgroundColor: [cor, "#E2E8F0"],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      rotation: -90,
+      circumference: 180,
+      cutout: "75%",
+      plugins: { legend: { display: false }, tooltip: { enabled: false } }
+    }
+  });
+
+  const elPct = document.getElementById(`${canvasId}Pct`);
+  if (elPct) elPct.textContent = `${pctTexto}%`;
+
+  const elValores = document.getElementById(`${canvasId}Valores`);
+  if (elValores) elValores.textContent = meta > 0
+    ? `${formatarMoeda(valorAtual)} de ${formatarMoeda(meta)}`
+    : `${formatarMoeda(valorAtual)} — meta não definida`;
+}
+
+// ── Modal para editar as metas (salva em config/prom_metas) ────
+async function abrirModalEditarMeta(chave) {
+  const labels = { vendas: "Meta de Vendas", recebimentos: "Meta de Recebimentos", cobranca: "Meta de Cobrança" };
+  const valorAtual = _metasCache[chave] || 0;
+
+  const body = `
+    <div class="form-usuario">
+      <label class="field-label">${labels[chave] || "Meta"} (R$)</label>
+      <input type="number" id="inputValorMeta" class="filter-input" style="width:100%" min="0" step="0.01" value="${valorAtual || ""}" placeholder="0,00">
+    </div>`;
+  const footer = `
+    <button class="btn-ghost" id="btnCancelarModalProm">Cancelar</button>
+    <button class="btn-primary" id="btnSalvarMeta">Salvar</button>`;
+
+  abrirModal(labels[chave] || "Editar Meta", body, footer);
+  document.getElementById("btnCancelarModalProm").onclick = fecharModal;
+  document.getElementById("inputValorMeta").focus();
+
+  document.getElementById("btnSalvarMeta").onclick = async () => {
+    const novoValor = parseFloat(document.getElementById("inputValorMeta").value) || 0;
+    try {
+      _metasCache[chave] = novoValor;
+      await setDoc(doc(db, COL_CONFIG, DOC_METAS), { [chave]: novoValor }, { merge: true });
+      fecharModal();
+      window.mostrarToast?.("Meta salva com sucesso!", "success");
+      carregarDashboardProm();
+    } catch (err) {
+      console.error(err);
+      window.mostrarToast?.("Erro ao salvar meta.", "error");
+    }
+  };
 }
 
 // Opções padrão dos gráficos (visual clean, estilo Power BI)
@@ -609,16 +664,13 @@ function _opcoesBase(extra = {}) {
   };
 }
 
-// Gera os últimos N meses (mais antigo → mais recente) com label "mmm/aa"
-function _ultimosMeses(n) {
-  const hoje = new Date();
+// Gera os 12 meses (Jan → Dez) de um ano, com label "mmm"
+function _mesesDoAno(ano) {
   const lista = [];
-  for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+  for (let mes = 0; mes < 12; mes++) {
     lista.push({
-      ano: d.getFullYear(),
-      mes: d.getMonth(),
-      label: d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }).replace(".", "")
+      ano, mes,
+      label: new Date(ano, mes, 1).toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")
     });
   }
   return lista;
@@ -632,6 +684,15 @@ function _somaPorMes(lista, campoData, mesRef) {
       return soma + (item.valor || 0);
     }
     return soma;
+  }, 0);
+}
+
+// Soma tudo cujo campo de data seja <= dataLimite (snapshot acumulado)
+function _somaAte(lista, campoData, dataLimite) {
+  return lista.reduce((soma, item) => {
+    const data = item[campoData]?.toDate?.() || (item[campoData] ? new Date(item[campoData]) : null);
+    if (!data || data > dataLimite) return soma;
+    return soma + (item.valor || 0);
   }, 0);
 }
 
