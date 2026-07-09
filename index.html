@@ -1293,12 +1293,33 @@
             </div>
           </div>
 
+          <div class="card prom-chart-card">
+            <div class="card-header">
+              <h3 class="card-section-title" style="margin:0">Recebimentos por Forma de Pagamento</h3>
+            </div>
+            <div class="prom-chart-wrap">
+              <canvas id="chartFormaPagamento"></canvas>
+            </div>
+          </div>
+
+          <div class="card prom-chart-card">
+            <div class="card-header">
+              <h3 class="card-section-title" style="margin:0">Aging de Inadimplência</h3>
+              <p class="card-section-subtitle" style="margin:2px 0 0">Valor vencido em aberto, por tempo de atraso</p>
+            </div>
+            <div class="prom-chart-wrap">
+              <canvas id="chartAging"></canvas>
+            </div>
+          </div>
+
           <div class="card prom-chart-card prom-chart-card--lg">
             <div class="card-header">
-              <h3 class="card-section-title" style="margin:0" id="calendarioVendasTitulo">Calendário de Vendas</h3>
-              <p class="card-section-subtitle" style="margin:2px 0 0">Valor vendido por dia, mês atual</p>
+              <h3 class="card-section-title" style="margin:0">Previsão de Recebimentos</h3>
+              <p class="card-section-subtitle" style="margin:2px 0 0">Vencimentos futuros em aberto, por janela de tempo</p>
             </div>
-            <div id="calendarioVendas" class="prom-calendario"></div>
+            <div class="prom-chart-wrap prom-chart-wrap--lg">
+              <canvas id="chartVencimentosFuturos"></canvas>
+            </div>
           </div>
 
           <div class="card prom-chart-card prom-chart-card--lg">
