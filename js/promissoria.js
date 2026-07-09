@@ -16,15 +16,34 @@ import { temCargo } from "./auth.js";
 const COL_CLIENTES     = "prom_clientes";
 const COL_COMPRAS      = "prom_compras";
 const COL_PAGAMENTOS   = "prom_pagamentos";
+const COL_HISTORICO    = "prom_historico";
 
 // Juros: 2% ao mês sobre saldo devedor (com base na planilha)
 const JUROS_MENSAL     = 0.02;
 
 let _dadosUsuario = null;
+let _usuarioAtual = null;
+
+// Grava um registro de auditoria (quem fez o quê e quando)
+async function _registrarHistorico(tipo, acao, clienteId, refId, valor, detalhes = "") {
+  try {
+    await addDoc(collection(db, COL_HISTORICO), {
+      tipo, acao, clienteId, refId,
+      valor: valor || 0,
+      detalhes,
+      usuarioUid:  _usuarioAtual?.uid || null,
+      usuarioNome: _dadosUsuario?.nome || _usuarioAtual?.email || "—",
+      criadoEm: serverTimestamp()
+    });
+  } catch (err) {
+    console.error("Erro ao registrar histórico:", err);
+  }
+}
 
 // ── Inicialização ───────────────────────────────────────────
 export function iniciarPromissoria(usuario, dadosUsuario) {
   _dadosUsuario = dadosUsuario;
+  _usuarioAtual = usuario;
 
   document.addEventListener("navegacao", (e) => {
     if (e.detail.page === "promissoria") {
@@ -44,6 +63,7 @@ export function iniciarPromissoria(usuario, dadosUsuario) {
   document.getElementById("tabPromClientes")?.addEventListener("click", () => trocarAbaProm("clientes"));
   document.getElementById("tabPromDashboard")?.addEventListener("click", () => trocarAbaProm("dashboard"));
   document.getElementById("btnAtualizarDashProm")?.addEventListener("click", carregarDashboardProm);
+  document.getElementById("filtroPeriodoDash")?.addEventListener("change", (e) => _renderGraficosPeriodo(e.target.value));
   document.getElementById("painelDashboardProm")?.addEventListener("click", (e) => {
     const btn = e.target.closest(".prom-meta-editar");
     if (btn) abrirModalEditarMeta(btn.dataset.meta);
@@ -104,6 +124,7 @@ export function iniciarPromissoria(usuario, dadosUsuario) {
     if (action === "novo-pagamento")   abrirModalNovoPagamento(clienteId);
     if (action === "excluir-compra")   confirmarExcluirCompra(id);
     if (action === "imprimir-cliente") imprimirCliente(clienteId);
+    if (action === "historico-cliente") abrirModalHistoricoCliente(clienteId);
   });
 
   // Botões de relatório/exportação
@@ -227,6 +248,7 @@ const PROM_CORES = {
 const COL_CONFIG   = "config";
 const DOC_METAS    = "prom_metas";
 const _promCharts  = {}; // guarda instâncias do Chart.js para destruir/recriar
+const _dashCache   = { compras: [], pagamentos: [] };
 let   _metasCache  = { vendas: 0, recebimentos: 0, cobranca: 0 };
 
 function _destruirChart(id) {
@@ -338,33 +360,11 @@ async function carregarDashboardProm() {
       el("dashKpiInadimplentesDelta").className = "prom-delta prom-delta--neutro";
     }
 
-    // ── Gráfico 1: Evolução das Promissórias (Jan–Dez do ano atual) ──
-    const mesesAno = _mesesDoAno(hoje.getFullYear());
-    const vendidoPorMes = mesesAno.map(m => _somaPorMes(compras, "dataCompra", m));
-    const recebidoPorMes = mesesAno.map(m => _somaPorMes(pagamentos, "dataPagamento", m));
-    // Saldo em aberto acumulado até o fim de cada mês
-    let acumVendido = 0, acumRecebido = 0;
-    const abertoPorMes = mesesAno.map((m, idx) => {
-      acumVendido  += vendidoPorMes[idx];
-      acumRecebido += recebidoPorMes[idx];
-      return Math.max(0, acumVendido - acumRecebido);
-    });
+    _dashCache.compras = compras;
+    _dashCache.pagamentos = pagamentos;
 
-    _destruirChart("chartEvolucao");
-    _promCharts.chartEvolucao = new Chart(el("chartEvolucao"), {
-      type: "line",
-      data: {
-        labels: mesesAno.map(m => m.label),
-        datasets: [
-          { label: "Valor Vendido",  data: vendidoPorMes,  borderColor: PROM_CORES.azul,     backgroundColor: PROM_CORES.azul,     tension: .35, pointRadius: 3 },
-          { label: "Valor Recebido", data: recebidoPorMes, borderColor: PROM_CORES.verde,    backgroundColor: PROM_CORES.verde,    tension: .35, pointRadius: 3 },
-          { label: "Valor em Aberto", data: abertoPorMes,  borderColor: PROM_CORES.laranja,  backgroundColor: PROM_CORES.laranja,  tension: .35, pointRadius: 3 }
-        ]
-      },
-      options: _opcoesBase({
-        scales: { y: { beginAtZero: true, ticks: { callback: v => formatarMoeda(v) } } }
-      })
-    });
+    // ── Gráficos 1 e 5: Evolução + Recebimentos por Mês (respeitam o filtro de período) ──
+    _renderGraficosPeriodo(document.getElementById("filtroPeriodoDash")?.value || "ano");
 
     // ── Gráfico 2: Situação das Promissórias (por valor) ────────
     let valorAtrasado = 0, valorPendente = 0;
@@ -438,20 +438,6 @@ async function carregarDashboardProm() {
         indexAxis: "y",
         plugins: { legend: { display: false } },
         scales: { x: { beginAtZero: true, ticks: { callback: v => formatarMoeda(v) } } }
-      })
-    });
-
-    // ── Gráfico 5: Recebimentos por Mês (Jan–Dez do ano atual) ──
-    _destruirChart("chartRecebimentosMes");
-    _promCharts.chartRecebimentosMes = new Chart(el("chartRecebimentosMes"), {
-      type: "bar",
-      data: {
-        labels: mesesAno.map(m => m.label),
-        datasets: [{ label: "Recebido", data: recebidoPorMes, backgroundColor: PROM_CORES.verde, borderRadius: 4 }]
-      },
-      options: _opcoesBase({
-        plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true, ticks: { callback: v => formatarMoeda(v) } } }
       })
     });
 
@@ -723,6 +709,96 @@ function _somaPorMes(lista, campoData, mesRef) {
   }, 0);
 }
 
+function _somaPorDia(lista, campoData, diaRef) {
+  return lista.reduce((soma, item) => {
+    const data = item[campoData]?.toDate?.() || (item[campoData] ? new Date(item[campoData]) : null);
+    if (!data) return soma;
+    if (data.getFullYear() === diaRef.ano && data.getMonth() === diaRef.mes && data.getDate() === diaRef.dia) {
+      return soma + (item.valor || 0);
+    }
+    return soma;
+  }, 0);
+}
+
+// Monta os "baldes" (dias ou meses) de acordo com o período escolhido no filtro
+function _bucketsDoPeriodo(periodo) {
+  const hoje = new Date();
+  if (periodo === "mes") {
+    const diasNoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+    return {
+      tipo: "dia",
+      buckets: Array.from({ length: diasNoMes }, (_, i) => ({
+        ano: hoje.getFullYear(), mes: hoje.getMonth(), dia: i + 1, label: String(i + 1)
+      }))
+    };
+  }
+  if (periodo === "trimestre") {
+    const lista = [];
+    for (let i = 2; i >= 0; i--) {
+      const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+      lista.push({ ano: d.getFullYear(), mes: d.getMonth(), label: d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "") });
+    }
+    return { tipo: "mes", buckets: lista };
+  }
+  // "ano" (padrão) — Jan a Dez do ano atual
+  return { tipo: "mes", buckets: _mesesDoAno(hoje.getFullYear()) };
+}
+
+// Renderiza os gráficos "Evolução das Promissórias" e "Recebimentos por Mês"
+// usando os dados já carregados em cache (não refaz a busca ao Firestore).
+function _renderGraficosPeriodo(periodo) {
+  const el = id => document.getElementById(id);
+  if (!el("chartEvolucao") || typeof Chart === "undefined") return;
+
+  const { tipo, buckets } = _bucketsDoPeriodo(periodo);
+  const somaFn = tipo === "dia" ? _somaPorDia : _somaPorMes;
+  const compras = _dashCache.compras, pagamentos = _dashCache.pagamentos;
+
+  const vendidoSerie  = buckets.map(b => somaFn(compras, "dataCompra", b));
+  const recebidoSerie = buckets.map(b => somaFn(pagamentos, "dataPagamento", b));
+
+  // "Aberto" é sempre o saldo real acumulado (histórico completo) até o fim de cada balde
+  const abertoSerie = buckets.map(b => {
+    const fim = tipo === "dia"
+      ? new Date(b.ano, b.mes, b.dia, 23, 59, 59)
+      : new Date(b.ano, b.mes + 1, 0, 23, 59, 59);
+    const vendidoAte  = _somaAte(compras, "dataCompra", fim);
+    const recebidoAte = _somaAte(pagamentos, "dataPagamento", fim);
+    return Math.max(0, vendidoAte - recebidoAte);
+  });
+
+  const labels = buckets.map(b => b.label);
+
+  _destruirChart("chartEvolucao");
+  _promCharts.chartEvolucao = new Chart(el("chartEvolucao"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        { label: "Valor Vendido",  data: vendidoSerie,  borderColor: PROM_CORES.azul,    backgroundColor: PROM_CORES.azul,    tension: .35, pointRadius: 3 },
+        { label: "Valor Recebido", data: recebidoSerie, borderColor: PROM_CORES.verde,   backgroundColor: PROM_CORES.verde,   tension: .35, pointRadius: 3 },
+        { label: "Valor em Aberto", data: abertoSerie,  borderColor: PROM_CORES.laranja, backgroundColor: PROM_CORES.laranja, tension: .35, pointRadius: 3 }
+      ]
+    },
+    options: _opcoesBase({
+      scales: { y: { beginAtZero: true, ticks: { callback: v => formatarMoeda(v) } } }
+    })
+  });
+
+  _destruirChart("chartRecebimentosMes");
+  _promCharts.chartRecebimentosMes = new Chart(el("chartRecebimentosMes"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{ label: "Recebido", data: recebidoSerie, backgroundColor: PROM_CORES.verde, borderRadius: 4 }]
+    },
+    options: _opcoesBase({
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { callback: v => formatarMoeda(v) } } }
+    })
+  });
+}
+
 // Soma tudo cujo campo de data seja <= dataLimite (snapshot acumulado)
 function _somaAte(lista, campoData, dataLimite) {
   return lista.reduce((soma, item) => {
@@ -919,6 +995,10 @@ async function abrirPainelCliente(clienteId) {
             </p>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-secondary" data-action="historico-cliente" data-cliente-id="${clienteId}">
+              <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+              Histórico de Alterações
+            </button>
             <button class="btn-secondary" data-action="imprimir-cliente" data-cliente-id="${clienteId}">
               <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px"><path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a1 1 0 001 1h8a1 1 0 001-1v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a1 1 0 00-1-1H6a1 1 0 00-1 1zm2 0h6v3H7V4zm-1 9v-1h8v1H6zm8-4a1 1 0 11-2 0 1 1 0 012 0z" clip-rule="evenodd"/></svg>
               Imprimir
@@ -1012,7 +1092,7 @@ async function abrirPainelCliente(clienteId) {
                     const statusCompra = atrasada ? "Atrasado" : (venc ? "Pendente" : "—");
                     return `
                       <tr>
-                        <td>${formatarDataLocal(c.dataCompra)}</td>
+                        <td>${formatarDataLocal(c.dataCompra)}${c.parcelaTotal ? `<br><span style="display:inline-block;margin-top:2px;padding:1px 8px;border-radius:9999px;font-size:0.7rem;font-weight:600;background:var(--blue-050);color:var(--blue-600)">Parcela ${c.parcelaNumero}/${c.parcelaTotal}</span>` : ""}</td>
                         <td>${formatarMoeda(c.valor)}</td>
                         <td>${venc ? formatarDataLocal(c.vencimento) : "—"}</td>
                         <td>${c.juros > 0 ? `<span style="color:#DC2626">${formatarMoeda(c.juros)}</span>` : "—"}</td>
@@ -1136,10 +1216,11 @@ let _compraRowSeq = 0;
 function linhaCompraHtml(hojeStr, vencStr) {
   const rid = `cr${++_compraRowSeq}`;
   return `
-    <div class="compra-row" data-row-id="${rid}" style="display:grid;grid-template-columns:1fr 1fr 1fr 1.6fr 32px;gap:8px;align-items:center;margin-bottom:8px">
+    <div class="compra-row" data-row-id="${rid}" style="display:grid;grid-template-columns:1fr 1fr 1fr 0.7fr 1.6fr 32px;gap:8px;align-items:center;margin-bottom:8px">
       <input type="number" class="compra-valor field-input--plain" placeholder="0,00" min="0.01" step="0.01" autocomplete="off" />
       <input type="date" class="compra-data field-input--plain" value="${hojeStr}" autocomplete="off" />
       <input type="date" class="compra-venc field-input--plain" value="${vencStr}" autocomplete="off" />
+      <input type="number" class="compra-parcelas field-input--plain" placeholder="1" min="1" max="24" step="1" value="1" autocomplete="off" title="Número de parcelas" />
       <input type="text" class="compra-obs field-input--plain" placeholder="Descrição da compra..." autocomplete="off" />
       <button type="button" class="btn-table-action btn-table-action--delete btn-remove-compra-row" title="Remover esta compra">
         <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
@@ -1156,16 +1237,17 @@ function abrirModalNovaCompra(clienteId) {
 
   const body = `
     <div class="form-usuario">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1.6fr 32px;gap:8px;margin-bottom:2px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 0.7fr 1.6fr 32px;gap:8px;margin-bottom:2px">
         <label class="field-label">Valor (R$) *</label>
         <label class="field-label">Data *</label>
-        <label class="field-label">Vencimento</label>
+        <label class="field-label">1º Venc.</label>
+        <label class="field-label">Parcelas</label>
         <label class="field-label">Obs.</label>
         <span></span>
       </div>
       <div id="comprasRowsContainer">${linhaCompraHtml(hojeStr, vencStr)}</div>
       <button type="button" class="btn-ghost" id="btnAddCompraRow" style="font-size:var(--text-sm)">+ Adicionar outra compra</button>
-      <p style="font-size:var(--text-xs);color:var(--gray-500);margin-top:8px">Você pode lançar quantas compras quiser de uma vez. Linhas em branco são ignoradas.</p>
+      <p style="font-size:var(--text-xs);color:var(--gray-500);margin-top:8px">Você pode lançar quantas compras quiser de uma vez. Se "Parcelas" for maior que 1, o valor é dividido igualmente e as parcelas seguintes vencem a cada 30 dias a partir do 1º vencimento. Linhas em branco são ignoradas.</p>
     </div>`;
 
   const footer = `
@@ -1187,7 +1269,7 @@ function abrirModalNovaCompra(clienteId) {
     if (rows.length > 1) {
       btn.closest(".compra-row").remove();
     } else {
-      rows[0].querySelectorAll("input").forEach(i => { if (i.type !== "date") i.value = ""; });
+      rows[0].querySelectorAll("input").forEach(i => { if (i.type === "number" && i.classList.contains("compra-parcelas")) i.value = "1"; else if (i.type !== "date") i.value = ""; });
     }
   });
 
@@ -1199,32 +1281,65 @@ function abrirModalNovaCompra(clienteId) {
 async function salvarNovaCompra(clienteId) {
   const linhas = Array.from(document.querySelectorAll("#comprasRowsContainer .compra-row"));
 
-  const compras = [];
+  const lancamentos = [];
   for (const linha of linhas) {
     const valor = parseFloat(linha.querySelector(".compra-valor").value);
     const dataStr = linha.querySelector(".compra-data").value;
     const vencStr = linha.querySelector(".compra-venc").value;
     const obs = linha.querySelector(".compra-obs").value.trim();
+    const parcelas = Math.max(1, parseInt(linha.querySelector(".compra-parcelas").value, 10) || 1);
     if (!valor && !obs) continue; // linha em branco, ignora
     if (!valor || valor <= 0) { window.mostrarToast?.("Informe um valor válido em todas as compras preenchidas.", "error"); return; }
     if (!dataStr) { window.mostrarToast?.("Informe a data em todas as compras preenchidas.", "error"); return; }
-    compras.push({ valor, dataStr, vencStr, obs });
+    if (parcelas > 1 && !vencStr) { window.mostrarToast?.("Informe o 1º vencimento para compras parceladas.", "error"); return; }
+    lancamentos.push({ valor, dataStr, vencStr, obs, parcelas });
   }
 
-  if (!compras.length) { window.mostrarToast?.("Adicione ao menos uma compra.", "error"); return; }
+  if (!lancamentos.length) { window.mostrarToast?.("Adicione ao menos uma compra.", "error"); return; }
+
+  // Expande cada lançamento em N parcelas (docs individuais em prom_compras)
+  const compras = [];
+  lancamentos.forEach(l => {
+    const grupoId = `pg${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+    const valorParcela = Math.floor((l.valor / l.parcelas) * 100) / 100;
+    const somaParcelas = valorParcela * (l.parcelas - 1);
+    const vencBase = l.vencStr ? new Date(l.vencStr + "T23:59:59") : null;
+
+    for (let i = 0; i < l.parcelas; i++) {
+      const valorAtual = i === l.parcelas - 1 ? Math.round((l.valor - somaParcelas) * 100) / 100 : valorParcela;
+      const vencAtual = vencBase ? new Date(vencBase.getTime() + i * 30 * 24 * 3600 * 1000) : null;
+      const obsAtual = l.parcelas > 1 ? `${l.obs ? l.obs + " — " : ""}Parcela ${i + 1}/${l.parcelas}` : l.obs;
+      compras.push({
+        valor: valorAtual,
+        dataStr: l.dataStr,
+        vencimento: vencAtual,
+        obs: obsAtual,
+        parcelaGrupoId: l.parcelas > 1 ? grupoId : null,
+        parcelaNumero: l.parcelas > 1 ? i + 1 : null,
+        parcelaTotal: l.parcelas > 1 ? l.parcelas : null
+      });
+    }
+  });
 
   const btn = document.getElementById("btnSalvarNovaCompra");
   btn.disabled = true; btn.textContent = "Salvando...";
 
   try {
-    await Promise.all(compras.map(c => addDoc(collection(db, COL_COMPRAS), {
+    const refs = await Promise.all(compras.map(c => addDoc(collection(db, COL_COMPRAS), {
       clienteId,
       valor: c.valor,
-      dataCompra:  Timestamp.fromDate(new Date(c.dataStr + "T12:00:00")),
-      vencimento:  c.vencStr ? Timestamp.fromDate(new Date(c.vencStr + "T23:59:59")) : null,
-      observacoes: c.obs,
-      criadoEm:    serverTimestamp()
+      dataCompra:      Timestamp.fromDate(new Date(c.dataStr + "T12:00:00")),
+      vencimento:      c.vencimento ? Timestamp.fromDate(c.vencimento) : null,
+      observacoes:     c.obs,
+      parcelaGrupoId:  c.parcelaGrupoId,
+      parcelaNumero:   c.parcelaNumero,
+      parcelaTotal:    c.parcelaTotal,
+      criadoEm:        serverTimestamp()
     })));
+    await Promise.all(refs.map((ref, idx) => _registrarHistorico(
+      "compra", "criado", clienteId, ref.id, compras[idx].valor,
+      compras[idx].parcelaTotal ? `Parcela ${compras[idx].parcelaNumero}/${compras[idx].parcelaTotal}` : ""
+    )));
     fecharModal();
     window.mostrarToast?.(`${compras.length} compra(s) registrada(s) com sucesso!`, "success");
     abrirPainelCliente(clienteId);
@@ -1380,7 +1495,7 @@ async function salvarNovoPagamento(clienteId, temComprasAbertas) {
   btn.disabled = true; btn.textContent = "Salvando...";
 
   try {
-    await Promise.all(lancamentos.map(l => addDoc(collection(db, COL_PAGAMENTOS), {
+    const refs = await Promise.all(lancamentos.map(l => addDoc(collection(db, COL_PAGAMENTOS), {
       clienteId,
       compraId:      l.compraId || null,
       valor:         l.valor,
@@ -1389,6 +1504,9 @@ async function salvarNovoPagamento(clienteId, temComprasAbertas) {
       observacoes:   obs,
       criadoEm:      serverTimestamp()
     })));
+    await Promise.all(refs.map((ref, idx) => _registrarHistorico(
+      "pagamento", "criado", clienteId, ref.id, lancamentos[idx].valor, forma ? `Forma: ${forma}` : ""
+    )));
     fecharModal();
     window.mostrarToast?.("Pagamento registrado com sucesso!", "success");
     abrirPainelCliente(clienteId);
@@ -1457,8 +1575,13 @@ async function excluirCompra(compraId) {
   try {
     // Precisamos saber o clienteId para reatualizar o painel
     const snap = await getDoc(doc(db, COL_COMPRAS, compraId));
-    const clienteId = snap.data()?.clienteId;
+    const dados = snap.data();
+    const clienteId = dados?.clienteId;
     await deleteDoc(doc(db, COL_COMPRAS, compraId));
+    if (clienteId) {
+      await _registrarHistorico("compra", "excluido", clienteId, compraId, dados?.valor,
+        dados?.parcelaTotal ? `Parcela ${dados.parcelaNumero}/${dados.parcelaTotal}` : "");
+    }
     fecharModal();
     window.mostrarToast?.("Compra excluída.", "success");
     if (clienteId) abrirPainelCliente(clienteId);
@@ -1850,6 +1973,61 @@ function formatarDataLocal(ts) {
   const d = ts.toDate ? ts.toDate() : new Date(ts);
   if (isNaN(d)) return "—";
   return d.toLocaleDateString("pt-BR");
+}
+
+function formatarDataHoraLocal(ts) {
+  if (!ts) return "—";
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  if (isNaN(d)) return "—";
+  return d.toLocaleDateString("pt-BR") + " às " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+// ── Histórico de Alterações (auditoria de compras/pagamentos) ──
+async function abrirModalHistoricoCliente(clienteId) {
+  const body = `<div class="loading-cell" style="padding:24px 0">Carregando histórico...</div>`;
+  const footer = `<button class="btn-ghost" id="btnCancelarModalProm">Fechar</button>`;
+  abrirModal("Histórico de Alterações", body, footer);
+  document.getElementById("btnCancelarModalProm").onclick = fecharModal;
+
+  try {
+    const snap = await getDocs(query(collection(db, COL_HISTORICO), where("clienteId", "==", clienteId)));
+    const registros = [];
+    snap.forEach(d => registros.push({ id: d.id, ...d.data() }));
+    registros.sort((a, b) => {
+      const da = a.criadoEm?.toDate?.() || new Date(0);
+      const db_ = b.criadoEm?.toDate?.() || new Date(0);
+      return db_ - da;
+    });
+
+    const acaoLabel = { criado: "Criou", excluido: "Excluiu" };
+    const tipoLabel = { compra: "Compra", pagamento: "Pagamento" };
+
+    const html = registros.length === 0
+      ? `<p style="font-size:var(--text-sm);color:var(--gray-500);padding:8px 0">Nenhum registro de alteração encontrado para este cliente.</p>`
+      : `<ul class="historico-lista" style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;max-height:420px;overflow-y:auto">
+          ${registros.map(r => `
+            <li style="border:1px solid var(--gray-100);border-radius:var(--radius-md);padding:10px 12px">
+              <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">
+                <strong style="font-size:var(--text-sm);color:var(--gray-800)">
+                  ${acaoLabel[r.acao] || r.acao} ${tipoLabel[r.tipo] || r.tipo}
+                  ${r.valor ? ` · ${formatarMoeda(r.valor)}` : ""}
+                </strong>
+                <span style="font-size:var(--text-xs);color:var(--gray-500)">${formatarDataHoraLocal(r.criadoEm)}</span>
+              </div>
+              <div style="font-size:var(--text-xs);color:var(--gray-500);margin-top:2px">
+                Por ${escHtml(r.usuarioNome || "—")}${r.detalhes ? ` · ${escHtml(r.detalhes)}` : ""}
+              </div>
+            </li>
+          `).join("")}
+        </ul>`;
+
+    const modalEl = document.getElementById("modalBody");
+    if (modalEl) modalEl.innerHTML = `<div class="form-usuario">${html}</div>`;
+  } catch (err) {
+    console.error("Erro ao carregar histórico:", err);
+    const modalEl = document.getElementById("modalBody");
+    if (modalEl) modalEl.innerHTML = `<p style="color:var(--color-danger)">Erro ao carregar histórico de alterações.</p>`;
+  }
 }
 
 function escHtml(str) {
