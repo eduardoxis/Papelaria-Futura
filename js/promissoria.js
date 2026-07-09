@@ -8,10 +8,7 @@ import {
   updateDoc, deleteDoc, query, where, orderBy,
   serverTimestamp, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import {
-  ref, uploadBytes, getDownloadURL
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
-import { db, storage } from "./firebase-config.js";
+import { db } from "./firebase-config.js";
 import { formatarMoeda } from "./database.js";
 import { temCargo } from "./auth.js";
 
@@ -31,21 +28,52 @@ let _usuarioAtual = null;
 function _htmlAnexos(anexos) {
   if (!anexos || !anexos.length) return "";
   return `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">${
-    anexos.map(a => `<a href="${a.url}" target="_blank" rel="noopener" title="${escHtml(a.nome || "Anexo")}" style="display:inline-flex;align-items:center;gap:2px;font-size:0.7rem;color:var(--blue-600);text-decoration:none;background:var(--blue-050);padding:1px 6px;border-radius:9999px">📎 Anexo</a>`).join("")
+    anexos.map(a => `<a href="${a.url}" target="_blank" rel="noopener" title="${escHtml(a.nome || "Foto")}" style="display:inline-block">
+      <img src="${a.url}" alt="${escHtml(a.nome || "Foto")}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;border:1px solid var(--gray-200)" />
+    </a>`).join("")
   }</div>`;
 }
 
-// Envia os arquivos escolhidos (fotos/PDF) pro Storage e devolve [{nome, url}]
-async function _uploadAnexos(files, pastaBase) {
+// Redimensiona/comprime uma imagem no navegador e devolve um data URL (base64).
+// Assim os anexos ficam salvos direto no documento do Firestore, sem usar o Storage (pago).
+function _redimensionarImagemAnexo(file, maxLado = 1000, qualidade = 0.6) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Erro ao ler arquivo"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Arquivo não é uma imagem válida"));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxLado) { height = Math.round(height * (maxLado / width)); width = maxLado; }
+        else if (height > maxLado) { width = Math.round(width * (maxLado / height)); height = maxLado; }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", qualidade));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Converte os arquivos escolhidos (só imagens — PDF não é salvo por causa do limite
+// de 1 MB por documento do Firestore) em anexos [{nome, url}] com a foto comprimida em base64.
+async function _uploadAnexos(files, _pastaBaseIgnorada) {
   if (!files || !files.length) return [];
   const enviados = [];
   for (const file of Array.from(files)) {
-    const nomeSeguro = `${Date.now()}_${file.name}`.replace(/[^\w.\-]/g, "_");
-    const caminho = `prom_anexos/${pastaBase}/${nomeSeguro}`;
-    const storageRef = ref(storage, caminho);
-    await uploadBytes(storageRef, file);
-    const url = await getDownloadURL(storageRef);
-    enviados.push({ nome: file.name, url });
+    if (!file.type.startsWith("image/")) {
+      window.mostrarToast?.(`"${file.name}" não é uma imagem e foi ignorado (PDF não é suportado sem armazenamento pago).`, "error");
+      continue;
+    }
+    try {
+      const dataUrl = await _redimensionarImagemAnexo(file);
+      enviados.push({ nome: file.name, url: dataUrl });
+    } catch (err) {
+      console.error("Erro ao processar anexo:", err);
+    }
   }
   return enviados;
 }
@@ -1286,9 +1314,9 @@ function abrirModalNovaCompra(clienteId) {
       <button type="button" class="btn-ghost" id="btnAddCompraRow" style="font-size:var(--text-sm)">+ Adicionar outra compra</button>
       <p style="font-size:var(--text-xs);color:var(--gray-500);margin-top:8px">Você pode lançar quantas compras quiser de uma vez. Se "Parcelas" for maior que 1, o valor é dividido igualmente e as parcelas seguintes vencem a cada 30 dias a partir do 1º vencimento. Linhas em branco são ignoradas.</p>
       <div style="margin-top:var(--space-3)">
-        <label class="field-label">Anexos (fotos ou PDF da compra)</label>
-        <input type="file" id="mCompraAnexos" accept="image/*,.pdf" multiple class="field-input--plain" />
-        <p style="font-size:var(--text-xs);color:var(--gray-500);margin-top:4px">Os anexos serão vinculados a todas as compras registradas nesta janela.</p>
+        <label class="field-label">Fotos da compra</label>
+        <input type="file" id="mCompraAnexos" accept="image/*" multiple class="field-input--plain" />
+        <p style="font-size:var(--text-xs);color:var(--gray-500);margin-top:4px">As fotos são comprimidas e vinculadas a todas as compras registradas nesta janela. PDF não é suportado (evita custo de armazenamento pago).</p>
       </div>
     </div>`;
 
@@ -1370,7 +1398,7 @@ async function salvarNovaCompra(clienteId) {
     const arquivos = document.getElementById("mCompraAnexos")?.files;
     let anexos = [];
     if (arquivos && arquivos.length) {
-      btn.textContent = "Enviando anexos...";
+      btn.textContent = "Processando fotos...";
       anexos = await _uploadAnexos(arquivos, `compras/${clienteId}`);
       btn.textContent = "Salvando...";
     }
@@ -1475,8 +1503,9 @@ async function abrirModalNovoPagamento(clienteId) {
         <input type="text" id="mPagObs" class="field-input--plain" placeholder="Informações do pagamento..." autocomplete="off" />
       </div>
       <div>
-        <label class="field-label">Anexos (comprovante, fotos ou PDF)</label>
-        <input type="file" id="mPagAnexos" accept="image/*,.pdf" multiple class="field-input--plain" />
+        <label class="field-label">Foto do comprovante</label>
+        <input type="file" id="mPagAnexos" accept="image/*" multiple class="field-input--plain" />
+        <p style="font-size:var(--text-xs);color:var(--gray-500);margin-top:4px">PDF não é suportado (evita custo de armazenamento pago).</p>
       </div>
       ${comprasAbertas.length > 0 ? `<div style="text-align:right;font-size:var(--text-sm);color:var(--gray-600);padding-top:4px;border-top:1px solid var(--gray-100)">Total a pagar: <strong id="mPagTotalPreview" style="color:var(--color-success)">—</strong></div>` : `
       <div>
@@ -1553,7 +1582,7 @@ async function salvarNovoPagamento(clienteId, temComprasAbertas) {
     const arquivos = document.getElementById("mPagAnexos")?.files;
     let anexos = [];
     if (arquivos && arquivos.length) {
-      btn.textContent = "Enviando anexos...";
+      btn.textContent = "Processando fotos...";
       anexos = await _uploadAnexos(arquivos, `pagamentos/${clienteId}`);
       btn.textContent = "Salvando...";
     }
