@@ -1601,10 +1601,187 @@ async function salvarNovaCompra(clienteId) {
     window.mostrarToast?.(`${compras.length} compra(s) registrada(s) com sucesso!`, "success");
     abrirPainelCliente(clienteId);
     carregarIndicadores();
+
+    // Gera um comprovante para cada lançamento (uma compra pode ter várias parcelas,
+    // mas o comprovante é por lançamento original, com o valor total dele; usa o
+    // primeiro doc de cada grupo de parcelas como referência do número da compra)
+    let idxDoc = 0;
+    for (const l of lancamentos) {
+      const compraRef = refs[idxDoc];
+      idxDoc += l.parcelas;
+      await imprimirComprovanteCompra(clienteId, compraRef.id, l.valor, l.dataStr, l.vencStr, l.obs);
+    }
   } catch (err) {
     console.error(err);
     window.mostrarToast?.("Erro ao registrar compra(s).", "error");
     btn.disabled = false; btn.textContent = "Registrar Compra(s)";
+  }
+}
+
+// ── Comprovante de Compra / Venda a Prazo (impressão) ───────────
+async function imprimirComprovanteCompra(clienteId, compraId, valorCompra, dataStr, vencStr, obsCompra) {
+  try {
+    const [clienteSnap, comprasSnap, pagamentosSnap] = await Promise.all([
+      getDoc(doc(db, COL_CLIENTES, clienteId)),
+      getDocs(query(collection(db, COL_COMPRAS), where("clienteId", "==", clienteId))),
+      getDocs(query(collection(db, COL_PAGAMENTOS), where("clienteId", "==", clienteId)))
+    ]);
+    const cliente = clienteSnap.data();
+    const origem = window.location.origin;
+
+    let totalComprado = 0;
+    comprasSnap.forEach(d => { totalComprado += d.data().valor || 0; });
+    let totalPago = 0;
+    pagamentosSnap.forEach(d => { totalPago += d.data().valor || 0; });
+    const saldoAtual = totalComprado - totalPago;
+
+    const agora = new Date();
+    const dataCompra = new Date(dataStr + "T12:00:00");
+    const vencimento = vencStr ? new Date(vencStr + "T23:59:59") : null;
+    const diasPrazo = vencimento ? Math.round((vencimento - dataCompra) / 86400000) : null;
+    const numeroCompra = `CMP-${compraId.slice(-6).toUpperCase()}`;
+
+    const win = window.open("", "_blank");
+    win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
+      <meta charset="UTF-8"><title>Comprovante de Compra — ${escHtml(cliente.nome)}</title>
+      <style>
+        * { box-sizing: border-box; }
+        body{font-family:Arial,Helvetica,sans-serif;font-size:13px;margin:0;padding:28px 32px;color:#1E1E1E;background:#fff}
+        .topo{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;border-bottom:1px solid #E2E8F0;padding-bottom:20px;margin-bottom:20px}
+        .empresa{display:flex;gap:14px;align-items:flex-start}
+        .empresa img{width:70px;height:70px;border-radius:14px;object-fit:cover}
+        .empresa h1{font-size:24px;margin:0 0 2px;color:#002D94;letter-spacing:.02em}
+        .empresa .subtitulo{font-size:13px;color:#475569;font-weight:bold;margin-bottom:8px}
+        .empresa .linha{font-size:11.5px;color:#334155;line-height:1.5}
+        .empresa .linha strong{color:#111}
+        .cartao-info{background:#F7F9FC;border:1px solid #E2E8F0;border-radius:10px;padding:10px 18px;min-width:270px}
+        .cartao-info .item{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #E7ECF3}
+        .cartao-info .item:last-child{border-bottom:none}
+        .cartao-info .ico{width:16px;height:16px;flex-shrink:0;color:#118DFF}
+        .cartao-info .rotulo{font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.03em;flex:1}
+        .cartao-info .valor{font-size:13px;font-weight:bold;color:#111;text-align:right}
+        .resumo{display:flex;gap:16px;margin-bottom:24px}
+        .box{flex:1;background:#F7F9FC;border-radius:10px;padding:14px 18px;text-align:center}
+        .box-label{font-size:10.5px;color:#64748B;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px}
+        .box-val{font-size:20px;font-weight:800}
+        .detalhes{background:#F7F9FC;border-radius:10px;padding:18px 22px;margin-bottom:24px}
+        h3.secao{font-size:13px;color:#111;text-transform:uppercase;letter-spacing:.03em;margin:0 0 14px;padding-bottom:8px;border-bottom:1px solid #E2E8F0}
+        .detalhes-item{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid #E7ECF3}
+        .detalhes-item:last-child{border-bottom:none}
+        .detalhes-item .ico{width:17px;height:17px;flex-shrink:0;color:#118DFF;margin-top:2px}
+        .detalhes-item .rotulo{font-size:10.5px;color:#64748B;text-transform:uppercase;letter-spacing:.03em;display:block;margin-bottom:3px}
+        .detalhes-item .valor{font-size:14px;font-weight:600;color:#111}
+        .detalhes-item .obs{font-size:12px;color:#334155;line-height:1.5}
+        .info-box{display:flex;gap:12px;align-items:flex-start;background:#F7F9FC;border-radius:10px;padding:14px 18px;margin-top:10px}
+        .info-box .ico{width:18px;height:18px;color:#118DFF;flex-shrink:0;margin-top:1px}
+        .info-box strong{display:block;font-size:12px;margin-bottom:2px}
+        .info-box span{font-size:11.5px;color:#475569}
+        .obrigado{text-align:center;margin-top:26px;font-weight:700;color:#002D94}
+        .rodape{display:flex;justify-content:center;gap:22px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid #E2E8F0;font-size:11.5px;color:#334155}
+        .rodape span{display:flex;align-items:center;gap:6px}
+        @media print{body{padding:14px 18px}}
+      </style></head><body>
+
+      <div class="topo">
+        <div class="empresa">
+          <img src="${origem}/img/logo.png" alt="Papelaria Futura" onerror="this.style.display='none'" />
+          <div>
+            <h1>PAPELARIA FUTURA</h1>
+            <div class="subtitulo">COMPROVANTE DE COMPRA (VENDA A PRAZO)</div>
+            <div class="linha">
+              <strong>Papelaria Futura LTDA</strong><br>
+              Av. Dr. Ézio Carneiro Qd.32 Lt.31/33 — Setor Aeroporto, Luziânia/GO<br>
+              <strong>CNPJ:</strong> 01.064.836/0001-12<br>
+              <strong>Telefone:</strong> (61) 3621-4452 &nbsp;|&nbsp; futuralza@gmail.com
+            </div>
+          </div>
+        </div>
+        <div class="cartao-info">
+          <div class="item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm10 7H4v7h12V9z" clip-rule="evenodd"/></svg>
+            <span class="rotulo">Data da Compra</span>
+            <span class="valor">${agora.toLocaleDateString("pt-BR")} ${agora.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</span>
+          </div>
+          <div class="item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+            <span class="rotulo">Cliente</span>
+            <span class="valor">${escHtml(cliente.nome)}</span>
+          </div>
+          <div class="item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9z" clip-rule="evenodd"/></svg>
+            <span class="rotulo">Tipo de Venda</span>
+            <span class="valor">Venda a Prazo (Fiado)</span>
+          </div>
+          <div class="item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+            <span class="rotulo">Atendido por</span>
+            <span class="valor">${escHtml(_dadosUsuario?.nome || "—")}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="resumo">
+        <div class="box"><div class="box-label">Número da Compra</div><div class="box-val" style="font-size:16px">${escHtml(numeroCompra)}</div></div>
+        <div class="box"><div class="box-label">Valor Total da Compra</div><div class="box-val" style="color:#059669">${formatarMoeda(valorCompra)}</div></div>
+        <div class="box"><div class="box-label">Saldo Inicial (Em Aberto)</div><div class="box-val" style="color:#DC2626">${formatarMoeda(valorCompra)}</div></div>
+      </div>
+
+      <div class="detalhes">
+        <h3 class="secao">Informações da Compra</h3>
+        <div class="detalhes-item">
+          <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm10 7H4v7h12V9z" clip-rule="evenodd"/></svg>
+          <div><span class="rotulo">Data da Compra</span><span class="valor">${agora.toLocaleDateString("pt-BR")} ${agora.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</span></div>
+        </div>
+        ${vencimento ? `<div class="detalhes-item">
+          <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm10 7H4v7h12V9z" clip-rule="evenodd"/></svg>
+          <div><span class="rotulo">Data de Vencimento</span><span class="valor" style="color:#DC2626">${vencimento.toLocaleDateString("pt-BR")}</span>${diasPrazo !== null ? `<div style="font-size:11.5px;color:#64748B;margin-top:2px">(${diasPrazo} dias)</div>` : ""}</div>
+        </div>` : ""}
+        <div class="detalhes-item">
+          <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a1 1 0 011-1h10a1 1 0 011 1v1H4V4zm-1 3a1 1 0 011-1h12a1 1 0 011 1v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" clip-rule="evenodd"/></svg>
+          <div><span class="rotulo">Forma de Pagamento</span><span class="valor">A Prazo (Fiado)</span></div>
+        </div>
+        <div class="detalhes-item">
+          <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/></svg>
+          <div><span class="rotulo">Valor Total da Compra</span><span class="valor" style="color:#059669">${formatarMoeda(valorCompra)}</span></div>
+        </div>
+        <div class="detalhes-item">
+          <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 1h6v2H7V5zm0 4h6v2H7V9zm0 4h4v2H7v-2z" clip-rule="evenodd"/></svg>
+          <div><span class="rotulo">Saldo Inicial (Em Aberto)</span><span class="valor" style="color:#DC2626">${formatarMoeda(valorCompra)}</span></div>
+        </div>
+        <div class="detalhes-item">
+          <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a1 1 0 00-1 1v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 10.586V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+          <div><span class="rotulo">Observações</span><span class="valor obs">Compra realizada no crediário (fiado).<br>O pagamento poderá ser feito total ou parcialmente até a data de vencimento.${obsCompra ? `<br>${escHtml(obsCompra)}` : ""}</span></div>
+        </div>
+      </div>
+
+      <h3 class="secao" style="border:none;margin-bottom:8px">Resumo Financeiro</h3>
+      <div class="resumo">
+        <div class="box"><div class="box-label">Valor Total da Compra</div><div class="box-val" style="color:#059669;font-size:17px">${formatarMoeda(totalComprado)}</div></div>
+        <div class="box"><div class="box-label">Pagamentos Realizados</div><div class="box-val" style="color:#059669;font-size:17px">${formatarMoeda(totalPago)}</div></div>
+        <div class="box"><div class="box-label">Saldo Atual (Em Aberto)</div><div class="box-val" style="color:${saldoAtual>0?'#DC2626':'#059669'};font-size:17px">${formatarMoeda(Math.max(0,saldoAtual))}</div></div>
+      </div>
+
+      <div class="info-box">
+        <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+        <div>
+          <strong>Informação</strong>
+          <span>Este comprovante não possui valor fiscal. É um documento de controle interno.</span>
+        </div>
+      </div>
+
+      <div class="obrigado">✓ Obrigado pela preferência!<br>Volte sempre.</div>
+
+      <div class="rodape">
+        <span>📞 (61) 3621-4452</span>
+        <span>✉️ futuralza@gmail.com</span>
+      </div>
+
+      <script>window.onload=()=>{window.print();}<\/script>
+      </body></html>`);
+    win.document.close();
+  } catch (err) {
+    console.error(err);
+    window.mostrarToast?.("Compra salva, mas houve erro ao gerar o comprovante para impressão.", "warning");
   }
 }
 
