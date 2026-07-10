@@ -24,15 +24,33 @@ const JUROS_MENSAL     = 0.02;
 let _dadosUsuario = null;
 let _usuarioAtual = null;
 
-// Gera os links clicáveis de anexos (fotos/PDF) pra exibir nas tabelas
+// Botão "📷 N" que abre a galeria de fotos anexadas (mesmo padrão visual/lightbox de Comissão)
+let _seqGaleriaAnexos = 0;
 function _htmlAnexos(anexos) {
   if (!anexos || !anexos.length) return "";
-  return `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">${
-    anexos.map(a => `<a href="${a.url}" target="_blank" rel="noopener" title="${escHtml(a.nome || "Foto")}" style="display:inline-block">
-      <img src="${a.url}" alt="${escHtml(a.nome || "Foto")}" style="width:32px;height:32px;object-fit:cover;border-radius:6px;border:1px solid var(--gray-200)" />
-    </a>`).join("")
-  }</div>`;
+  const gid = `promFotos${++_seqGaleriaAnexos}`;
+  window[`__${gid}`] = anexos.map(a => a.url);
+  return `<button type="button" class="btn-ver-fotos" onclick="window.__abrirGaleriaAnexosProm && window.__abrirGaleriaAnexosProm('${gid}')" style="margin-top:4px">📷 ${anexos.length}</button>`;
 }
+
+// Modal somente-leitura com a grade de fotos (reaproveita as classes de Comissão:
+// .comissao-fotos-modal / .comissao-fotos-grid / .comissao-foto-item / lightbox global)
+function _abrirGaleriaAnexosProm(gid) {
+  const fotos = window[`__${gid}`] || [];
+  window.abrirModal?.(
+    "Fotos anexadas",
+    `<div class="comissao-fotos-modal">
+      <div class="comissao-fotos-grid">
+        ${fotos.map((f, i) => `
+          <div class="comissao-foto-item">
+            <img src="${f}" alt="Foto ${i + 1}" class="comissao-foto-clicavel" data-src="${f}" />
+          </div>`).join("")}
+      </div>
+    </div>`,
+    `<button class="btn-primary" onclick="window.fecharModal()">Fechar</button>`
+  );
+}
+window.__abrirGaleriaAnexosProm = _abrirGaleriaAnexosProm;
 
 // Redimensiona/comprime uma imagem no navegador e devolve um data URL (base64).
 // Assim os anexos ficam salvos direto no documento do Firestore, sem usar o Storage (pago).
