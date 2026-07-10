@@ -1132,7 +1132,7 @@ async function abrirPainelCliente(clienteId) {
             <span style="font-size:var(--text-sm);color:var(--gray-500)">${compras.length} compra(s)</span>
           </div>
           <div class="table-wrap">
-            <table class="data-table">
+            <table class="data-table data-table--historico">
               <thead>
                 <tr>
                   <th>Data da Compra</th>
@@ -1156,16 +1156,16 @@ async function abrirPainelCliente(clienteId) {
                     const statusCompra = atrasada ? "Atrasado" : (venc ? "Pendente" : "—");
                     return `
                       <tr>
-                        <td>${formatarDataLocal(c.dataCompra)}${c.parcelaTotal ? `<br><span style="display:inline-block;margin-top:2px;padding:1px 8px;border-radius:9999px;font-size:0.7rem;font-weight:600;background:var(--blue-050);color:var(--blue-600)">Parcela ${c.parcelaNumero}/${c.parcelaTotal}</span>` : ""}</td>
-                        <td>${formatarMoeda(c.valor)}</td>
-                        <td>${venc ? formatarDataLocal(c.vencimento) : "—"}</td>
-                        <td>${c.juros > 0 ? `<span style="color:#DC2626">${formatarMoeda(c.juros)}</span>` : "—"}</td>
-                        <td>${c.juros > 0 ? `<strong style="color:#DC2626">${formatarMoeda(c.valorComJuros)}</strong>` : formatarMoeda(c.valor)}</td>
-                        <td>${c.pagoCompra > 0 ? `<span style="color:var(--color-success)">${formatarMoeda(c.pagoCompra)}</span>` : "—"}</td>
-                        <td>${c.saldoCompra > 0 ? `<strong style="color:var(--color-danger)">${formatarMoeda(c.saldoCompra)}</strong>` : `<span style="color:var(--color-success)">Quitado</span>`}</td>
-                        <td>${c.juros > 0 ? badgeSituacao("Atrasado") : (venc ? badgeSituacao("Pendente") : "—")}</td>
-                        <td style="max-width:140px;white-space:normal;font-size:var(--text-xs);color:var(--gray-500)">${escHtml(c.observacoes || "")}${_htmlAnexos(c.anexos)}</td>
-                        <td class="col-center">
+                        <td data-label="Data da Compra">${formatarDataLocal(c.dataCompra)}${c.parcelaTotal ? `<br><span style="display:inline-block;margin-top:2px;padding:1px 8px;border-radius:9999px;font-size:0.7rem;font-weight:600;background:var(--blue-050);color:var(--blue-600)">Parcela ${c.parcelaNumero}/${c.parcelaTotal}</span>` : ""}</td>
+                        <td data-label="Valor">${formatarMoeda(c.valor)}</td>
+                        <td data-label="Vencimento">${venc ? formatarDataLocal(c.vencimento) : "—"}</td>
+                        <td data-label="Juros">${c.juros > 0 ? `<span style="color:#DC2626">${formatarMoeda(c.juros)}</span>` : "—"}</td>
+                        <td data-label="Total c/ Juros">${c.juros > 0 ? `<strong style="color:#DC2626">${formatarMoeda(c.valorComJuros)}</strong>` : formatarMoeda(c.valor)}</td>
+                        <td data-label="Pago">${c.pagoCompra > 0 ? `<span style="color:var(--color-success)">${formatarMoeda(c.pagoCompra)}</span>` : "—"}</td>
+                        <td data-label="Saldo">${c.saldoCompra > 0 ? `<strong style="color:var(--color-danger)">${formatarMoeda(c.saldoCompra)}</strong>` : `<span style="color:var(--color-success)">Quitado</span>`}</td>
+                        <td data-label="Status">${c.juros > 0 ? badgeSituacao("Atrasado") : (venc ? badgeSituacao("Pendente") : "—")}</td>
+                        <td data-label="Obs." style="max-width:140px;white-space:normal;font-size:var(--text-xs);color:var(--gray-500)">${escHtml(c.observacoes || "")}${_htmlAnexos(c.anexos)}</td>
+                        <td class="col-center" data-label="Ações">
                           <button class="btn-table-action" data-action="ver-comprovante-compra" data-id="${c.id}" title="Ver comprovante">
                             <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
                           </button>
@@ -1190,7 +1190,7 @@ async function abrirPainelCliente(clienteId) {
             <span style="font-size:var(--text-sm);color:var(--gray-500)">${pagamentos.length} pagamento(s)</span>
           </div>
           <div class="table-wrap">
-            <table class="data-table">
+            <table class="data-table data-table--historico">
               <thead>
                 <tr>
                   <th>Data do Pagamento</th>
@@ -1208,12 +1208,12 @@ async function abrirPainelCliente(clienteId) {
                     const compraRel = p.compraId ? compras.find(c => c.id === p.compraId) : null;
                     return `
                     <tr>
-                      <td>${formatarDataLocal(p.dataPagamento)}</td>
-                      <td><strong style="color:var(--color-success)">${formatarMoeda(p.valor)}</strong></td>
-                      <td style="font-size:var(--text-xs);color:var(--gray-500)">${compraRel ? `Compra de ${formatarDataLocal(compraRel.dataCompra)}` : "Crédito geral"}</td>
-                      <td>${escHtml(p.forma || "—")}</td>
-                      <td style="font-size:var(--text-xs);color:var(--gray-500)">${escHtml(p.observacoes || "")}${_htmlAnexos(p.anexos)}</td>
-                      <td class="col-center">
+                      <td data-label="Data do Pagamento">${formatarDataLocal(p.dataPagamento)}</td>
+                      <td data-label="Valor Pago"><strong style="color:var(--color-success)">${formatarMoeda(p.valor)}</strong></td>
+                      <td data-label="Compra Relacionada" style="font-size:var(--text-xs);color:var(--gray-500)">${compraRel ? `Compra de ${formatarDataLocal(compraRel.dataCompra)}` : "Crédito geral"}</td>
+                      <td data-label="Forma">${escHtml(p.forma || "—")}</td>
+                      <td data-label="Observações" style="font-size:var(--text-xs);color:var(--gray-500)">${escHtml(p.observacoes || "")}${_htmlAnexos(p.anexos)}</td>
+                      <td class="col-center" data-label="Ações">
                         <button class="btn-table-action" data-action="ver-comprovante-pagamento" data-id="${p.id}" title="Ver comprovante">
                           <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
                         </button>
