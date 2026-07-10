@@ -1047,7 +1047,9 @@ async function abrirPainelCliente(clienteId) {
             <div>
               <h2 class="page-title">${escHtml(cliente.nome)}</h2>
               <p class="page-subtitle">
-                ${cliente.telefone ? `📱 ${escHtml(cliente.telefone)}` : ""}
+                ${cliente.documento ? `${cliente.tipo === "juridica" ? "CNPJ" : "CPF"}: ${escHtml(cliente.documento)} · ` : ""}
+                ${(cliente.telefone || cliente.celular) ? `📱 ${escHtml(cliente.celular || cliente.telefone)}` : ""}
+                ${cliente.cidade ? ` · ${escHtml(cliente.cidade)}${cliente.estado ? "/"+escHtml(cliente.estado) : ""}` : ""}
                 ${cliente.observacoes ? ` · ${escHtml(cliente.observacoes)}` : ""}
               </p>
             </div>
@@ -1216,20 +1218,157 @@ async function abrirPainelCliente(clienteId) {
 }
 
 // ── Modais ───────────────────────────────────────────────────
+const ESTADOS_BR = [
+  "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG",
+  "PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"
+];
+
+function _mascararCpf(valor) {
+  let v = valor.replace(/\D/g, "").substring(0, 11);
+  if (v.length > 9)      v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2})$/, "$1.$2.$3-$4");
+  else if (v.length > 6) v = v.replace(/^(\d{3})(\d{3})(\d{0,3})$/, "$1.$2.$3");
+  else if (v.length > 3) v = v.replace(/^(\d{3})(\d{0,3})$/, "$1.$2");
+  return v;
+}
+
+function _mascararCnpj(valor) {
+  let v = valor.replace(/\D/g, "").substring(0, 14);
+  if (v.length > 12)     v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})$/, "$1.$2.$3/$4-$5");
+  else if (v.length > 8) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4})$/, "$1.$2.$3/$4");
+  else if (v.length > 5) v = v.replace(/^(\d{2})(\d{3})(\d{0,3})$/, "$1.$2.$3");
+  else if (v.length > 2) v = v.replace(/^(\d{2})(\d{0,3})$/, "$1.$2");
+  return v;
+}
+
+function _mascararCep(valor) {
+  let v = valor.replace(/\D/g, "").substring(0, 8);
+  if (v.length > 5) v = v.replace(/^(\d{5})(\d{0,3})$/, "$1-$2");
+  return v;
+}
+
+async function _buscarEnderecoPorCep(e) {
+  const cep = e.target.value.replace(/\D/g, "");
+  if (cep.length !== 8) return;
+  try {
+    const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const data = await resp.json();
+    if (data.erro) return;
+    if (document.getElementById("mPromEndereco")) document.getElementById("mPromEndereco").value = data.logradouro || "";
+    if (document.getElementById("mPromBairro"))   document.getElementById("mPromBairro").value   = data.bairro || "";
+    if (document.getElementById("mPromCidade"))   document.getElementById("mPromCidade").value   = data.localidade || "";
+    if (document.getElementById("mPromEstado"))   document.getElementById("mPromEstado").value   = data.uf || "";
+    document.getElementById("mPromNumero")?.focus();
+  } catch (err) {
+    console.error("Erro ao buscar CEP:", err);
+  }
+}
+
 function abrirModalNovoCliente() {
+  const tipo = "fisica";
+  const optionsEstado = ESTADOS_BR.map(uf => `<option value="${uf}">${uf}</option>`).join("");
+
   const body = `
-    <div class="form-usuario">
-      <div>
-        <label class="field-label">Nome completo *</label>
-        <input type="text" id="mPromNome" class="field-input--plain" placeholder="Nome do cliente" autocomplete="off" />
+    <div class="cli-tipo-toggle" role="tablist">
+      <button type="button" class="cli-tipo-btn cli-tipo-btn--active" data-tipo="fisica" id="btnPromTipoFisica">Pessoa Física</button>
+      <button type="button" class="cli-tipo-btn" data-tipo="juridica" id="btnPromTipoJuridica">Pessoa Jurídica</button>
+    </div>
+    <input type="hidden" id="mPromTipo" value="${tipo}" autocomplete="off" />
+
+    <div class="cli-form-grid" style="margin-top:var(--space-4)">
+      <div class="field" style="grid-column:1 / -1">
+        <label class="field-label" id="lblPromNome" for="mPromNome">Nome completo *</label>
+        <input type="text" class="field-input--plain" id="mPromNome" placeholder="Nome do cliente" autocomplete="off" />
       </div>
-      <div>
-        <label class="field-label">Telefone</label>
-        <input type="tel" id="mPromTelefone" class="field-input--plain" placeholder="(00) 00000-0000" autocomplete="off" />
+
+      <div class="field" style="grid-column:1 / -1">
+        <label class="field-label" id="lblPromApelido" for="mPromApelido">Apelido</label>
+        <input type="text" class="field-input--plain" id="mPromApelido" autocomplete="off" />
       </div>
-      <div>
-        <label class="field-label">Observações</label>
-        <input type="text" id="mPromObs" class="field-input--plain" placeholder="Informações adicionais..." autocomplete="off" />
+
+      <!-- Campos Pessoa Física -->
+      <div id="mPromBlocoFisica" class="cli-form-grid" style="grid-column:1 / -1;display:grid">
+        <div class="field">
+          <label class="field-label" for="mPromCpf">CPF</label>
+          <input type="text" class="field-input--plain" id="mPromCpf" placeholder="000.000.000-00" maxlength="14" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="mPromRg">RG</label>
+          <input type="text" class="field-input--plain" id="mPromRg" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="mPromNascimento">Nascimento</label>
+          <input type="date" class="field-input--plain" id="mPromNascimento" autocomplete="off" />
+        </div>
+      </div>
+
+      <!-- Campos Pessoa Jurídica -->
+      <div id="mPromBlocoJuridica" class="cli-form-grid" style="grid-column:1 / -1;display:none">
+        <div class="field">
+          <label class="field-label" for="mPromCnpj">CNPJ</label>
+          <input type="text" class="field-input--plain" id="mPromCnpj" placeholder="00.000.000/0001-00" maxlength="18" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="mPromIe">Inscrição Estadual</label>
+          <input type="text" class="field-input--plain" id="mPromIe" autocomplete="off" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="mPromEmail">E-mail</label>
+        <input type="email" class="field-input--plain" id="mPromEmail" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label class="field-label" for="mPromTelefone">Telefone</label>
+        <input type="tel" class="field-input--plain" id="mPromTelefone" placeholder="(00) 0000-0000" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label class="field-label" for="mPromCelular">Celular</label>
+        <input type="tel" class="field-input--plain" id="mPromCelular" placeholder="(00) 00000-0000" autocomplete="off" />
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="mPromCep">CEP</label>
+        <input type="text" class="field-input--plain" id="mPromCep" placeholder="00000-000" maxlength="9" autocomplete="off" />
+      </div>
+      <div class="field" style="grid-column:span 2">
+        <label class="field-label" for="mPromEndereco">Endereço</label>
+        <input type="text" class="field-input--plain" id="mPromEndereco" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label class="field-label" for="mPromNumero">Número</label>
+        <input type="text" class="field-input--plain" id="mPromNumero" autocomplete="off" />
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="mPromComplemento">Complemento</label>
+        <input type="text" class="field-input--plain" id="mPromComplemento" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label class="field-label" for="mPromBairro">Bairro</label>
+        <input type="text" class="field-input--plain" id="mPromBairro" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label class="field-label" for="mPromCidade">Cidade</label>
+        <input type="text" class="field-input--plain" id="mPromCidade" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label class="field-label" for="mPromEstado">Estado</label>
+        <select class="field-input--plain" id="mPromEstado" autocomplete="off">
+          <option value="">UF</option>
+          ${optionsEstado}
+        </select>
+      </div>
+
+      <div class="field" style="grid-column:1 / -1">
+        <label class="field-label" for="mPromObs">Observações</label>
+        <textarea class="field-input--plain field-textarea" id="mPromObs" rows="2" autocomplete="off"></textarea>
+      </div>
+
+      <div class="field" style="grid-column:1 / -1">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:var(--text-sm);color:var(--gray-700)">
+          <input type="checkbox" id="mPromAtivo" checked autocomplete="off" />
+          Cliente ativo
+        </label>
       </div>
     </div>`;
 
@@ -1237,26 +1376,65 @@ function abrirModalNovoCliente() {
     <button class="btn-ghost" id="btnCancelarModalProm">Cancelar</button>
     <button class="btn-primary" id="btnSalvarNovoCliente">Salvar Cliente</button>`;
 
-  abrirModal("Novo Cliente", body, footer);
+  abrirModal("Novo Cliente", body, footer, { tamanho: "lg" });
+
+  document.getElementById("btnPromTipoFisica").onclick = () => _alternarTipoClienteProm("fisica");
+  document.getElementById("btnPromTipoJuridica").onclick = () => _alternarTipoClienteProm("juridica");
+
+  document.getElementById("mPromCpf")?.addEventListener("input", (e) => e.target.value = _mascararCpf(e.target.value));
+  document.getElementById("mPromCnpj")?.addEventListener("input", (e) => e.target.value = _mascararCnpj(e.target.value));
+  document.getElementById("mPromCep")?.addEventListener("input", (e) => e.target.value = _mascararCep(e.target.value));
+  document.getElementById("mPromCep")?.addEventListener("blur", _buscarEnderecoPorCep);
 
   document.getElementById("btnCancelarModalProm").onclick = fecharModal;
   document.getElementById("btnSalvarNovoCliente").onclick = salvarNovoCliente;
   document.getElementById("mPromNome").focus();
 }
 
+function _alternarTipoClienteProm(tipo) {
+  document.getElementById("mPromTipo").value = tipo;
+  document.getElementById("btnPromTipoFisica").classList.toggle("cli-tipo-btn--active", tipo === "fisica");
+  document.getElementById("btnPromTipoJuridica").classList.toggle("cli-tipo-btn--active", tipo === "juridica");
+  document.getElementById("mPromBlocoFisica").style.display   = tipo === "fisica"   ? "grid" : "none";
+  document.getElementById("mPromBlocoJuridica").style.display = tipo === "juridica" ? "grid" : "none";
+  document.getElementById("lblPromApelido").textContent = tipo === "juridica" ? "Nome Fantasia" : "Apelido";
+  document.getElementById("lblPromNome").textContent = `Nome ${tipo === "juridica" ? "/ Razão Social" : "completo"} *`;
+}
+
 async function salvarNovoCliente() {
+  const tipo = document.getElementById("mPromTipo").value;
   const nome = document.getElementById("mPromNome").value.trim();
   if (!nome) { window.mostrarToast?.("Informe o nome do cliente.", "error"); return; }
+
+  const documento = tipo === "fisica"
+    ? document.getElementById("mPromCpf").value.trim()
+    : document.getElementById("mPromCnpj").value.trim();
 
   const btn = document.getElementById("btnSalvarNovoCliente");
   btn.disabled = true; btn.textContent = "Salvando...";
 
   try {
     await addDoc(collection(db, COL_CLIENTES), {
+      tipo,
       nome,
-      telefone:    document.getElementById("mPromTelefone").value.trim(),
-      observacoes: document.getElementById("mPromObs").value.trim(),
-      criadoEm:    serverTimestamp()
+      documento,
+      apelido:           document.getElementById("mPromApelido").value.trim(),
+      rg:                tipo === "fisica"   ? document.getElementById("mPromRg").value.trim()   : "",
+      nascimento:        tipo === "fisica"   ? document.getElementById("mPromNascimento").value    : "",
+      inscricaoEstadual: tipo === "juridica" ? document.getElementById("mPromIe").value.trim()     : "",
+      email:             document.getElementById("mPromEmail").value.trim(),
+      telefone:          document.getElementById("mPromTelefone").value.trim(),
+      celular:           document.getElementById("mPromCelular").value.trim(),
+      cep:               document.getElementById("mPromCep").value.trim(),
+      endereco:          document.getElementById("mPromEndereco").value.trim(),
+      numero:            document.getElementById("mPromNumero").value.trim(),
+      complemento:       document.getElementById("mPromComplemento").value.trim(),
+      bairro:            document.getElementById("mPromBairro").value.trim(),
+      cidade:            document.getElementById("mPromCidade").value.trim(),
+      estado:            document.getElementById("mPromEstado").value,
+      observacoes:       document.getElementById("mPromObs").value.trim(),
+      ativo:             document.getElementById("mPromAtivo").checked,
+      criadoEm:          serverTimestamp()
     });
     fecharModal();
     window.mostrarToast?.("Cliente cadastrado com sucesso!", "success");
@@ -1766,6 +1944,16 @@ async function imprimirCliente(clienteId) {
             <span class="rotulo">Cliente</span>
             <span class="valor">${escHtml(cliente.nome)}</span>
           </div>
+          ${cliente.documento ? `<div class="item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 1h6v2H7V5zm0 4h6v2H7V9zm0 4h4v2H7v-2z" clip-rule="evenodd"/></svg>
+            <span class="rotulo">${cliente.tipo === "juridica" ? "CNPJ" : "CPF"}</span>
+            <span class="valor">${escHtml(cliente.documento)}</span>
+          </div>` : ""}
+          ${(cliente.endereco || cliente.cidade) ? `<div class="item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+            <span class="rotulo">Endereço</span>
+            <span class="valor" style="font-weight:600;font-size:11.5px">${escHtml([cliente.endereco, cliente.numero].filter(Boolean).join(", "))}${cliente.bairro ? ` — ${escHtml(cliente.bairro)}` : ""}${cliente.cidade ? `, ${escHtml(cliente.cidade)}${cliente.estado ? "/"+escHtml(cliente.estado) : ""}` : ""}</span>
+          </div>` : ""}
           <div class="item">
             <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9z" clip-rule="evenodd"/></svg>
             <span class="rotulo">Tipo de Venda</span>
@@ -2203,8 +2391,8 @@ function escHtml(str) {
 }
 
 // Reutiliza o modal global do sistema
-function abrirModal(titulo, body, footer) {
-  window.abrirModal?.(titulo, body, footer);
+function abrirModal(titulo, body, footer, opcoes) {
+  window.abrirModal?.(titulo, body, footer, opcoes);
 }
 
 function fecharModal() {
