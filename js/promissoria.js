@@ -178,6 +178,10 @@ export function iniciarPromissoria(usuario, dadosUsuario) {
     if (action === "imprimir-cliente") imprimirCliente(clienteId);
     if (action === "voltar-lista-prom") mostrarPainel("lista");
     if (action === "historico-cliente") abrirModalHistoricoCliente(clienteId);
+    if (action === "ver-comprovante-compra")      reabrirComprovanteCompra(clienteId, id, "preview");
+    if (action === "pdf-comprovante-compra")      reabrirComprovanteCompra(clienteId, id, "print");
+    if (action === "ver-comprovante-pagamento")   reabrirComprovantePagamento(clienteId, id, "preview");
+    if (action === "pdf-comprovante-pagamento")   reabrirComprovantePagamento(clienteId, id, "print");
   });
 
   // Botões de relatório/exportação
@@ -1162,6 +1166,12 @@ async function abrirPainelCliente(clienteId) {
                         <td>${c.juros > 0 ? badgeSituacao("Atrasado") : (venc ? badgeSituacao("Pendente") : "—")}</td>
                         <td style="max-width:140px;white-space:normal;font-size:var(--text-xs);color:var(--gray-500)">${escHtml(c.observacoes || "")}${_htmlAnexos(c.anexos)}</td>
                         <td class="col-center">
+                          <button class="btn-table-action" data-action="ver-comprovante-compra" data-id="${c.id}" title="Ver comprovante">
+                            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+                          </button>
+                          <button class="btn-table-action" data-action="pdf-comprovante-compra" data-id="${c.id}" title="Baixar PDF do comprovante">
+                            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM9 3a1 1 0 012 0v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3z" clip-rule="evenodd"/></svg>
+                          </button>
                           <button class="btn-table-action btn-table-action--delete" data-action="excluir-compra" data-id="${c.id}" title="Excluir compra">
                             <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                           </button>
@@ -1188,11 +1198,12 @@ async function abrirPainelCliente(clienteId) {
                   <th>Compra Relacionada</th>
                   <th>Forma</th>
                   <th>Observações</th>
+                  <th class="col-center">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 ${pagamentos.length === 0
-                  ? `<tr><td colspan="5" class="empty-cell">Nenhum pagamento registrado.</td></tr>`
+                  ? `<tr><td colspan="6" class="empty-cell">Nenhum pagamento registrado.</td></tr>`
                   : pagamentos.map(p => {
                     const compraRel = p.compraId ? compras.find(c => c.id === p.compraId) : null;
                     return `
@@ -1202,6 +1213,14 @@ async function abrirPainelCliente(clienteId) {
                       <td style="font-size:var(--text-xs);color:var(--gray-500)">${compraRel ? `Compra de ${formatarDataLocal(compraRel.dataCompra)}` : "Crédito geral"}</td>
                       <td>${escHtml(p.forma || "—")}</td>
                       <td style="font-size:var(--text-xs);color:var(--gray-500)">${escHtml(p.observacoes || "")}${_htmlAnexos(p.anexos)}</td>
+                      <td class="col-center">
+                        <button class="btn-table-action" data-action="ver-comprovante-pagamento" data-id="${p.id}" title="Ver comprovante">
+                          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+                        </button>
+                        <button class="btn-table-action" data-action="pdf-comprovante-pagamento" data-id="${p.id}" title="Baixar PDF do comprovante">
+                          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM9 3a1 1 0 012 0v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3z" clip-rule="evenodd"/></svg>
+                        </button>
+                      </td>
                     </tr>`;
                   }).join("")}
               </tbody>
@@ -1783,6 +1802,46 @@ async function imprimirComprovanteCompra(clienteId, compraId, valorCompra, dataS
   } catch (err) {
     console.error(err);
     window.mostrarToast?.("Compra salva, mas houve erro ao gerar o comprovante para impressão.", "warning");
+  }
+}
+
+// Converte um Timestamp do Firestore (ou string/Date) para "YYYY-MM-DD",
+// formato esperado pelas funções de impressão de comprovante.
+function _timestampParaDataStr(ts) {
+  if (!ts) return "";
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const ano = d.getFullYear();
+  const mes = String(d.getMonth() + 1).padStart(2, "0");
+  const dia = String(d.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
+}
+
+// Reabre (visualizar ou baixar PDF) o comprovante de uma compra já salva,
+// buscando os dados originais no Firestore.
+async function reabrirComprovanteCompra(clienteId, compraId, modo) {
+  try {
+    const snap = await getDoc(doc(db, COL_COMPRAS, compraId));
+    if (!snap.exists()) { window.mostrarToast?.("Compra não encontrada.", "error"); return; }
+    const c = snap.data();
+    const dataStr = _timestampParaDataStr(c.dataCompra);
+    const vencStr = c.vencimento ? _timestampParaDataStr(c.vencimento) : "";
+    await imprimirComprovanteCompra(clienteId, compraId, c.valor, dataStr, vencStr, c.observacoes || "", modo);
+  } catch (err) {
+    console.error(err);
+    window.mostrarToast?.("Erro ao gerar comprovante.", "error");
+  }
+}
+
+// Reabre (visualizar ou baixar PDF) o comprovante de um pagamento já salvo.
+async function reabrirComprovantePagamento(clienteId, pagamentoId, modo) {
+  try {
+    const snap = await getDoc(doc(db, COL_PAGAMENTOS, pagamentoId));
+    if (!snap.exists()) { window.mostrarToast?.("Pagamento não encontrado.", "error"); return; }
+    const p = snap.data();
+    await imprimirComprovantePagamento(clienteId, pagamentoId, p.valor, p.forma || "", p.observacoes || "", modo);
+  } catch (err) {
+    console.error(err);
+    window.mostrarToast?.("Erro ao gerar comprovante.", "error");
   }
 }
 
