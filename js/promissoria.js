@@ -1701,34 +1701,108 @@ async function imprimirCliente(clienteId) {
     comprasSnap.forEach(d => { const c={id:d.id,...d.data()}; totalComprado+=c.valor||0; compras.push(c); });
     pagamentosSnap.forEach(d => { totalPago+=(d.data().valor||0); });
     const saldo = totalComprado - totalPago;
+    const origem = window.location.origin;
 
     const win = window.open("", "_blank");
     win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
-      <meta charset="UTF-8"><title>Promissória — ${cliente.nome}</title>
+      <meta charset="UTF-8"><title>Comprovante — ${cliente.nome}</title>
       <style>
-        body{font-family:Arial,sans-serif;font-size:13px;margin:20px;color:#111}
-        h1{font-size:18px;margin-bottom:4px}
-        .sub{color:#555;font-size:12px;margin-bottom:20px}
-        table{width:100%;border-collapse:collapse;margin-bottom:20px}
-        th{background:#002D94;color:#fff;padding:7px 10px;text-align:left;font-size:12px}
-        td{padding:6px 10px;border-bottom:1px solid #eee;font-size:12px}
-        .resumo{display:flex;gap:20px;margin-bottom:20px;flex-wrap:wrap}
-        .box{background:#f1f5f9;border-radius:8px;padding:12px 16px;min-width:130px}
-        .box-label{font-size:11px;color:#555;text-transform:uppercase;margin-bottom:4px}
-        .box-val{font-size:16px;font-weight:bold}
-        @media print{body{margin:10px}}
+        * { box-sizing: border-box; }
+        body{font-family:Arial,Helvetica,sans-serif;font-size:13px;margin:0;padding:28px 32px;color:#1E1E1E;background:#fff}
+        .topo{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;border-bottom:1px solid #E2E8F0;padding-bottom:20px;margin-bottom:20px}
+        .empresa{display:flex;gap:14px;align-items:flex-start}
+        .empresa img{width:70px;height:70px;border-radius:14px;object-fit:cover}
+        .empresa h1{font-size:24px;margin:0 0 2px;color:#002D94;letter-spacing:.02em}
+        .empresa .subtitulo{font-size:13px;color:#475569;font-weight:bold;margin-bottom:8px}
+        .empresa .linha{font-size:11.5px;color:#334155;line-height:1.5}
+        .empresa .linha strong{color:#111}
+        .cartao-info{background:#F7F9FC;border:1px solid #E2E8F0;border-radius:10px;padding:10px 18px;min-width:270px}
+        .cartao-info .item{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #E7ECF3}
+        .cartao-info .item:last-child{border-bottom:none}
+        .cartao-info .ico{width:16px;height:16px;flex-shrink:0;color:#118DFF}
+        .cartao-info .rotulo{font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.03em;flex:1}
+        .cartao-info .valor{font-size:13px;font-weight:bold;color:#111;text-align:right}
+        .resumo{display:flex;gap:16px;margin-bottom:24px}
+        .box{flex:1;background:#F7F9FC;border-radius:10px;padding:14px 18px;text-align:center}
+        .box.atraso{background:#FEF2F2;border:1px solid #FCA5A5}
+        .box-label{font-size:10.5px;color:#64748B;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px}
+        .box-val{font-size:20px;font-weight:800}
+        h3.secao{font-size:13px;color:#111;text-transform:uppercase;letter-spacing:.03em;margin:0 0 8px}
+        table{width:100%;border-collapse:collapse;margin-bottom:22px}
+        th{background:#002D94;color:#fff;padding:9px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.02em}
+        td{padding:9px 12px;border-bottom:1px solid #EEF1F5;font-size:12px}
+        tr:last-child td{border-bottom:none}
+        .info-box{display:flex;gap:12px;align-items:flex-start;background:#F7F9FC;border-radius:10px;padding:14px 18px;margin-top:30px}
+        .info-box .ico{width:18px;height:18px;color:#118DFF;flex-shrink:0;margin-top:1px}
+        .info-box strong{display:block;font-size:12px;margin-bottom:2px}
+        .info-box span{font-size:11.5px;color:#475569}
+        .rodape{display:flex;justify-content:center;gap:22px;flex-wrap:wrap;margin-top:26px;padding-top:16px;border-top:1px solid #E2E8F0;font-size:11.5px;color:#334155}
+        .rodape span{display:flex;align-items:center;gap:6px}
+        @media print{body{padding:14px 18px}}
       </style></head><body>
-      <h1>Papelaria Futura — Ficha do Cliente</h1>
-      <div class="sub">${cliente.nome}${cliente.telefone ? ' · ' + cliente.telefone : ''} · Emitido em ${hoje.toLocaleDateString('pt-BR')}</div>
+
+      <div class="topo">
+        <div class="empresa">
+          <img src="${origem}/img/logo.png" alt="Papelaria Futura" onerror="this.style.display='none'" />
+          <div>
+            <h1>PAPELARIA FUTURA</h1>
+            <div class="subtitulo">COMPROVANTE DE VENDA</div>
+            <div class="linha">
+              <strong>Papelaria Futura LTDA</strong><br>
+              Av. Dr. Ézio Carneiro Qd.32 Lt.31/33 — Setor Aeroporto, Luziânia/GO<br>
+              <strong>CNPJ:</strong> 01.064.836/0001-12<br>
+              <strong>Telefone:</strong> (61) 3621-4452 &nbsp;|&nbsp; futuralza@gmail.com
+            </div>
+          </div>
+        </div>
+        <div class="cartao-info">
+          <div class="item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm10 7H4v7h12V9z" clip-rule="evenodd"/></svg>
+            <span class="rotulo">Data da Venda</span>
+            <span class="valor">${hoje.toLocaleDateString("pt-BR")}</span>
+          </div>
+          <div class="item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+            <span class="rotulo">Cliente</span>
+            <span class="valor">${escHtml(cliente.nome)}</span>
+          </div>
+          <div class="item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9z" clip-rule="evenodd"/></svg>
+            <span class="rotulo">Tipo de Venda</span>
+            <span class="valor">Venda a Prazo (Promissória)</span>
+          </div>
+          <div class="item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+            <span class="rotulo">Atendido por</span>
+            <span class="valor">${escHtml(_dadosUsuario?.nome || "—")}</span>
+          </div>
+        </div>
+      </div>
+
       <div class="resumo">
         <div class="box"><div class="box-label">Total Comprado</div><div class="box-val">${formatarMoeda(totalComprado)}</div></div>
         <div class="box"><div class="box-label">Total Pago</div><div class="box-val" style="color:#059669">${formatarMoeda(totalPago)}</div></div>
-        <div class="box"><div class="box-label">Saldo Devedor</div><div class="box-val" style="color:${saldo>0?'#DC2626':'#059669'}">${formatarMoeda(Math.max(0,saldo))}</div></div>
+        <div class="box ${saldo>0?'atraso':''}"><div class="box-label">Saldo Devedor</div><div class="box-val" style="color:${saldo>0?'#DC2626':'#059669'}">${formatarMoeda(Math.max(0,saldo))}</div></div>
       </div>
-      <h3>Compras</h3>
+
+      <h3 class="secao">Vendas Realizadas</h3>
       <table><thead><tr><th>Data</th><th>Valor</th><th>Vencimento</th><th>Observações</th></tr></thead><tbody>
-        ${compras.map(c=>`<tr><td>${formatarDataLocal(c.dataCompra)}</td><td>${formatarMoeda(c.valor)}</td><td>${c.vencimento?formatarDataLocal(c.vencimento):'—'}</td><td>${c.observacoes||''}</td></tr>`).join('')}
+        ${compras.map(c=>`<tr><td>${formatarDataLocal(c.dataCompra)}</td><td>${formatarMoeda(c.valor)}</td><td>${c.vencimento?formatarDataLocal(c.vencimento):'—'}</td><td>${escHtml(c.observacoes||'')||'—'}</td></tr>`).join('')}
       </tbody></table>
+
+      <div class="info-box">
+        <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+        <div>
+          <strong>Informação</strong>
+          <span>Este comprovante não possui valor fiscal. É um documento de controle interno.</span>
+        </div>
+      </div>
+
+      <div class="rodape">
+        <span>📞 (61) 3621-4452</span>
+        <span>✉️ futuralza@gmail.com</span>
+      </div>
+
       <script>window.onload=()=>{window.print();}<\/script>
       </body></html>`);
     win.document.close();
