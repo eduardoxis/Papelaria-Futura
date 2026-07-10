@@ -1703,6 +1703,20 @@ async function imprimirComprovanteCompra(clienteId, compraId, valorCompra, dataS
         .btn-voltar:hover{background:#F7F9FC;border-color:#118DFF;color:#118DFF}
         .btn-voltar svg{width:16px;height:16px}
         @media print{.btn-voltar{display:none}}
+        @media (max-width: 640px) {
+          body{padding:18px 16px}
+          .topo{flex-direction:column}
+          .empresa img{width:56px;height:56px}
+          .empresa h1{font-size:19px}
+          .cartao-info{min-width:0;width:100%}
+          .resumo{flex-direction:column}
+          .detalhes-grid{grid-template-columns:1fr}
+          .rodape{flex-direction:column;align-items:flex-start;gap:8px}
+          .info-doc{text-align:left}
+          .info-doc .linha{justify-content:flex-start}
+          table{display:block;overflow-x:auto;white-space:nowrap}
+          .btn-voltar{position:static;display:inline-flex;margin-bottom:16px}
+        }
         @media print{body{padding:14px 18px}}
       </style></head><body>
 
@@ -2140,6 +2154,20 @@ async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, f
         .btn-voltar:hover{background:#F7F9FC;border-color:#118DFF;color:#118DFF}
         .btn-voltar svg{width:16px;height:16px}
         @media print{.btn-voltar{display:none}}
+        @media (max-width: 640px) {
+          body{padding:18px 16px}
+          .topo{flex-direction:column}
+          .empresa img{width:56px;height:56px}
+          .empresa h1{font-size:19px}
+          .cartao-info{min-width:0;width:100%}
+          .resumo{flex-direction:column}
+          .detalhes-grid{grid-template-columns:1fr}
+          .rodape{flex-direction:column;align-items:flex-start;gap:8px}
+          .info-doc{text-align:left}
+          .info-doc .linha{justify-content:flex-start}
+          table{display:block;overflow-x:auto;white-space:nowrap}
+          .btn-voltar{position:static;display:inline-flex;margin-bottom:16px}
+        }
         @media print{body{padding:14px 18px}}
       </style></head><body>
 
@@ -2376,6 +2404,20 @@ async function imprimirCliente(clienteId) {
         .info-box span{font-size:11.5px;color:#475569}
         .rodape{display:flex;justify-content:center;gap:22px;flex-wrap:wrap;margin-top:26px;padding-top:16px;border-top:1px solid #E2E8F0;font-size:11.5px;color:#334155}
         .rodape span{display:flex;align-items:center;gap:6px}
+        @media (max-width: 640px) {
+          body{padding:18px 16px}
+          .topo{flex-direction:column}
+          .empresa img{width:56px;height:56px}
+          .empresa h1{font-size:19px}
+          .cartao-info{min-width:0;width:100%}
+          .resumo{flex-direction:column}
+          .detalhes-grid{grid-template-columns:1fr}
+          .rodape{flex-direction:column;align-items:flex-start;gap:8px}
+          .info-doc{text-align:left}
+          .info-doc .linha{justify-content:flex-start}
+          table{display:block;overflow-x:auto;white-space:nowrap}
+          .btn-voltar{position:static;display:inline-flex;margin-bottom:16px}
+        }
         @media print{body{padding:14px 18px}}
       </style></head><body>
 
@@ -2519,6 +2561,20 @@ async function imprimirRelatorio() {
         .rodape{display:flex;justify-content:space-between;align-items:center;gap:22px;flex-wrap:wrap;margin-top:22px;padding-top:16px;border-top:1px solid #E2E8F0;font-size:11.5px;color:#334155}
         .rodape span{display:flex;align-items:center;gap:6px}
         .rodape strong{color:#002D94}
+        @media (max-width: 640px) {
+          body{padding:18px 16px}
+          .topo{flex-direction:column}
+          .empresa img{width:56px;height:56px}
+          .empresa h1{font-size:19px}
+          .cartao-info{min-width:0;width:100%}
+          .resumo{flex-direction:column}
+          .detalhes-grid{grid-template-columns:1fr}
+          .rodape{flex-direction:column;align-items:flex-start;gap:8px}
+          .info-doc{text-align:left}
+          .info-doc .linha{justify-content:flex-start}
+          table{display:block;overflow-x:auto;white-space:nowrap}
+          .btn-voltar{position:static;display:inline-flex;margin-bottom:16px}
+        }
         @media print{body{padding:14px 18px}}
       </style></head><body>
 
