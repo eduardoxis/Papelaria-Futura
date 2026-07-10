@@ -1699,8 +1699,17 @@ async function imprimirComprovanteCompra(clienteId, compraId, valorCompra, dataS
         .obrigado{text-align:center;margin-top:26px;font-weight:700;color:#002D94}
         .rodape{display:flex;justify-content:center;gap:22px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid #E2E8F0;font-size:11.5px;color:#334155}
         .rodape span{display:flex;align-items:center;gap:6px}
+        .btn-voltar{position:fixed;top:16px;left:16px;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #E2E8F0;border-radius:9999px;padding:8px 16px;font-size:13px;font-weight:600;color:#334155;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+        .btn-voltar:hover{background:#F7F9FC;border-color:#118DFF;color:#118DFF}
+        .btn-voltar svg{width:16px;height:16px}
+        @media print{.btn-voltar{display:none}}
         @media print{body{padding:14px 18px}}
       </style></head><body>
+
+      <button class="btn-voltar" onclick="window.close()">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+        Voltar
+      </button>
 
       <div class="topo">
         <div class="empresa">
@@ -2127,8 +2136,17 @@ async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, f
         .obrigado{text-align:center;margin-top:26px;font-weight:700;color:#002D94}
         .rodape{display:flex;justify-content:center;gap:22px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid #E2E8F0;font-size:11.5px;color:#334155}
         .rodape span{display:flex;align-items:center;gap:6px}
+        .btn-voltar{position:fixed;top:16px;left:16px;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #E2E8F0;border-radius:9999px;padding:8px 16px;font-size:13px;font-weight:600;color:#334155;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+        .btn-voltar:hover{background:#F7F9FC;border-color:#118DFF;color:#118DFF}
+        .btn-voltar svg{width:16px;height:16px}
+        @media print{.btn-voltar{display:none}}
         @media print{body{padding:14px 18px}}
       </style></head><body>
+
+      <button class="btn-voltar" onclick="window.close()">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+        Voltar
+      </button>
 
       <div class="topo">
         <div class="empresa">
