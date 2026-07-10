@@ -1880,11 +1880,18 @@ async function abrirModalNovoPagamento(clienteId) {
   document.getElementById("btnCancelarModalProm").onclick = fecharModal;
 
   let comprasAbertas = [];
+  let saldoDevedorTotal = 0;
   try {
     const [comprasSnap, pagamentosSnap] = await Promise.all([
       getDocs(query(collection(db, COL_COMPRAS), where("clienteId", "==", clienteId), orderBy("dataCompra", "asc"))),
       getDocs(query(collection(db, COL_PAGAMENTOS), where("clienteId", "==", clienteId)))
     ]);
+
+    let totalComprado = 0;
+    comprasSnap.forEach(d => { totalComprado += d.data().valor || 0; });
+    let totalPago = 0;
+    pagamentosSnap.forEach(d => { totalPago += d.data().valor || 0; });
+    saldoDevedorTotal = Math.max(0, Math.round((totalComprado - totalPago) * 100) / 100);
 
     const pagoPorCompra = {};
     pagamentosSnap.forEach(d => {
@@ -1948,7 +1955,10 @@ async function abrirModalNovoPagamento(clienteId) {
       ${comprasAbertas.length > 0 ? `<div style="text-align:right;font-size:var(--text-sm);color:var(--gray-600);padding-top:4px;border-top:1px solid var(--gray-100)">Total a pagar: <strong id="mPagTotalPreview" style="color:var(--color-success)">—</strong></div>` : `
       <div>
         <label class="field-label">Valor do Pagamento (R$) *</label>
-        <input type="number" id="mPagValorGeral" class="field-input--plain" placeholder="0,00" min="0.01" step="0.01" autocomplete="off" />
+        <input type="number" id="mPagValorGeral" class="field-input--plain" placeholder="0,00" min="0.01" step="0.01" max="${saldoDevedorTotal}" ${saldoDevedorTotal <= 0 ? "disabled" : ""} autocomplete="off" />
+        ${saldoDevedorTotal > 0
+          ? `<p style="font-size:var(--text-xs);color:var(--gray-500);margin-top:4px">Saldo devedor do cliente: ${formatarMoeda(saldoDevedorTotal)}</p>`
+          : `<p style="font-size:var(--text-xs);color:var(--color-danger);margin-top:4px">Este cliente não possui saldo devedor. Não é possível registrar um pagamento.</p>`}
       </div>`}
     </div>`;
 
@@ -1982,11 +1992,11 @@ async function abrirModalNovoPagamento(clienteId) {
   document.querySelectorAll(".pag-valor").forEach(inp => inp.addEventListener("input", atualizarPreview));
   atualizarPreview();
 
-  document.getElementById("btnSalvarNovoPagamento").onclick = () => salvarNovoPagamento(clienteId, comprasAbertas.length > 0);
+  document.getElementById("btnSalvarNovoPagamento").onclick = () => salvarNovoPagamento(clienteId, comprasAbertas.length > 0, saldoDevedorTotal);
   document.getElementById("mPagData")?.focus();
 }
 
-async function salvarNovoPagamento(clienteId, temComprasAbertas) {
+async function salvarNovoPagamento(clienteId, temComprasAbertas, saldoDevedorTotal = 0) {
   const dataStr = document.getElementById("mPagData").value;
   const forma   = document.getElementById("mPagForma").value;
   const obs     = document.getElementById("mPagObs").value.trim();
@@ -2010,6 +2020,10 @@ async function salvarNovoPagamento(clienteId, temComprasAbertas) {
   } else {
     const valor = parseFloat(document.getElementById("mPagValorGeral")?.value);
     if (!valor || valor <= 0) { window.mostrarToast?.("Informe um valor válido.", "error"); return; }
+    if (valor > saldoDevedorTotal + 0.01) {
+      window.mostrarToast?.(`O pagamento não pode ser maior que o saldo devedor do cliente (${formatarMoeda(saldoDevedorTotal)}).`, "error");
+      return;
+    }
     lancamentos.push({ compraId: null, valor });
   }
 
