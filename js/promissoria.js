@@ -2485,27 +2485,94 @@ async function imprimirRelatorio() {
     });
 
     const win = window.open("", "_blank");
+    const origem = window.location.origin;
+    const agora = new Date();
+    const idDoc = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const totalC = clientes.reduce((a,c)=>a+c.totalC,0);
+    const totalP = clientes.reduce((a,c)=>a+c.totalP,0);
+    const totalSaldo = Math.max(0, clientes.reduce((a,c)=>a+c.saldo,0));
+
     win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
       <meta charset="UTF-8"><title>Relatório de Promissórias</title>
       <style>
-        body{font-family:Arial,sans-serif;font-size:12px;margin:20px;color:#111}
-        h1{font-size:18px}
-        table{width:100%;border-collapse:collapse;margin-top:16px}
-        th{background:#002D94;color:#fff;padding:7px 10px;text-align:left;font-size:11px}
-        td{padding:6px 10px;border-bottom:1px solid #eee;font-size:11px}
-        tfoot td{font-weight:bold;background:#f1f5f9}
+        * { box-sizing: border-box; }
+        body{font-family:Arial,Helvetica,sans-serif;font-size:13px;margin:0;padding:28px 32px;color:#1E1E1E;background:#fff}
+        .topo{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;border-bottom:1px solid #E2E8F0;padding-bottom:20px;margin-bottom:20px}
+        .empresa{display:flex;gap:14px;align-items:flex-start}
+        .empresa img{width:56px;height:56px;border-radius:12px;object-fit:cover}
+        .empresa h1{font-size:20px;margin:0 0 2px;color:#002D94;letter-spacing:.02em}
+        .empresa .subtitulo{font-size:12px;color:#475569;font-weight:bold;letter-spacing:.03em}
+        .info-doc{text-align:right;font-size:11.5px;color:#334155}
+        .info-doc .linha{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:6px}
+        .info-doc .ico{width:15px;height:15px;color:#118DFF;flex-shrink:0}
+        .titulo-relatorio{font-size:19px;font-weight:800;color:#111;margin:0 0 4px}
+        .emitido{font-size:12px;color:#64748B;margin:0 0 20px}
+        table{width:100%;border-collapse:collapse;margin-bottom:0;border-radius:10px;overflow:hidden}
+        th{background:#002D94;color:#fff;padding:10px 12px;text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em}
+        td{padding:9px 12px;border-bottom:1px solid #EEF1F5;font-size:12px}
+        tbody tr:nth-child(even){background:#FAFBFD}
+        tfoot td{font-weight:800;background:#002D94;color:#fff;font-size:12.5px;padding:11px 12px}
+        .info-box{display:flex;gap:12px;align-items:flex-start;background:#F7F9FC;border-radius:10px;padding:14px 18px;margin-top:22px}
+        .info-box .ico{width:18px;height:18px;color:#118DFF;flex-shrink:0;margin-top:1px}
+        .info-box strong{display:block;font-size:12px;margin-bottom:2px}
+        .info-box span{font-size:11.5px;color:#475569}
+        .rodape{display:flex;justify-content:space-between;align-items:center;gap:22px;flex-wrap:wrap;margin-top:22px;padding-top:16px;border-top:1px solid #E2E8F0;font-size:11.5px;color:#334155}
+        .rodape span{display:flex;align-items:center;gap:6px}
+        .rodape strong{color:#002D94}
+        @media print{body{padding:14px 18px}}
       </style></head><body>
-      <h1>Papelaria Futura — Relatório de Promissórias</h1>
-      <p style="color:#555;font-size:11px">Emitido em ${new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}</p>
+
+      <div class="topo">
+        <div class="empresa">
+          <img src="${origem}/img/logo.png" alt="Papelaria Futura" onerror="this.style.display='none'" />
+          <div>
+            <h1>PAPELARIA FUTURA</h1>
+            <div class="subtitulo">RELATÓRIO DE PROMISSÓRIAS</div>
+          </div>
+        </div>
+        <div class="info-doc">
+          <div class="linha">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm10 7H4v7h12V9z" clip-rule="evenodd"/></svg>
+            <span>${agora.toLocaleDateString("pt-BR")}, ${agora.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</span>
+          </div>
+          <div class="linha">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 1h6v2H7V5zm0 4h6v2H7V9zm0 4h4v2H7v-2z" clip-rule="evenodd"/></svg>
+            <span>Relatório de Promissórias</span>
+          </div>
+          <div class="linha">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+            <span>ID: ${idDoc}</span>
+          </div>
+        </div>
+      </div>
+
+      <h2 class="titulo-relatorio">Papelaria Futura — Relatório de Promissórias</h2>
+      <p class="emitido">Emitido em ${agora.toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}</p>
+
       <table><thead><tr><th>Cliente</th><th>Telefone</th><th>Total Comprado</th><th>Total Pago</th><th>Saldo Devedor</th><th>Situação</th></tr></thead>
       <tbody>
         ${clientes.map(c=>{
           const s = c.saldo > 0 ? "Em aberto" : "Quitado";
-          return `<tr><td>${c.nome||''}</td><td>${c.telefone||''}</td><td>${formatarMoeda(c.totalC)}</td><td>${formatarMoeda(c.totalP)}</td><td style="color:${c.saldo>0?'#DC2626':'#059669'}">${formatarMoeda(Math.max(0,c.saldo))}</td><td>${s}</td></tr>`;
+          return `<tr><td>${c.nome||''}</td><td>${c.telefone||''}</td><td>${formatarMoeda(c.totalC)}</td><td>${formatarMoeda(c.totalP)}</td><td style="color:${c.saldo>0?'#DC2626':'#059669'};font-weight:600">${formatarMoeda(Math.max(0,c.saldo))}</td><td style="color:${c.saldo>0?'#DC2626':'#059669'}">${s}</td></tr>`;
         }).join('')}
       </tbody>
-      <tfoot><tr><td colspan="2">TOTAL</td><td>${formatarMoeda(clientes.reduce((a,c)=>a+c.totalC,0))}</td><td>${formatarMoeda(clientes.reduce((a,c)=>a+c.totalP,0))}</td><td>${formatarMoeda(Math.max(0,clientes.reduce((a,c)=>a+c.saldo,0)))}</td><td></td></tr></tfoot>
+      <tfoot><tr><td colspan="2">TOTAL</td><td>${formatarMoeda(totalC)}</td><td>${formatarMoeda(totalP)}</td><td>${formatarMoeda(totalSaldo)}</td><td>—</td></tr></tfoot>
       </table>
+
+      <div class="info-box">
+        <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+        <div>
+          <strong>Informação</strong>
+          <span>Este relatório não possui valor fiscal. É um documento de controle interno.</span>
+        </div>
+      </div>
+
+      <div class="rodape">
+        <span>📞 (61) 3621-4452</span>
+        <span>✉️ futuralza@gmail.com</span>
+        <strong>PAPELARIA FUTURA</strong>
+      </div>
+
       <script>window.onload=()=>{window.print();}<\/script>
       </body></html>`);
     win.document.close();
