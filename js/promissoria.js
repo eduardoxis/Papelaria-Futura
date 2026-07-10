@@ -1609,7 +1609,8 @@ async function salvarNovaCompra(clienteId) {
     for (const l of lancamentos) {
       const compraRef = refs[idxDoc];
       idxDoc += l.parcelas;
-      await imprimirComprovanteCompra(clienteId, compraRef.id, l.valor, l.dataStr, l.vencStr, l.obs);
+      const modo = await perguntarComprovante("Compra registrada com sucesso! Deseja visualizar ou imprimir o comprovante?");
+      if (modo) await imprimirComprovanteCompra(clienteId, compraRef.id, l.valor, l.dataStr, l.vencStr, l.obs, modo);
     }
   } catch (err) {
     console.error(err);
@@ -1619,7 +1620,7 @@ async function salvarNovaCompra(clienteId) {
 }
 
 // ── Comprovante de Compra / Venda a Prazo (impressão) ───────────
-async function imprimirComprovanteCompra(clienteId, compraId, valorCompra, dataStr, vencStr, obsCompra) {
+async function imprimirComprovanteCompra(clienteId, compraId, valorCompra, dataStr, vencStr, obsCompra, modo = "print") {
   try {
     const [clienteSnap, comprasSnap, pagamentosSnap] = await Promise.all([
       getDoc(doc(db, COL_CLIENTES, clienteId)),
@@ -1776,7 +1777,7 @@ async function imprimirComprovanteCompra(clienteId, compraId, valorCompra, dataS
         <span>✉️ futuralza@gmail.com</span>
       </div>
 
-      <script>window.onload=()=>{window.print();}<\/script>
+      <script>window.onload=()=>{${modo === "print" ? "window.print();" : ""}}<\/script>
       </body></html>`);
     win.document.close();
   } catch (err) {
@@ -1961,7 +1962,8 @@ async function salvarNovoPagamento(clienteId, temComprasAbertas) {
     carregarIndicadores();
 
     const valorTotalPago = lancamentos.reduce((s, l) => s + l.valor, 0);
-    await imprimirComprovantePagamento(clienteId, refs[0].id, valorTotalPago, forma, obs);
+    const modo = await perguntarComprovante("Pagamento registrado com sucesso! Deseja visualizar ou imprimir o comprovante?");
+    if (modo) await imprimirComprovantePagamento(clienteId, refs[0].id, valorTotalPago, forma, obs, modo);
   } catch (err) {
     console.error(err);
     window.mostrarToast?.("Erro ao registrar pagamento.", "error");
@@ -1970,7 +1972,7 @@ async function salvarNovoPagamento(clienteId, temComprasAbertas) {
 }
 
 // ── Comprovante de Pagamento (impressão) ────────────────────────
-async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, forma, obs) {
+async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, forma, obs, modo = "print") {
   try {
     const [clienteSnap, comprasSnap, pagamentosSnap] = await Promise.all([
       getDoc(doc(db, COL_CLIENTES, clienteId)),
@@ -2161,7 +2163,7 @@ async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, f
         <span>✉️ futuralza@gmail.com</span>
       </div>
 
-      <script>window.onload=()=>{window.print();}<\/script>
+      <script>window.onload=()=>{${modo === "print" ? "window.print();" : ""}}<\/script>
       </body></html>`);
     win.document.close();
   } catch (err) {
@@ -2778,4 +2780,31 @@ function abrirModal(titulo, body, footer, opcoes) {
 
 function fecharModal() {
   window.fecharModal?.();
+}
+
+// Pergunta ao usuário o que fazer com um comprovante recém-gerado.
+// Retorna uma Promise que resolve para "preview", "print" ou null (fechar sem fazer nada).
+function perguntarComprovante(mensagem) {
+  return new Promise((resolve) => {
+    const body = `<p style="color:var(--gray-600)">${mensagem}</p>`;
+    const footer = `
+      <button class="btn-ghost" id="btnComprovanteFechar">Fechar</button>
+      <button class="btn-secondary" id="btnComprovanteVisualizar">Visualizar</button>
+      <button class="btn-primary" id="btnComprovanteImprimir">Imprimir</button>
+    `;
+    abrirModal("Comprovante", body, footer);
+
+    document.getElementById("btnComprovanteFechar")?.addEventListener("click", () => {
+      fecharModal();
+      resolve(null);
+    });
+    document.getElementById("btnComprovanteVisualizar")?.addEventListener("click", () => {
+      fecharModal();
+      resolve("preview");
+    });
+    document.getElementById("btnComprovanteImprimir")?.addEventListener("click", () => {
+      fecharModal();
+      resolve("print");
+    });
+  });
 }
