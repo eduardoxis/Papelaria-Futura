@@ -1782,10 +1782,214 @@ async function salvarNovoPagamento(clienteId, temComprasAbertas) {
     window.mostrarToast?.("Pagamento registrado com sucesso!", "success");
     abrirPainelCliente(clienteId);
     carregarIndicadores();
+
+    const valorTotalPago = lancamentos.reduce((s, l) => s + l.valor, 0);
+    await imprimirComprovantePagamento(clienteId, refs[0].id, valorTotalPago, forma, obs);
   } catch (err) {
     console.error(err);
     window.mostrarToast?.("Erro ao registrar pagamento.", "error");
     btn.disabled = false; btn.textContent = "Registrar Pagamento";
+  }
+}
+
+// ── Comprovante de Pagamento (impressão) ────────────────────────
+async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, forma, obs) {
+  try {
+    const [clienteSnap, comprasSnap, pagamentosSnap] = await Promise.all([
+      getDoc(doc(db, COL_CLIENTES, clienteId)),
+      getDocs(query(collection(db, COL_COMPRAS), where("clienteId", "==", clienteId))),
+      getDocs(query(collection(db, COL_PAGAMENTOS), where("clienteId", "==", clienteId)))
+    ]);
+    const cliente = clienteSnap.data();
+    const origem = window.location.origin;
+
+    // Monta a linha do tempo (compras aumentam o saldo, pagamentos diminuem)
+    const linhas = [];
+    let totalComprado = 0;
+    comprasSnap.forEach(d => {
+      const c = d.data();
+      totalComprado += c.valor || 0;
+      linhas.push({
+        data: c.dataCompra, tipo: "compra", numero: `COMPRA-${d.id.slice(-6).toUpperCase()}`,
+        forma: "Compra (Fiado)", valor: c.valor || 0
+      });
+    });
+    let totalPago = 0;
+    pagamentosSnap.forEach(d => {
+      const p = { id: d.id, ...d.data() };
+      totalPago += p.valor || 0;
+      linhas.push({
+        data: p.dataPagamento, tipo: "pagamento", numero: `PGT-${d.id.slice(-6).toUpperCase()}`,
+        forma: p.forma || "—", valor: p.valor || 0, id: d.id
+      });
+    });
+    linhas.sort((a, b) => {
+      const da = a.data?.toDate ? a.data.toDate() : new Date(a.data);
+      const db_ = b.data?.toDate ? b.data.toDate() : new Date(b.data);
+      return da - db_;
+    });
+
+    // Calcula o saldo corrente após cada linha, e identifica saldo antes/depois deste pagamento
+    let saldoCorrente = 0;
+    let saldoAnterior = 0;
+    let saldoRestante = 0;
+    linhas.forEach(l => {
+      if (l.tipo === "compra") saldoCorrente += l.valor;
+      else saldoCorrente -= l.valor;
+      l.saldoApos = saldoCorrente;
+      if (l.id === pagamentoId) {
+        saldoRestante = saldoCorrente;
+        saldoAnterior = saldoCorrente + l.valor;
+      }
+    });
+
+    const pagamentoAtual = linhas.find(l => l.id === pagamentoId);
+    const numeroPagamento = pagamentoAtual?.numero || `PGT-${pagamentoId.slice(-6).toUpperCase()}`;
+    const agora = new Date();
+    const historico = linhas.slice().reverse().slice(0, 10); // mais recentes primeiro, até 10
+
+    const win = window.open("", "_blank");
+    win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
+      <meta charset="UTF-8"><title>Comprovante de Pagamento — ${escHtml(cliente.nome)}</title>
+      <style>
+        * { box-sizing: border-box; }
+        body{font-family:Arial,Helvetica,sans-serif;font-size:13px;margin:0;padding:28px 32px;color:#1E1E1E;background:#fff}
+        .topo{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;border-bottom:1px solid #E2E8F0;padding-bottom:20px;margin-bottom:20px}
+        .empresa{display:flex;gap:14px;align-items:flex-start}
+        .empresa img{width:70px;height:70px;border-radius:14px;object-fit:cover}
+        .empresa h1{font-size:24px;margin:0 0 2px;color:#002D94;letter-spacing:.02em}
+        .empresa .subtitulo{font-size:13px;color:#475569;font-weight:bold;margin-bottom:8px}
+        .empresa .linha{font-size:11.5px;color:#334155;line-height:1.5}
+        .empresa .linha strong{color:#111}
+        .cartao-info{background:#F7F9FC;border:1px solid #E2E8F0;border-radius:10px;padding:10px 18px;min-width:270px}
+        .cartao-info .item{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #E7ECF3}
+        .cartao-info .item:last-child{border-bottom:none}
+        .cartao-info .ico{width:16px;height:16px;flex-shrink:0;color:#118DFF}
+        .cartao-info .rotulo{font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.03em;flex:1}
+        .cartao-info .valor{font-size:13px;font-weight:bold;color:#111;text-align:right}
+        .resumo{display:flex;gap:16px;margin-bottom:24px}
+        .box{flex:1;background:#F7F9FC;border-radius:10px;padding:14px 18px;text-align:center}
+        .box-label{font-size:10.5px;color:#64748B;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px}
+        .box-val{font-size:20px;font-weight:800}
+        .detalhes{background:#F7F9FC;border-radius:10px;padding:18px 22px;margin-bottom:24px}
+        h3.secao{font-size:13px;color:#111;text-transform:uppercase;letter-spacing:.03em;margin:0 0 14px;padding-bottom:8px;border-bottom:1px solid #E2E8F0}
+        .detalhes-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 32px}
+        .detalhes-item{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #E7ECF3}
+        .detalhes-item .ico{width:16px;height:16px;flex-shrink:0;color:#118DFF;margin-top:2px}
+        .detalhes-item .rotulo{font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.03em;display:block;margin-bottom:3px}
+        .detalhes-item .valor{font-size:13px;font-weight:600;color:#111}
+        table{width:100%;border-collapse:collapse;margin-bottom:22px}
+        th{background:#002D94;color:#fff;padding:9px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.02em}
+        td{padding:9px 12px;border-bottom:1px solid #EEF1F5;font-size:12px}
+        tr:last-child td{border-bottom:none}
+        .info-box{display:flex;gap:12px;align-items:flex-start;background:#F7F9FC;border-radius:10px;padding:14px 18px;margin-top:10px}
+        .info-box .ico{width:18px;height:18px;color:#118DFF;flex-shrink:0;margin-top:1px}
+        .info-box strong{display:block;font-size:12px;margin-bottom:2px}
+        .info-box span{font-size:11.5px;color:#475569}
+        .obrigado{text-align:center;margin-top:26px;font-weight:700;color:#002D94}
+        .rodape{display:flex;justify-content:center;gap:22px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid #E2E8F0;font-size:11.5px;color:#334155}
+        .rodape span{display:flex;align-items:center;gap:6px}
+        @media print{body{padding:14px 18px}}
+      </style></head><body>
+
+      <div class="topo">
+        <div class="empresa">
+          <img src="${origem}/img/logo.png" alt="Papelaria Futura" onerror="this.style.display='none'" />
+          <div>
+            <h1>PAPELARIA FUTURA</h1>
+            <div class="subtitulo">COMPROVANTE DE PAGAMENTO</div>
+            <div class="linha">
+              <strong>Papelaria Futura LTDA</strong><br>
+              Av. Dr. Ézio Carneiro Qd.32 Lt.31/33 — Setor Aeroporto, Luziânia/GO<br>
+              <strong>CNPJ:</strong> 01.064.836/0001-12<br>
+              <strong>Telefone:</strong> (61) 3621-4452 &nbsp;|&nbsp; futuralza@gmail.com
+            </div>
+          </div>
+        </div>
+        <div class="cartao-info">
+          <div class="item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm10 7H4v7h12V9z" clip-rule="evenodd"/></svg>
+            <span class="rotulo">Data do Pagamento</span>
+            <span class="valor">${agora.toLocaleDateString("pt-BR")} ${agora.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</span>
+          </div>
+          <div class="item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+            <span class="rotulo">Cliente</span>
+            <span class="valor">${escHtml(cliente.nome)}</span>
+          </div>
+          <div class="item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9z" clip-rule="evenodd"/></svg>
+            <span class="rotulo">Tipo de Operação</span>
+            <span class="valor">Pagamento de Débito (Fiado)</span>
+          </div>
+          <div class="item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+            <span class="rotulo">Atendido por</span>
+            <span class="valor">${escHtml(_dadosUsuario?.nome || "—")}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="resumo">
+        <div class="box"><div class="box-label">Saldo Anterior</div><div class="box-val" style="color:${saldoAnterior>0?'#DC2626':'#059669'}">${formatarMoeda(Math.max(0,saldoAnterior))}</div></div>
+        <div class="box"><div class="box-label">Valor Pago</div><div class="box-val" style="color:#059669">${formatarMoeda(valorPago)}</div></div>
+        <div class="box"><div class="box-label">Saldo Restante</div><div class="box-val" style="color:${saldoRestante>0?'#DC2626':'#059669'}">${formatarMoeda(Math.max(0,saldoRestante))}</div></div>
+      </div>
+
+      <div class="detalhes">
+        <h3 class="secao">Detalhes do Pagamento</h3>
+        <div class="detalhes-grid">
+          <div class="detalhes-item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9z" clip-rule="evenodd"/></svg>
+            <div><span class="rotulo">Forma de Pagamento</span><span class="valor">${escHtml(forma || "—")}</span></div>
+          </div>
+          <div class="detalhes-item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm3 1h6v2H7V5zm0 4h6v2H7V9zm0 4h4v2H7v-2z" clip-rule="evenodd"/></svg>
+            <div><span class="rotulo">Nº do Pagamento</span><span class="valor">${escHtml(numeroPagamento)}</span></div>
+          </div>
+          <div class="detalhes-item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a1 1 0 00-1 1v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 10.586V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+            <div><span class="rotulo">Observações</span><span class="valor">${escHtml(obs || "—")}</span></div>
+          </div>
+          <div class="detalhes-item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/></svg>
+            <div><span class="rotulo">Valor Pago</span><span class="valor" style="color:#059669">${formatarMoeda(valorPago)}</span></div>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="secao">Histórico de Pagamentos</h3>
+      <table><thead><tr><th>Data</th><th>Nº Pagamento</th><th>Forma de Pagamento</th><th>Valor Pago</th><th>Saldo Após</th></tr></thead><tbody>
+        ${historico.map(l => `<tr>
+          <td>${formatarDataLocal(l.data)}</td>
+          <td>${escHtml(l.numero)}</td>
+          <td>${escHtml(l.forma)}</td>
+          <td style="color:${l.tipo==='compra'?'#DC2626':'#059669'}">${formatarMoeda(l.valor)}</td>
+          <td style="color:${l.saldoApos>0?'#DC2626':'#059669'}">${formatarMoeda(Math.max(0,l.saldoApos))}</td>
+        </tr>`).join('')}
+      </tbody></table>
+
+      <div class="info-box">
+        <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+        <div>
+          <strong>Informação</strong>
+          <span>Este comprovante não possui valor fiscal. É um documento de controle interno.</span>
+        </div>
+      </div>
+
+      <div class="obrigado">✓ Obrigado pela preferência!<br>Volte sempre.</div>
+
+      <div class="rodape">
+        <span>📞 (61) 3621-4452</span>
+        <span>✉️ futuralza@gmail.com</span>
+      </div>
+
+      <script>window.onload=()=>{window.print();}<\/script>
+      </body></html>`);
+    win.document.close();
+  } catch (err) {
+    console.error(err);
+    window.mostrarToast?.("Pagamento salvo, mas houve erro ao gerar o comprovante para impressão.", "warning");
   }
 }
 
