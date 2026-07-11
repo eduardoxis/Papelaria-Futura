@@ -129,7 +129,7 @@ function _gerarModeloHtml({ cliente, totalComprado, totalPago, saldo, ultimaData
 <p style="margin-top:32px">${v("cidade", cidadeEmpresa)}, ${v("dataAtual", hoje)}.</p>
 
 <p style="margin-top:56px;text-align:center">_______________________________________________</p>
-<p style="text-align:center"><strong>${v("nomeEmpresa", "PAPELARIA FUTURA LTDA")}</strong></p>
+<p style="text-align:center"><strong>${v("nomeEmpresa", "LIVRARIA PAPELARIA FUTURA LTDA")}</strong></p>
 <p style="text-align:center">CNPJ: 01.064.836/0001-12</p>
 
 `.trim();
