@@ -1,0 +1,233 @@
+/* ============================================================
+   carta-anuencia.css — Editor "Mini Word" de Carta de Anuência
+   ============================================================ */
+
+#cartaAnuenciaOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #E8EAED;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Barra superior ────────────────────────────────────────── */
+.ca-topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 10px 18px;
+  background: linear-gradient(170deg, var(--blue-950) 0%, var(--blue-900) 100%);
+  color: #fff;
+  flex-wrap: wrap;
+}
+
+.ca-topbar .ca-titulo {
+  display: flex;
+  flex-direction: column;
+  margin-right: auto;
+  min-width: 0;
+}
+
+.ca-topbar .ca-titulo strong {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+.ca-topbar .ca-titulo span {
+  font-size: var(--text-xs);
+  color: rgba(255,255,255,0.65);
+}
+
+.ca-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  padding: 3px 10px;
+  border-radius: 9999px;
+}
+.ca-status-pill--rascunho  { background: #FEF3C7; color: #92400E; }
+.ca-status-pill--finalizada{ background: #D1FAE5; color: #065F46; }
+
+.ca-topbar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ca-topbar button:hover { background: rgba(255,255,255,0.18); }
+.ca-topbar button svg { width: 15px; height: 15px; }
+.ca-topbar button.ca-btn-primary { background: #118DFF; border-color: #118DFF; }
+.ca-topbar button.ca-btn-primary:hover { background: #0C7AE0; }
+.ca-topbar button:disabled { opacity: .5; cursor: not-allowed; }
+
+.ca-autosave-msg {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.55);
+  white-space: nowrap;
+}
+
+/* ── Barra de ferramentas ─────────────────────────────────── */
+.ca-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 8px 16px;
+  background: #fff;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.ca-toolbar .ca-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 8px;
+  border-right: 1px solid var(--gray-200);
+}
+.ca-toolbar .ca-group:last-child { border-right: none; }
+
+.ca-toolbar select {
+  height: 30px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  padding: 0 6px;
+  background: #fff;
+  color: var(--gray-800);
+  cursor: pointer;
+}
+.ca-toolbar select#caFonteSelect { width: 140px; }
+.ca-toolbar select#caTamanhoSelect { width: 62px; }
+.ca-toolbar select#caEspacamentoSelect { width: 74px; }
+
+.ca-toolbar button.ca-tool {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--gray-700);
+  cursor: pointer;
+}
+.ca-toolbar button.ca-tool:hover { background: var(--gray-100); }
+.ca-toolbar button.ca-tool.is-ativo { background: var(--blue-050); border-color: var(--blue-200); color: var(--blue-700); }
+.ca-toolbar button.ca-tool svg { width: 16px; height: 16px; }
+
+/* ── Área de edição (páginas A4) ──────────────────────────── */
+.ca-editor-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 0 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.ca-pagina {
+  width: 794px;
+  max-width: calc(100vw - 24px);
+  min-height: 1123px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12), 0 8px 24px rgba(0,0,0,.08);
+  display: flex;
+  flex-direction: column;
+}
+
+.ca-cabecalho,
+.ca-rodape {
+  min-height: 40px;
+  padding: 14px 64px;
+  font-size: 11px;
+  color: var(--gray-500);
+  outline: none;
+  border-bottom: 1px dashed transparent;
+}
+.ca-cabecalho:focus, .ca-rodape:focus { border-color: var(--gray-200); background: #FAFBFD; }
+.ca-rodape { border-top: 1px dashed transparent; border-bottom: none; margin-top: auto; }
+.ca-rodape:focus { border-top-color: var(--gray-200); }
+
+.ca-corpo {
+  flex: 1;
+  padding: 24px 64px;
+  font-family: "Times New Roman", Georgia, serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1a1a1a;
+  outline: none;
+}
+.ca-corpo p { margin: 0 0 10px; }
+.ca-corpo img { max-width: 100%; }
+.ca-corpo:empty::before {
+  content: "Comece a escrever...";
+  color: var(--gray-400);
+}
+
+.ca-pagecount {
+  position: sticky;
+  bottom: 12px;
+  align-self: center;
+  background: rgba(20,20,20,0.75);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px 14px;
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+/* ── Painel lateral (histórico de versões) ────────────────── */
+.ca-versoes-lista {
+  list-style: none;
+  margin: 0; padding: 0;
+  display: flex; flex-direction: column; gap: 8px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+.ca-versoes-lista li {
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.ca-versoes-lista .ca-versao-info strong { display:block; font-size: var(--text-sm); }
+.ca-versoes-lista .ca-versao-info span { font-size: var(--text-xs); color: var(--gray-500); }
+
+/* ── Responsivo ────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .ca-pagina { width: 100%; min-height: auto; }
+  .ca-cabecalho, .ca-rodape, .ca-corpo { padding-left: 22px; padding-right: 22px; }
+  .ca-topbar .ca-titulo strong { max-width: 160px; }
+  .ca-toolbar { gap: 2px; }
+  .ca-toolbar select#caFonteSelect { width: 100px; }
+}
+
+@media print {
+  .ca-topbar, .ca-toolbar, .ca-pagecount { display: none !important; }
+  .ca-editor-scroll { padding: 0; overflow: visible; }
+  #cartaAnuenciaOverlay { position: static; background: #fff; }
+  .ca-pagina { box-shadow: none; width: 100%; min-height: 0; }
+}
