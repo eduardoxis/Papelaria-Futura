@@ -1682,19 +1682,9 @@ async function imprimirComprovanteCompra(clienteId, compraId, valorCompra, dataS
     return;
   }
   try {
-    const [clienteSnap, comprasSnap, pagamentosSnap] = await Promise.all([
-      getDoc(doc(db, COL_CLIENTES, clienteId)),
-      getDocs(query(collection(db, COL_COMPRAS), where("clienteId", "==", clienteId))),
-      getDocs(query(collection(db, COL_PAGAMENTOS), where("clienteId", "==", clienteId)))
-    ]);
+    const clienteSnap = await getDoc(doc(db, COL_CLIENTES, clienteId));
     const cliente = clienteSnap.data();
     const origem = window.location.origin;
-
-    let totalComprado = 0;
-    comprasSnap.forEach(d => { totalComprado += d.data().valor || 0; });
-    let totalPago = 0;
-    pagamentosSnap.forEach(d => { totalPago += d.data().valor || 0; });
-    const saldoAtual = totalComprado - totalPago;
 
     const agora = new Date();
     const dataCompra = new Date(dataStr + "T12:00:00");
@@ -1835,13 +1825,6 @@ async function imprimirComprovanteCompra(clienteId, compraId, valorCompra, dataS
           <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a1 1 0 00-1 1v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 10.586V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
           <div><span class="rotulo">Observações</span><span class="valor obs">Compra realizada no crediário (fiado).<br>O pagamento poderá ser feito total ou parcialmente até a data de vencimento.${obsCompra ? `<br>${escHtml(obsCompra)}` : ""}</span></div>
         </div>
-      </div>
-
-      <h3 class="secao" style="border:none;margin-bottom:8px">Resumo Financeiro</h3>
-      <div class="resumo">
-        <div class="box"><div class="box-label">Valor Total da Compra</div><div class="box-val" style="color:#059669;font-size:17px">${formatarMoeda(totalComprado)}</div></div>
-        <div class="box"><div class="box-label">Pagamentos Realizados</div><div class="box-val" style="color:#059669;font-size:17px">${formatarMoeda(totalPago)}</div></div>
-        <div class="box"><div class="box-label">Saldo Atual (Em Aberto)</div><div class="box-val" style="color:${saldoAtual>0?'#DC2626':'#059669'};font-size:17px">${formatarMoeda(Math.max(0,saldoAtual))}</div></div>
       </div>
 
       <div class="info-box">
