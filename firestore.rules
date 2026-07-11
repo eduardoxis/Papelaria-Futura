@@ -101,5 +101,16 @@ service cloud.firestore {
       allow update: if ehAdmin();
       allow delete: if ehAdmin();
     }
+    match /prom_cartas_anuencia/{cartaId} {
+      allow read:   if ehAdmin();
+      allow create: if ehAdmin();
+      allow update: if ehAdmin();
+      allow delete: if ehAdmin();
+      match /versoes/{versaoId} {
+        allow read:   if ehAdmin();
+        allow create: if ehAdmin();
+        allow update, delete: if ehAdmin();
+      }
+    }
   }
 }
