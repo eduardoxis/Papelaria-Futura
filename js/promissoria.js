@@ -2272,25 +2272,8 @@ async function abrirModalNovoPagamento(clienteId) {
     window.mostrarToast?.("Erro ao carregar o saldo devedor do cliente. Tente novamente.", "error");
   }
 
-  const listaHtml = comprasAbertas.length === 0
-    ? `<p style="font-size:var(--text-sm);color:var(--gray-500);padding:8px 0">Este cliente não possui compras em aberto. O pagamento será registrado como crédito geral.</p>`
-    : `
-      <label class="field-label">Compras a abater (desmarque para não incluir)</label>
-      <div id="listaComprasPagamento" style="max-height:220px;overflow-y:auto;margin-bottom:var(--space-3)">
-        ${comprasAbertas.map(c => `
-          <label style="display:flex;align-items:center;gap:10px;padding:8px;border:1px solid var(--gray-200);border-radius:var(--radius-md);margin-bottom:6px">
-            <input type="checkbox" class="pag-check" data-compra-id="${c.id}" data-max="${c.saldo}" checked style="width:16px;height:16px;flex:none" autocomplete="off" />
-            <div style="flex:1;min-width:0">
-              <div style="font-size:var(--text-sm);font-weight:600;color:var(--gray-800)">Compra de ${formatarDataLocal(c.dataCompra)} ${c.observacoes ? `· ${escHtml(c.observacoes)}` : ""}</div>
-              <div style="font-size:var(--text-xs);color:var(--gray-500)">Valor: ${formatarMoeda(c.valor)} · Saldo em aberto: ${formatarMoeda(c.saldo)}</div>
-            </div>
-            <div class="pag-valor-alocado" data-compra-id="${c.id}" style="width:110px;flex:none;text-align:right;font-size:var(--text-sm);font-weight:600;color:var(--color-success)">R$ 0,00</div>
-          </label>`).join("")}
-      </div>`;
-
   const novoBody = `
     <div class="form-usuario">
-      ${listaHtml}
       <div>
         <label class="field-label">Data do Pagamento *</label>
         <input type="date" id="mPagData" class="field-input--plain" value="${hojeStr}" autocomplete="off" />
@@ -2319,7 +2302,7 @@ async function abrirModalNovoPagamento(clienteId) {
         <label class="field-label">Valor do Pagamento (R$) *</label>
         <input type="number" id="mPagValorGeral" class="field-input--plain" placeholder="0,00" min="0.01" step="0.01" max="${saldoDevedorTotal}" ${saldoDevedorTotal <= 0 ? "disabled" : ""} autocomplete="off" />
         ${saldoDevedorTotal > 0
-          ? `<p style="font-size:var(--text-xs);color:var(--gray-500);margin-top:4px">Saldo devedor do cliente: ${formatarMoeda(saldoDevedorTotal)}${comprasAbertas.length > 0 ? " · o valor é abatido automaticamente nas compras marcadas acima, da mais antiga pra mais nova; se sobrar, vira crédito geral" : ""}</p>`
+          ? `<p style="font-size:var(--text-xs);color:var(--gray-500);margin-top:4px">Saldo devedor do cliente: <strong>${formatarMoeda(saldoDevedorTotal)}</strong>${comprasAbertas.length > 0 ? " · o valor é abatido automaticamente nas compras em aberto, da mais antiga pra mais nova; se sobrar, vira crédito geral" : ""}</p>`
           : `<p style="font-size:var(--text-xs);color:var(--color-danger);margin-top:4px">Este cliente não possui saldo devedor. Não é possível registrar um pagamento.</p>`}
       </div>
     </div>`;
@@ -2333,30 +2316,11 @@ async function abrirModalNovoPagamento(clienteId) {
     document.getElementById("btnCancelarModalProm").onclick = fecharModal;
   }
 
-  const atualizarAlocacao = () => {
-    const totalDigitado = parseFloat(document.getElementById("mPagValorGeral")?.value) || 0;
-    let restante = totalDigitado;
-    document.querySelectorAll(".pag-check").forEach(chk => {
-      const el = document.querySelector(`.pag-valor-alocado[data-compra-id="${chk.dataset.compraId}"]`);
-      if (!el) return;
-      if (!chk.checked) { el.textContent = "—"; el.style.color = "var(--gray-400)"; return; }
-      const max = parseFloat(chk.dataset.max) || 0;
-      const alocado = Math.max(0, Math.min(max, restante));
-      restante = Math.max(0, restante - alocado);
-      el.textContent = formatarMoeda(alocado);
-      el.style.color = alocado > 0 ? "var(--color-success)" : "var(--gray-400)";
-    });
-  };
-
-  document.querySelectorAll(".pag-check").forEach(chk => chk.addEventListener("change", atualizarAlocacao));
-  document.getElementById("mPagValorGeral")?.addEventListener("input", atualizarAlocacao);
-  atualizarAlocacao();
-
-  document.getElementById("btnSalvarNovoPagamento").onclick = () => salvarNovoPagamento(clienteId, comprasAbertas.length > 0, saldoDevedorTotal);
+  document.getElementById("btnSalvarNovoPagamento").onclick = () => salvarNovoPagamento(clienteId, comprasAbertas, saldoDevedorTotal);
   document.getElementById("mPagData")?.focus();
 }
 
-async function salvarNovoPagamento(clienteId, temComprasAbertas, saldoDevedorTotal = 0) {
+async function salvarNovoPagamento(clienteId, comprasAbertas, saldoDevedorTotal = 0) {
   const dataStr = document.getElementById("mPagData").value;
   const forma   = document.getElementById("mPagForma").value;
   const obs     = document.getElementById("mPagObs").value.trim();
@@ -2371,16 +2335,12 @@ async function salvarNovoPagamento(clienteId, temComprasAbertas, saldoDevedorTot
     return;
   }
 
-  if (temComprasAbertas) {
-    const checks = Array.from(document.querySelectorAll(".pag-check:checked"));
-    if (!checks.length) { window.mostrarToast?.("Selecione ao menos uma compra para abater, ou desmarque todas para lançar como crédito geral.", "error"); return; }
+  if (comprasAbertas && comprasAbertas.length > 0) {
     let restante = valorTotal;
-    for (const chk of checks) {
+    for (const c of comprasAbertas) {
       if (restante <= 0.004) break;
-      const compraId = chk.dataset.compraId;
-      const max = parseFloat(chk.dataset.max) || 0;
-      const alocado = Math.round(Math.min(max, restante) * 100) / 100;
-      if (alocado > 0) { lancamentos.push({ compraId, valor: alocado }); restante = Math.round((restante - alocado) * 100) / 100; }
+      const alocado = Math.round(Math.min(c.saldo, restante) * 100) / 100;
+      if (alocado > 0) { lancamentos.push({ compraId: c.id, valor: alocado }); restante = Math.round((restante - alocado) * 100) / 100; }
     }
     if (restante > 0.004) lancamentos.push({ compraId: null, valor: restante }); // sobra vira crédito geral
   } else {
