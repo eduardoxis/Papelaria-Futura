@@ -1595,6 +1595,7 @@ function abrirModalNovaCompra(clienteId) {
 
   document.getElementById("btnAddCompraRow").onclick = () => {
     container.insertAdjacentHTML("beforeend", linhaCompraHtml(hojeStr, vencStr));
+    _aplicarMascaraData(container);
   };
 
   container.addEventListener("click", (e) => {
@@ -3569,6 +3570,111 @@ function escHtml(str) {
 // Reutiliza o modal global do sistema
 function abrirModal(titulo, body, footer, opcoes) {
   window.abrirModal?.(titulo, body, footer, opcoes);
+  // Transforma os <input type="date"> do modal em campos com máscara dd/mm/aaaa
+  // (digitação com barra automática + validação) mantendo o seletor de calendário nativo.
+  setTimeout(() => _aplicarMascaraData(document.getElementById("modalBody")), 0);
+}
+
+// ── Máscara de data (digitar dd/mm/aaaa OU escolher no calendário) ─────────
+// Envolve cada <input type="date"> ainda não tratado com um campo de texto
+// mascarado + um botão de calendário (que abre o seletor nativo do próprio
+// input original, mantendo o id/valor original 100% compatível com o resto do código).
+function _aplicarMascaraData(root) {
+  if (!root) return;
+  root.querySelectorAll('input[type="date"]:not([data-mask-ok])').forEach(orig => {
+    orig.dataset.maskOk = "1";
+
+    const wrap = document.createElement("div");
+    wrap.className = "data-mask-wrap";
+    orig.parentNode.insertBefore(wrap, orig);
+
+    const texto = document.createElement("input");
+    texto.type = "text";
+    texto.className = orig.className + " data-mask-texto";
+    texto.placeholder = "dd/mm/aaaa";
+    texto.maxLength = 10;
+    texto.inputMode = "numeric";
+    texto.autocomplete = "off";
+
+    const btnCal = document.createElement("button");
+    btnCal.type = "button";
+    btnCal.className = "data-mask-btn-cal";
+    btnCal.title = "Escolher no calendário";
+    btnCal.innerHTML = `<svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm10 7H4v7h12V9z" clip-rule="evenodd"/></svg>`;
+
+    orig.classList.add("data-mask-nativo");
+    orig.tabIndex = -1;
+
+    wrap.appendChild(texto);
+    wrap.appendChild(btnCal);
+    wrap.appendChild(orig);
+
+    // Preenche o campo de texto a partir do valor ISO inicial (se já vier preenchido)
+    _sincronizarTextoDaData(orig, texto);
+
+    // Digitação manual: só números, barra automática, validação por segmento
+    texto.addEventListener("input", () => {
+      let digitos = texto.value.replace(/\D/g, "").slice(0, 8);
+      digitos = _validarDigitosData(digitos);
+      texto.value = _formatarDigitosData(digitos);
+      if (digitos.length === 8) {
+        const dia = digitos.slice(0, 2), mes = digitos.slice(2, 4), ano = digitos.slice(4, 8);
+        orig.value = `${ano}-${mes}-${dia}`;
+      } else {
+        orig.value = "";
+      }
+      orig.dispatchEvent(new Event("input", { bubbles: true }));
+      orig.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    // Escolha pelo calendário nativo: sincroniza de volta pro campo de texto
+    orig.addEventListener("change", () => _sincronizarTextoDaData(orig, texto));
+    btnCal.addEventListener("click", () => {
+      if (typeof orig.showPicker === "function") orig.showPicker();
+      else orig.click();
+    });
+  });
+}
+
+function _sincronizarTextoDaData(origInput, textoInput) {
+  if (!origInput.value) { textoInput.value = ""; return; }
+  const [ano, mes, dia] = origInput.value.split("-");
+  textoInput.value = `${dia}/${mes}/${ano}`;
+}
+
+// Monta o texto dd/mm/aaaa a partir do buffer de dígitos puros (ddmmaaaa)
+function _formatarDigitosData(digitos) {
+  let out = digitos.slice(0, 2);
+  if (digitos.length > 2) out += "/" + digitos.slice(2, 4);
+  if (digitos.length > 4) out += "/" + digitos.slice(4, 8);
+  return out;
+}
+
+// Corrige o dia/mês assim que cada segmento fica completo (2 dígitos), sem travar
+// a digitação: dia vira 01–31, mês vira 01–12, e o dia é limitado aos dias reais do mês/ano.
+function _validarDigitosData(digitos) {
+  let raw = digitos;
+
+  if (raw.length >= 2) {
+    let dia = parseInt(raw.slice(0, 2), 10);
+    if (dia === 0) dia = 1;
+    if (dia > 31) dia = 31;
+    raw = String(dia).padStart(2, "0") + raw.slice(2);
+  }
+  if (raw.length >= 4) {
+    let mes = parseInt(raw.slice(2, 4), 10);
+    if (mes === 0) mes = 1;
+    if (mes > 12) mes = 12;
+    raw = raw.slice(0, 2) + String(mes).padStart(2, "0") + raw.slice(4);
+  }
+  if (raw.length >= 4) {
+    const dia = parseInt(raw.slice(0, 2), 10);
+    const mes = parseInt(raw.slice(2, 4), 10);
+    const ano = raw.length >= 8 ? parseInt(raw.slice(4, 8), 10) : new Date().getFullYear();
+    const diasNoMes = new Date(ano, mes, 0).getDate();
+    if (dia > diasNoMes) raw = String(diasNoMes).padStart(2, "0") + raw.slice(2);
+  }
+  return raw;
 }
 
 function fecharModal() {
