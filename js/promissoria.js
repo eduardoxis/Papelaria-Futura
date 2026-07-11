@@ -2591,7 +2591,7 @@ async function excluirCompra(compraId) {
 // ── Impressão / Exportação ───────────────────────────────────
 async function imprimirCliente(clienteId) {
   const win = window.open("", "_blank");
-  if (win) win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Gerando comprovante...</title></head><body style="font-family:Arial,sans-serif;padding:40px;text-align:center;color:#555">Gerando comprovante...</body></html>`);
+  if (win) win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Gerando ficha...</title></head><body style="font-family:Arial,sans-serif;padding:40px;text-align:center;color:#555">Gerando ficha...</body></html>`);
 
   try {
     const [clienteSnap, comprasSnap, pagamentosSnap] = await Promise.all([
@@ -2601,20 +2601,48 @@ async function imprimirCliente(clienteId) {
     ]);
     const cliente = clienteSnap.data();
     const hoje = new Date();
-    let totalComprado = 0, totalPago = 0;
-    const compras = [];
-    comprasSnap.forEach(d => { const c={id:d.id,...d.data()}; totalComprado+=c.valor||0; compras.push(c); });
-    compras.sort((a, b) => _dataParaOrdenacao(b.dataCompra) - _dataParaOrdenacao(a.dataCompra));
-    pagamentosSnap.forEach(d => { totalPago+=(d.data().valor||0); });
-    const saldo = totalComprado - totalPago;
     const origem = window.location.origin;
+
+    // Monta a linha do tempo (compras aumentam o saldo, pagamentos diminuem),
+    // igual ao comprovante de pagamento, pra manter o mesmo padrão visual.
+    const linhas = [];
+    comprasSnap.forEach(d => {
+      const c = d.data();
+      linhas.push({
+        data: c.dataCompra, tipo: "compra", numero: `COMPRA-${d.id.slice(-6).toUpperCase()}`,
+        forma: "Compra (Convênio)", valor: c.valor || 0
+      });
+    });
+    pagamentosSnap.forEach(d => {
+      const p = d.data();
+      linhas.push({
+        data: p.dataPagamento, tipo: "pagamento", numero: `PGT-${d.id.slice(-6).toUpperCase()}`,
+        forma: p.forma || "—", valor: p.valor || 0
+      });
+    });
+    linhas.sort((a, b) => _dataParaOrdenacao(a.data) - _dataParaOrdenacao(b.data));
+
+    let saldoCorrente = 0;
+    linhas.forEach(l => {
+      if (l.tipo === "compra") saldoCorrente += l.valor;
+      else saldoCorrente -= l.valor;
+      l.saldoApos = saldoCorrente;
+    });
+
+    const totalComprado = linhas.filter(l => l.tipo === "compra").reduce((s, l) => s + l.valor, 0);
+    const totalPago      = linhas.filter(l => l.tipo === "pagamento").reduce((s, l) => s + l.valor, 0);
+    const saldo = totalComprado - totalPago;
+
+    // Mais recentes primeiro, igual ao comprovante de pagamento
+    const historicoCompras    = linhas.filter(l => l.tipo === "compra").slice().reverse();
+    const historicoPagamentos = linhas.filter(l => l.tipo === "pagamento").slice().reverse();
 
     if (!win) {
       window.mostrarToast?.("O navegador bloqueou a janela do comprovante. Permita pop-ups para este site e tente novamente.", "error", 6000);
       return;
     }
     win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
-      <meta charset="UTF-8"><title>Comprovante — ${cliente.nome}</title>
+      <meta charset="UTF-8"><title>Ficha Completa — ${cliente.nome}</title>
       <style>
         * { box-sizing: border-box; }
         body{font-family:Arial,Helvetica,sans-serif;font-size:13px;margin:0;padding:28px 32px;color:#1E1E1E;background:#fff}
@@ -2669,7 +2697,7 @@ async function imprimirCliente(clienteId) {
           <img src="${origem}/img/logo.png" alt="Papelaria Futura" onerror="this.style.display='none'" />
           <div>
             <h1>PAPELARIA FUTURA</h1>
-            <div class="subtitulo">COMPROVANTE DE VENDA</div>
+            <div class="subtitulo">FICHA COMPLETA DO CLIENTE (HISTÓRICO DE COMPRAS E PAGAMENTOS)</div>
             <div class="linha">
               <strong>Papelaria Futura LTDA</strong><br>
               Av. Dr. Ézio Carneiro Qd.32 Lt.31/33 — Setor Aeroporto, Luziânia/GO<br>
@@ -2681,7 +2709,7 @@ async function imprimirCliente(clienteId) {
         <div class="cartao-info">
           <div class="item">
             <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm10 7H4v7h12V9z" clip-rule="evenodd"/></svg>
-            <span class="rotulo">Data da Venda</span>
+            <span class="rotulo">Data de Emissão</span>
             <span class="valor">${hoje.toLocaleDateString("pt-BR")}</span>
           </div>
           <div class="item">
@@ -2700,11 +2728,6 @@ async function imprimirCliente(clienteId) {
             <span class="valor" style="font-weight:600;font-size:11.5px">${escHtml([cliente.endereco, cliente.numero].filter(Boolean).join(", "))}${cliente.bairro ? ` — ${escHtml(cliente.bairro)}` : ""}${cliente.cidade ? `, ${escHtml(cliente.cidade)}${cliente.estado ? "/"+escHtml(cliente.estado) : ""}` : ""}</span>
           </div>` : ""}
           <div class="item">
-            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9z" clip-rule="evenodd"/></svg>
-            <span class="rotulo">Tipo de Venda</span>
-            <span class="valor">Venda a Prazo (Promissória)</span>
-          </div>
-          <div class="item">
             <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
             <span class="rotulo">Atendido por</span>
             <span class="valor">${escHtml(_dadosUsuario?.nome || "—")}</span>
@@ -2718,10 +2741,31 @@ async function imprimirCliente(clienteId) {
         <div class="box ${saldo>0?'atraso':''}"><div class="box-label">Saldo Devedor</div><div class="box-val" style="color:${saldo>0?'#DC2626':'#059669'}">${formatarMoeda(Math.max(0,saldo))}</div></div>
       </div>
 
-      <h3 class="secao">Vendas Realizadas</h3>
-      <table><thead><tr><th>Data</th><th>Valor</th><th>Vencimento</th><th>Observações</th></tr></thead><tbody>
-        ${compras.map(c=>`<tr><td>${formatarDataLocal(c.dataCompra)}</td><td>${formatarMoeda(c.valor)}</td><td>${c.vencimento?formatarDataLocal(c.vencimento):'—'}</td><td>${escHtml(c.observacoes||'')||'—'}</td></tr>`).join('')}
-      </tbody></table>
+      <h3 class="secao">Dados da Compra (Convênio)</h3>
+      <table><thead><tr><th>Data da Compra</th><th>Nº Compra</th><th>Fornecedor</th><th>Descrição</th><th>Valor Total</th></tr></thead><tbody>
+        ${historicoCompras.map(l => `<tr>
+          <td>${formatarDataLocal(l.data)}</td>
+          <td>${escHtml(l.numero)}</td>
+          <td>Papelaria Futura LTDA</td>
+          <td>${escHtml(l.forma)}</td>
+          <td style="color:#DC2626">${formatarMoeda(l.valor)}</td>
+        </tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:#94A3B8">Nenhuma compra registrada.</td></tr>`}
+      </tbody>
+      ${historicoCompras.length ? `<tfoot><tr><td colspan="4" style="font-weight:800;background:#F7F9FC">TOTAL DA COMPRA</td><td style="font-weight:800;background:#F7F9FC;color:#DC2626">${formatarMoeda(totalComprado)}</td></tr></tfoot>` : ''}
+      </table>
+
+      <h3 class="secao">Dados do Pagamento</h3>
+      <table><thead><tr><th>Data do Pagamento</th><th>Nº Pagamento</th><th>Forma de Pagamento</th><th>Valor Pago</th><th>Saldo Após Pagamento</th></tr></thead><tbody>
+        ${historicoPagamentos.map(l => `<tr>
+          <td>${formatarDataLocal(l.data)}</td>
+          <td>${escHtml(l.numero)}</td>
+          <td>${escHtml(l.forma)}</td>
+          <td style="color:#059669">${formatarMoeda(l.valor)}</td>
+          <td style="color:${l.saldoApos>0?'#DC2626':'#059669'}">${formatarMoeda(Math.max(0,l.saldoApos))}</td>
+        </tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:#94A3B8">Nenhum pagamento registrado.</td></tr>`}
+      </tbody>
+      ${historicoPagamentos.length ? `<tfoot><tr><td colspan="3" style="font-weight:800;background:#F7F9FC">TOTAL PAGO</td><td colspan="2" style="font-weight:800;background:#F7F9FC;color:#059669">${formatarMoeda(totalPago)}</td></tr></tfoot>` : ''}
+      </table>
 
       <div class="info-box">
         <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
