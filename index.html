@@ -1143,6 +1143,10 @@
               <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px"><path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a1 1 0 001 1h8a1 1 0 001-1v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a1 1 0 00-1-1H6a1 1 0 00-1 1zm2 0h6v3H7V4zm-1 9v-1h8v1H6zm8-4a1 1 0 11-2 0 1 1 0 012 0z" clip-rule="evenodd"/></svg>
               Imprimir
             </button>
+            <button class="btn-secondary" id="btnRelatorioInadimplencia">
+              <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.72-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.492-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+              Relatório de Inadimplência
+            </button>
             <button class="btn-primary" id="btnNovoClienteProm">
               <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
               Novo Cliente
@@ -1152,7 +1156,7 @@
 
         <!-- Filtros -->
         <div class="filter-bar">
-          <input type="text" id="filtroBuscaProm" class="filter-input" placeholder="Buscar por nome ou telefone..." style="flex:1;min-width:180px" autocomplete="off" />
+          <input type="text" id="filtroBuscaProm" class="filter-input" placeholder="Buscar por nome, telefone ou CPF/CNPJ..." style="flex:1;min-width:180px" autocomplete="off" />
           <select id="filtroStatusProm" class="filter-input" style="min-width:140px" autocomplete="off">
             <option value="todos">Todas as situações</option>
             <option value="pendente">Pendente</option>
