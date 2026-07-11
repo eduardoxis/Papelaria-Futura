@@ -457,6 +457,56 @@ export function exportarExcel(nomeArquivo, linhas) {
   }
 }
 
+// Exporta várias planilhas dentro de um único arquivo .xlsx.
+// `abas` = [{ nome: "Cotações", linhas: [[...],[...]] }, ...]
+export function exportarExcelMultiplasAbas(nomeArquivo, abas) {
+  try {
+    if (!window.XLSX) {
+      console.error("Biblioteca XLSX não carregada.");
+      return false;
+    }
+    const wb = window.XLSX.utils.book_new();
+    abas.forEach(aba => {
+      if (!aba.linhas || aba.linhas.length === 0) return;
+      const ws = window.XLSX.utils.aoa_to_sheet(aba.linhas);
+      // Nome da aba no Excel tem limite de 31 caracteres e não pode ter alguns símbolos
+      const nomeAba = aba.nome.replace(/[\\/*?:\[\]]/g, "").substring(0, 31);
+      window.XLSX.utils.book_append_sheet(wb, ws, nomeAba);
+    });
+    window.XLSX.writeFile(wb, nomeArquivo);
+    return true;
+  } catch (erro) {
+    console.error("Erro ao exportar Excel:", erro);
+    return false;
+  }
+}
+
+// ================================================================
+// BACKUP — controle de quando foi o último backup gerado
+// ================================================================
+const DOC_ULTIMO_BACKUP = "ultimoBackup";
+
+export async function buscarUltimoBackup() {
+  try {
+    const snap = await getDoc(doc(db, COLECAO_CONFIG, DOC_ULTIMO_BACKUP));
+    if (!snap.exists()) return { sucesso: true, data: null };
+    return { sucesso: true, data: snap.data().em || null };
+  } catch (erro) {
+    console.error("Erro ao buscar data do último backup:", erro);
+    return { sucesso: false, erro: erro.message, data: null };
+  }
+}
+
+export async function salvarUltimoBackup() {
+  try {
+    await setDoc(doc(db, COLECAO_CONFIG, DOC_ULTIMO_BACKUP), { em: serverTimestamp() });
+    return { sucesso: true };
+  } catch (erro) {
+    console.error("Erro ao salvar data do último backup:", erro);
+    return { sucesso: false, erro: erro.message };
+  }
+}
+
 
 // ================================================================
 // SENHA COTAÇÃO — Proteção de Editar/Excluir
