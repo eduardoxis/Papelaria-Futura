@@ -26,6 +26,7 @@
   <link rel="stylesheet" href="css/comissao.css" />
   <link rel="stylesheet" href="css/produtos.css" />
   <link rel="stylesheet" href="css/promissoria.css" />
+  <link rel="stylesheet" href="css/carta-anuencia.css" />
   <link rel="stylesheet" href="css/clientes.css" />
   <link rel="stylesheet" href="css/mobile.css" />
 </head>
@@ -1825,6 +1826,7 @@
   import { iniciarProdutos }             from "./js/produtos.js";
   import { iniciarServicos }             from "./js/servicos.js";
   import { iniciarPromissoria }          from "./js/promissoria.js";
+  import { iniciarCartaAnuencia }        from "./js/carta-anuencia.js";
   import { iniciarNotificacoes }         from "./js/notificacoes.js";
 
   // ----------------------------------------------------------------
@@ -1867,6 +1869,7 @@
     if (isAdmin) iniciarProdutos(usuario, dadosUsuario);
     if (isAdmin) iniciarServicos(usuario, dadosUsuario);
     if (isAdmin) iniciarPromissoria(usuario, dadosUsuario);
+    if (isAdmin) iniciarCartaAnuencia(usuario, dadosUsuario);
     iniciarNotificacoes();
 
     // Navegação
