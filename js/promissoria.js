@@ -202,6 +202,7 @@ export function iniciarPromissoria(usuario, dadosUsuario) {
     if (action === "pdf-comprovante-pagamento")   reabrirComprovantePagamento(clienteId, id, "print");
     if (action === "editar-compra")    abrirModalEditarCompra(clienteId, id);
     if (action === "editar-pagamento") abrirModalEditarPagamento(clienteId, id);
+    if (action === "historico-pagamentos-cliente") imprimirHistoricoPagamentosCliente(clienteId);
   });
 
   // Botões de relatório/exportação
@@ -1218,7 +1219,13 @@ async function abrirPainelCliente(clienteId) {
         <div class="card">
           <div class="card-header">
             <h3 class="card-section-title" style="margin:0">Histórico de Pagamentos</h3>
-            <span style="font-size:var(--text-sm);color:var(--gray-500)">${pagamentos.length} pagamento(s)</span>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:var(--text-sm);color:var(--gray-500)">${pagamentos.length} pagamento(s)</span>
+              <button class="btn-secondary" data-action="historico-pagamentos-cliente" data-cliente-id="${clienteId}" style="font-size:var(--text-sm)">
+                <svg viewBox="0 0 20 20" fill="currentColor" style="width:14px;height:14px"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
+                Ver Histórico Completo
+              </button>
+            </div>
           </div>
           <div class="table-wrap">
             <table class="data-table data-table--historico">
@@ -1707,14 +1714,15 @@ async function imprimirComprovanteCompra(clienteId, compraId, valorCompra, dataS
         .cartao-info .ico{width:18px;height:18px;flex-shrink:0;color:#118DFF}
         .cartao-info .rotulo{font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.03em;flex:1}
         .cartao-info .valor{font-size:14px;font-weight:bold;color:#111;text-align:right}
-        .tabela-wrap{border:1px solid #E2E8F0;border-radius:12px;overflow:hidden;margin-bottom:30px}
-        table{width:100%;border-collapse:collapse}
-        th{background:#002D94;color:#fff;padding:14px 22px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
-        th:last-child, td:last-child{text-align:right}
-        td{padding:14px 22px;border-bottom:1px solid #EEF1F5;font-size:14px}
-        tbody tr:last-child td{border-bottom:none}
-        tfoot td{padding:16px 22px;font-size:15px;font-weight:800;background:#F1F5F9;color:#111}
-        tfoot td:last-child{color:#002D94;font-size:17px}
+        .resumo-card{border:1px solid #E2E8F0;border-radius:12px;overflow:hidden;margin-bottom:30px}
+        .resumo-cabecalho{background:#002D94;color:#fff;padding:16px 22px;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.03em}
+        .resumo-linha{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid #EEF1F5;font-size:14px}
+        .resumo-linha:last-child{border-bottom:none}
+        .resumo-linha .rotulo{font-size:12px;font-weight:800;color:#111;text-transform:uppercase;letter-spacing:.02em}
+        .resumo-linha .valor{font-size:14px;color:#1E1E1E}
+        .resumo-linha--total{background:#F1F5F9;padding:18px 22px}
+        .resumo-linha--total .rotulo{font-size:13px}
+        .resumo-linha--total .valor{font-size:20px;font-weight:800;color:#002D94}
         .obrigado{text-align:center;margin-top:60px;font-size:16px;font-weight:800;color:#002D94}
         .volte{text-align:center;margin-top:4px;font-size:13px;color:#475569}
         .rodape{text-align:center;margin-top:26px;padding-top:18px;border-top:1px solid #E2E8F0;font-size:12px;color:#334155;line-height:1.8}
@@ -1777,14 +1785,24 @@ async function imprimirComprovanteCompra(clienteId, compraId, valorCompra, dataS
         </div>
       </div>
 
-      <div class="tabela-wrap">
-        <table>
-          <thead><tr><th>Descrição</th><th>Valor (R$)</th></tr></thead>
-          <tbody>
-            <tr><td>Compra${obsCompra ? ` — ${escHtml(obsCompra)}` : ""}</td><td>${formatarMoeda(valorCompra)}</td></tr>
-          </tbody>
-          <tfoot><tr><td>Total da Compra</td><td>${formatarMoeda(valorCompra)}</td></tr></tfoot>
-        </table>
+      <div class="resumo-card">
+        <div class="resumo-cabecalho">Resumo da Venda</div>
+        <div class="resumo-linha">
+          <span class="rotulo">Descrição</span>
+          <span class="valor">${obsCompra ? escHtml(obsCompra).toUpperCase() : "COMPRA"}</span>
+        </div>
+        <div class="resumo-linha">
+          <span class="rotulo">Quantidade de Itens</span>
+          <span class="valor">1</span>
+        </div>
+        <div class="resumo-linha">
+          <span class="rotulo">Desconto</span>
+          <span class="valor">${formatarMoeda(0)}</span>
+        </div>
+        <div class="resumo-linha resumo-linha--total">
+          <span class="rotulo">Valor Total da Venda</span>
+          <span class="valor">${formatarMoeda(valorCompra)}</span>
+        </div>
       </div>
 
       <div class="obrigado">Obrigado pela preferência!</div>
@@ -1806,6 +1824,165 @@ async function imprimirComprovanteCompra(clienteId, compraId, valorCompra, dataS
   }
 }
 
+
+// Gera o documento com TODO o histórico de pagamentos de um cliente
+// (não um pagamento específico — é a lista completa, pra imprimir ou baixar em PDF).
+async function imprimirHistoricoPagamentosCliente(clienteId) {
+  const win = window.open("", "_blank");
+  if (!win) {
+    window.mostrarToast?.("O navegador bloqueou a janela do relatório. Permita pop-ups para este site e tente novamente.", "error", 6000);
+    return;
+  }
+  try {
+    const [clienteSnap, pagamentosSnap] = await Promise.all([
+      getDoc(doc(db, COL_CLIENTES, clienteId)),
+      getDocs(query(collection(db, COL_PAGAMENTOS), where("clienteId", "==", clienteId)))
+    ]);
+    const cliente = clienteSnap.data();
+    const origem = window.location.origin;
+    const agora = new Date();
+
+    let pagamentos = [];
+    pagamentosSnap.forEach(d => pagamentos.push({ id: d.id, ...d.data() }));
+    pagamentos.sort((a, b) => _dataParaOrdenacao(b.dataPagamento) - _dataParaOrdenacao(a.dataPagamento));
+    const totalRecebido = pagamentos.reduce((s, p) => s + (p.valor || 0), 0);
+
+    win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
+      <meta charset="UTF-8"><title>Histórico de Pagamentos — ${escHtml(cliente.nome)}</title>
+      <style>
+        * { box-sizing: border-box; }
+        body{font-family:Arial,Helvetica,sans-serif;font-size:13px;margin:0;padding:32px 36px;color:#1E1E1E;background:#fff}
+        .topo{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;border-bottom:1px solid #E2E8F0;padding-bottom:22px;margin-bottom:26px}
+        .empresa{display:flex;gap:16px;align-items:flex-start}
+        .empresa img{width:72px;height:72px;border-radius:14px;object-fit:cover}
+        .empresa h1{font-size:26px;margin:0 0 4px;color:#002D94;letter-spacing:.02em}
+        .empresa .subtitulo{font-size:15px;color:#334155;font-weight:700;margin-bottom:12px}
+        .empresa .linha{font-size:12px;color:#334155;line-height:1.7}
+        .empresa .linha strong{color:#111}
+        .cartao-info{background:#F7F9FC;border:1px solid #E2E8F0;border-radius:12px;padding:6px 22px;min-width:320px}
+        .cartao-info .item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #E7ECF3}
+        .cartao-info .item:last-child{border-bottom:none}
+        .cartao-info .ico{width:18px;height:18px;flex-shrink:0;color:#118DFF}
+        .cartao-info .rotulo{font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.03em;flex:1}
+        .cartao-info .valor{font-size:14px;font-weight:bold;color:#111;text-align:right}
+        .tabela-wrap{border:1px solid #E2E8F0;border-radius:12px;overflow:hidden;margin-bottom:22px}
+        table{width:100%;border-collapse:collapse}
+        th{background:#002D94;color:#fff;padding:14px 22px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+        th:last-child, td:last-child{text-align:right}
+        td{padding:14px 22px;border-bottom:1px solid #EEF1F5;font-size:14px}
+        tbody tr:last-child td{border-bottom:none}
+        .total-card{display:flex;align-items:center;justify-content:space-between;border:1px solid #E2E8F0;border-radius:12px;padding:16px 22px;margin-bottom:30px;background:#F7F9FC}
+        .total-card .esquerda{display:flex;align-items:center;gap:12px}
+        .total-card .bolinha{width:34px;height:34px;border-radius:50%;background:#002D94;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .total-card .bolinha svg{width:18px;height:18px}
+        .total-card .rotulo{font-size:13px;font-weight:800;color:#111;text-transform:uppercase;letter-spacing:.02em}
+        .total-card .valor{font-size:22px;font-weight:800;color:#059669}
+        .obrigado{text-align:center;margin-top:40px;font-size:16px;font-weight:800;color:#002D94}
+        .volte{text-align:center;margin-top:4px;font-size:13px;color:#475569}
+        .rodape{text-align:center;margin-top:26px;padding-top:18px;border-top:1px solid #E2E8F0;font-size:12px;color:#334155;line-height:1.8}
+        .rodape strong{display:block;color:#111;font-size:13px;margin-bottom:2px}
+        .btn-voltar{position:fixed;top:16px;left:16px;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #E2E8F0;border-radius:9999px;padding:8px 16px;font-size:13px;font-weight:600;color:#334155;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+        .btn-voltar:hover{background:#F7F9FC;border-color:#118DFF;color:#118DFF}
+        .btn-voltar svg{width:16px;height:16px}
+        @media print{.btn-voltar{display:none}}
+        @media (max-width: 640px) {
+          body{padding:18px 16px}
+          .topo{flex-direction:column}
+          .empresa img{width:56px;height:56px}
+          .empresa h1{font-size:20px}
+          .cartao-info{min-width:0;width:100%}
+          table{display:block;overflow-x:auto;white-space:nowrap}
+          .btn-voltar{position:static;display:inline-flex;margin-bottom:16px}
+        }
+        @media print{body{padding:14px 18px}}
+      </style></head><body>
+
+      <button class="btn-voltar" onclick="window.close()">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+        Voltar
+      </button>
+
+      <div class="topo">
+        <div class="empresa">
+          <img src="${origem}/img/logo.png" alt="Papelaria Futura" onerror="this.style.display='none'" />
+          <div>
+            <h1>PAPELARIA FUTURA</h1>
+            <div class="subtitulo">HISTÓRICO DE PAGAMENTOS</div>
+            <div class="linha">
+              <strong>Papelaria Futura LTDA</strong><br>
+              Av. Dr. Ézio Carneiro Qd.32 Lt.31/33 — Setor Aeroporto, Luziânia/GO<br>
+              <strong>CNPJ:</strong> 01.064.836/0001-12 &nbsp;|&nbsp; <strong>Telefone:</strong> (61) 3621-4452 &nbsp;|&nbsp; <strong>Email:</strong> futuralza@gmail.com
+            </div>
+          </div>
+        </div>
+        <div class="cartao-info">
+          <div class="item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm10 7H4v7h12V9z" clip-rule="evenodd"/></svg>
+            <span class="rotulo">Data e Hora</span>
+            <span class="valor">${agora.toLocaleDateString("pt-BR")} ${agora.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</span>
+          </div>
+          <div class="item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+            <span class="rotulo">Cliente</span>
+            <span class="valor">${escHtml(cliente.nome)}</span>
+          </div>
+          <div class="item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9z" clip-rule="evenodd"/></svg>
+            <span class="rotulo">Tipo de Operação</span>
+            <span class="valor">Histórico de Pagamentos</span>
+          </div>
+          <div class="item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+            <span class="rotulo">Atendido por</span>
+            <span class="valor">${escHtml(_dadosUsuario?.nome || "—")}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>Data do Pagamento</th><th>Nº Pagamento</th><th>Forma de Pagamento</th><th>Valor Pago (R$)</th></tr></thead>
+          <tbody>
+            ${pagamentos.map(p => {
+              const dt = p.dataPagamento?.toDate?.() || new Date(p.dataPagamento);
+              return `<tr>
+                <td>${dt.toLocaleDateString("pt-BR")} ${dt.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</td>
+                <td>PGT-${p.id.slice(-6).toUpperCase()}</td>
+                <td>${escHtml(p.forma || "—")}</td>
+                <td style="color:#059669;font-weight:700">${formatarMoeda(p.valor).replace("R$", "").trim()}</td>
+              </tr>`;
+            }).join("") || `<tr><td colspan="4" style="text-align:center;color:#94A3B8">Nenhum pagamento registrado.</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="total-card">
+        <div class="esquerda">
+          <div class="bolinha">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/></svg>
+          </div>
+          <span class="rotulo">Total Recebido</span>
+        </div>
+        <span class="valor">${formatarMoeda(totalRecebido)}</span>
+      </div>
+
+      <div class="obrigado">Obrigado pela preferência!</div>
+      <div class="volte">Volte sempre!</div>
+
+      <div class="rodape">
+        <strong>Papelaria Futura LTDA</strong>
+        Av. Dr. Ézio Carneiro Qd.32 Lt.31/33 — Setor Aeroporto, Luziânia/GO<br>
+        CNPJ: 01.064.836/0001-12 &nbsp;|&nbsp; Telefone: (61) 3621-4452
+      </div>
+
+      </body></html>`);
+    win.document.close();
+  } catch (err) {
+    console.error(err);
+    win?.close?.();
+    window.mostrarToast?.("Erro ao gerar histórico de pagamentos.", "error");
+  }
+}
 
 // Converte um Timestamp do Firestore (ou string/Date) para "YYYY-MM-DD",
 // formato esperado pelas funções de impressão de comprovante.
