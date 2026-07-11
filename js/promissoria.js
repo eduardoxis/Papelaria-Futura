@@ -1822,9 +1822,6 @@ async function imprimirComprovanteCompra(clienteId, compraId, valorCompra, dataS
         </div>
       </div>
 
-      <div class="obrigado">Obrigado pela preferência!</div>
-      <div class="volte">Volte sempre!</div>
-
       <div class="rodape">
         <strong>Papelaria Futura LTDA</strong>
         Av. Dr. Ézio Carneiro Qd.32 Lt.31/33 — Setor Aeroporto, Luziânia/GO<br>
@@ -1982,9 +1979,6 @@ async function imprimirHistoricoPagamentosCliente(clienteId, modo = "preview") {
         </div>
         <span class="valor">${formatarMoeda(totalRecebido)}</span>
       </div>
-
-      <div class="obrigado">Obrigado pela preferência!</div>
-      <div class="volte">Volte sempre!</div>
 
       <div class="rodape">
         <strong>Papelaria Futura LTDA</strong>
@@ -2145,9 +2139,6 @@ async function imprimirHistoricoComprasCliente(clienteId, modo = "preview") {
         </div>
         <span class="valor">${formatarMoeda(totalComprado)}</span>
       </div>
-
-      <div class="obrigado">Obrigado pela preferência!</div>
-      <div class="volte">Volte sempre!</div>
 
       <div class="rodape">
         <strong>Papelaria Futura LTDA</strong>
@@ -2659,8 +2650,6 @@ async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, f
           <span>Este comprovante não possui valor fiscal. É um documento de controle interno.</span>
         </div>
       </div>
-
-      <div class="obrigado">✓ Obrigado pela preferência!<br>Volte sempre.</div>
 
       <div class="rodape">
         <span>📞 (61) 3621-4452</span>
