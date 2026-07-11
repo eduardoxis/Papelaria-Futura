@@ -1589,7 +1589,7 @@ function abrirModalNovaCompra(clienteId) {
     <button class="btn-ghost" id="btnCancelarModalProm">Cancelar</button>
     <button class="btn-primary" id="btnSalvarNovaCompra">Registrar Compra(s)</button>`;
 
-  abrirModal("Nova Compra", body, footer);
+  abrirModal("Nova Compra", body, footer, { tamanho: "lg" });
 
   const container = document.getElementById("comprasRowsContainer");
 
