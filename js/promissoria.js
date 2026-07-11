@@ -202,7 +202,8 @@ export function iniciarPromissoria(usuario, dadosUsuario) {
     if (action === "pdf-comprovante-pagamento")   reabrirComprovantePagamento(clienteId, id, "print");
     if (action === "editar-compra")    abrirModalEditarCompra(clienteId, id);
     if (action === "editar-pagamento") abrirModalEditarPagamento(clienteId, id);
-    if (action === "historico-pagamentos-cliente") imprimirHistoricoPagamentosCliente(clienteId);
+    if (action === "historico-pagamentos-cliente") imprimirHistoricoPagamentosCliente(clienteId, "preview");
+    if (action === "baixar-historico-pagamentos-cliente") imprimirHistoricoPagamentosCliente(clienteId, "print");
   });
 
   // Botões de relatório/exportação
@@ -1225,6 +1226,10 @@ async function abrirPainelCliente(clienteId) {
                 <svg viewBox="0 0 20 20" fill="currentColor" style="width:14px;height:14px"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
                 Ver Histórico Completo
               </button>
+              <button class="btn-secondary" data-action="baixar-historico-pagamentos-cliente" data-cliente-id="${clienteId}" style="font-size:var(--text-sm)">
+                <svg viewBox="0 0 20 20" fill="currentColor" style="width:14px;height:14px"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                Baixar PDF
+              </button>
             </div>
           </div>
           <div class="table-wrap">
@@ -1827,7 +1832,7 @@ async function imprimirComprovanteCompra(clienteId, compraId, valorCompra, dataS
 
 // Gera o documento com TODO o histórico de pagamentos de um cliente
 // (não um pagamento específico — é a lista completa, pra imprimir ou baixar em PDF).
-async function imprimirHistoricoPagamentosCliente(clienteId) {
+async function imprimirHistoricoPagamentosCliente(clienteId, modo = "preview") {
   const win = window.open("", "_blank");
   if (!win) {
     window.mostrarToast?.("O navegador bloqueou a janela do relatório. Permita pop-ups para este site e tente novamente.", "error", 6000);
@@ -1977,6 +1982,9 @@ async function imprimirHistoricoPagamentosCliente(clienteId) {
 
       </body></html>`);
     win.document.close();
+    if (modo === "print") {
+      win.onload = () => win.print();
+    }
   } catch (err) {
     console.error(err);
     win?.close?.();
