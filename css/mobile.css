@@ -298,6 +298,19 @@
     transform: scale(0.94);
   }
 
+  .mobile-hamburger-btn--notificacoes {
+    right: calc(var(--space-4) + 52px);
+  }
+
+  /* Painel de notificações — reposicionado pro mobile */
+  .notificacoes-painel {
+    top: calc(var(--space-4) + env(safe-area-inset-top, 0px) + 52px);
+    right: var(--space-4);
+    left: var(--space-4);
+    width: auto;
+    max-width: none;
+  }
+
   /* ----------------------------------------------------------------
      Página Nova Cotação / Cotações — header no mobile
      ---------------------------------------------------------------- */
