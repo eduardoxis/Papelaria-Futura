@@ -106,8 +106,7 @@ const CA_VARIAVEIS = [
   { key: "dataQuitacao",     label: "Data da Quitação" },
   { key: "cidade",           label: "Cidade" },
   { key: "dataAtual",        label: "Data Atual" },
-  { key: "nomeEmpresa",      label: "Nome da Empresa" },
-  { key: "responsavel",      label: "Responsável pela Empresa" }
+  { key: "nomeEmpresa",      label: "Nome da Empresa" }
 ];
 
 function _gerarModeloHtml({ cliente, totalComprado, totalPago, saldo, ultimaDataPagamento }, responsavelNome) {
@@ -132,7 +131,6 @@ function _gerarModeloHtml({ cliente, totalComprado, totalPago, saldo, ultimaData
 <p style="margin-top:56px;text-align:center">_______________________________________________</p>
 <p style="text-align:center"><strong>${v("nomeEmpresa", "PAPELARIA FUTURA LTDA")}</strong></p>
 <p style="text-align:center">CNPJ: 01.064.836/0001-12</p>
-<p style="text-align:center">Responsável: ${v("responsavel", responsavelNome || "—")}</p>
 
 `.trim();
 }
