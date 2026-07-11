@@ -2284,7 +2284,7 @@ async function abrirModalNovoPagamento(clienteId) {
               <div style="font-size:var(--text-sm);font-weight:600;color:var(--gray-800)">Compra de ${formatarDataLocal(c.dataCompra)} ${c.observacoes ? `· ${escHtml(c.observacoes)}` : ""}</div>
               <div style="font-size:var(--text-xs);color:var(--gray-500)">Valor: ${formatarMoeda(c.valor)} · Saldo em aberto: ${formatarMoeda(c.saldo)}</div>
             </div>
-            <input type="number" class="pag-valor field-input--plain" data-compra-id="${c.id}" style="width:110px;flex:none" min="0" step="0.01" max="${c.saldo}" value="${c.saldo.toFixed(2)}" autocomplete="off" />
+            <div class="pag-valor-alocado" data-compra-id="${c.id}" style="width:110px;flex:none;text-align:right;font-size:var(--text-sm);font-weight:600;color:var(--color-success)">R$ 0,00</div>
           </label>`).join("")}
       </div>`;
 
@@ -2315,14 +2315,13 @@ async function abrirModalNovoPagamento(clienteId) {
         <input type="file" id="mPagAnexos" accept="image/*" multiple class="field-input--plain" />
         <p style="font-size:var(--text-xs);color:var(--gray-500);margin-top:4px">PDF não é suportado (evita custo de armazenamento pago).</p>
       </div>
-      ${comprasAbertas.length > 0 ? `<div style="text-align:right;font-size:var(--text-sm);color:var(--gray-600);padding-top:4px;border-top:1px solid var(--gray-100)">Total a pagar: <strong id="mPagTotalPreview" style="color:var(--color-success)">—</strong></div>` : `
       <div>
         <label class="field-label">Valor do Pagamento (R$) *</label>
         <input type="number" id="mPagValorGeral" class="field-input--plain" placeholder="0,00" min="0.01" step="0.01" max="${saldoDevedorTotal}" ${saldoDevedorTotal <= 0 ? "disabled" : ""} autocomplete="off" />
         ${saldoDevedorTotal > 0
-          ? `<p style="font-size:var(--text-xs);color:var(--gray-500);margin-top:4px">Saldo devedor do cliente: ${formatarMoeda(saldoDevedorTotal)}</p>`
+          ? `<p style="font-size:var(--text-xs);color:var(--gray-500);margin-top:4px">Saldo devedor do cliente: ${formatarMoeda(saldoDevedorTotal)}${comprasAbertas.length > 0 ? " · o valor é abatido automaticamente nas compras marcadas acima, da mais antiga pra mais nova; se sobrar, vira crédito geral" : ""}</p>`
           : `<p style="font-size:var(--text-xs);color:var(--color-danger);margin-top:4px">Este cliente não possui saldo devedor. Não é possível registrar um pagamento.</p>`}
-      </div>`}
+      </div>
     </div>`;
 
   // Substitui o corpo do modal já aberto (agora que os dados chegaram)
@@ -2334,26 +2333,24 @@ async function abrirModalNovoPagamento(clienteId) {
     document.getElementById("btnCancelarModalProm").onclick = fecharModal;
   }
 
-  const atualizarPreview = () => {
-    const totalEl = document.getElementById("mPagTotalPreview");
-    if (!totalEl) return;
-    let total = 0;
-    document.querySelectorAll(".pag-check:checked").forEach(chk => {
-      const valInput = document.querySelector(`.pag-valor[data-compra-id="${chk.dataset.compraId}"]`);
-      total += parseFloat(valInput?.value) || 0;
+  const atualizarAlocacao = () => {
+    const totalDigitado = parseFloat(document.getElementById("mPagValorGeral")?.value) || 0;
+    let restante = totalDigitado;
+    document.querySelectorAll(".pag-check").forEach(chk => {
+      const el = document.querySelector(`.pag-valor-alocado[data-compra-id="${chk.dataset.compraId}"]`);
+      if (!el) return;
+      if (!chk.checked) { el.textContent = "—"; el.style.color = "var(--gray-400)"; return; }
+      const max = parseFloat(chk.dataset.max) || 0;
+      const alocado = Math.max(0, Math.min(max, restante));
+      restante = Math.max(0, restante - alocado);
+      el.textContent = formatarMoeda(alocado);
+      el.style.color = alocado > 0 ? "var(--color-success)" : "var(--gray-400)";
     });
-    totalEl.textContent = formatarMoeda(total);
   };
 
-  document.querySelectorAll(".pag-check").forEach(chk => {
-    chk.addEventListener("change", () => {
-      const valInput = document.querySelector(`.pag-valor[data-compra-id="${chk.dataset.compraId}"]`);
-      if (valInput) valInput.disabled = !chk.checked;
-      atualizarPreview();
-    });
-  });
-  document.querySelectorAll(".pag-valor").forEach(inp => inp.addEventListener("input", atualizarPreview));
-  atualizarPreview();
+  document.querySelectorAll(".pag-check").forEach(chk => chk.addEventListener("change", atualizarAlocacao));
+  document.getElementById("mPagValorGeral")?.addEventListener("input", atualizarAlocacao);
+  atualizarAlocacao();
 
   document.getElementById("btnSalvarNovoPagamento").onclick = () => salvarNovoPagamento(clienteId, comprasAbertas.length > 0, saldoDevedorTotal);
   document.getElementById("mPagData")?.focus();
@@ -2367,27 +2364,27 @@ async function salvarNovoPagamento(clienteId, temComprasAbertas, saldoDevedorTot
   if (!dataStr) { window.mostrarToast?.("Informe a data do pagamento.", "error"); return; }
 
   const lancamentos = [];
+  const valorTotal = parseFloat(document.getElementById("mPagValorGeral")?.value);
+  if (!valorTotal || valorTotal <= 0) { window.mostrarToast?.("Informe um valor válido.", "error"); return; }
+  if (valorTotal > saldoDevedorTotal + 0.01) {
+    window.mostrarToast?.(`O pagamento não pode ser maior que o saldo devedor do cliente (${formatarMoeda(saldoDevedorTotal)}).`, "error");
+    return;
+  }
 
   if (temComprasAbertas) {
     const checks = Array.from(document.querySelectorAll(".pag-check:checked"));
+    if (!checks.length) { window.mostrarToast?.("Selecione ao menos uma compra para abater, ou desmarque todas para lançar como crédito geral.", "error"); return; }
+    let restante = valorTotal;
     for (const chk of checks) {
+      if (restante <= 0.004) break;
       const compraId = chk.dataset.compraId;
       const max = parseFloat(chk.dataset.max) || 0;
-      const valInput = document.querySelector(`.pag-valor[data-compra-id="${compraId}"]`);
-      const valor = parseFloat(valInput?.value);
-      if (!valor || valor <= 0) continue;
-      if (valor > max + 0.01) { window.mostrarToast?.("O valor a abater não pode ser maior que o saldo da compra.", "error"); return; }
-      lancamentos.push({ compraId, valor });
+      const alocado = Math.round(Math.min(max, restante) * 100) / 100;
+      if (alocado > 0) { lancamentos.push({ compraId, valor: alocado }); restante = Math.round((restante - alocado) * 100) / 100; }
     }
-    if (!lancamentos.length) { window.mostrarToast?.("Selecione ao menos uma compra com valor para abater.", "error"); return; }
+    if (restante > 0.004) lancamentos.push({ compraId: null, valor: restante }); // sobra vira crédito geral
   } else {
-    const valor = parseFloat(document.getElementById("mPagValorGeral")?.value);
-    if (!valor || valor <= 0) { window.mostrarToast?.("Informe um valor válido.", "error"); return; }
-    if (valor > saldoDevedorTotal + 0.01) {
-      window.mostrarToast?.(`O pagamento não pode ser maior que o saldo devedor do cliente (${formatarMoeda(saldoDevedorTotal)}).`, "error");
-      return;
-    }
-    lancamentos.push({ compraId: null, valor });
+    lancamentos.push({ compraId: null, valor: valorTotal });
   }
 
   const btn = document.getElementById("btnSalvarNovoPagamento");
