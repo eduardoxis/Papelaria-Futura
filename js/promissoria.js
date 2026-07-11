@@ -204,6 +204,8 @@ export function iniciarPromissoria(usuario, dadosUsuario) {
     if (action === "editar-pagamento") abrirModalEditarPagamento(clienteId, id);
     if (action === "historico-pagamentos-cliente") imprimirHistoricoPagamentosCliente(clienteId, "preview");
     if (action === "baixar-historico-pagamentos-cliente") imprimirHistoricoPagamentosCliente(clienteId, "print");
+    if (action === "historico-compras-cliente") imprimirHistoricoComprasCliente(clienteId, "preview");
+    if (action === "baixar-historico-compras-cliente") imprimirHistoricoComprasCliente(clienteId, "print");
   });
 
   // Botões de relatório/exportação
@@ -1159,7 +1161,17 @@ async function abrirPainelCliente(clienteId) {
         <div class="card">
           <div class="card-header">
             <h3 class="card-section-title" style="margin:0">Histórico de Compras</h3>
-            <span style="font-size:var(--text-sm);color:var(--gray-500)">${compras.length} compra(s)</span>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:var(--text-sm);color:var(--gray-500)">${compras.length} compra(s)</span>
+              <button class="btn-secondary" data-action="historico-compras-cliente" data-cliente-id="${clienteId}" style="font-size:var(--text-sm)">
+                <svg viewBox="0 0 20 20" fill="currentColor" style="width:14px;height:14px"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/></svg>
+                Ver Histórico Completo
+              </button>
+              <button class="btn-secondary" data-action="baixar-historico-compras-cliente" data-cliente-id="${clienteId}" style="font-size:var(--text-sm)">
+                <svg viewBox="0 0 20 20" fill="currentColor" style="width:14px;height:14px"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                Baixar PDF
+              </button>
+            </div>
           </div>
           <div class="table-wrap">
             <table class="data-table data-table--historico">
@@ -1989,6 +2001,169 @@ async function imprimirHistoricoPagamentosCliente(clienteId, modo = "preview") {
     console.error(err);
     win?.close?.();
     window.mostrarToast?.("Erro ao gerar histórico de pagamentos.", "error");
+  }
+}
+
+// Gera o documento com TODO o histórico de compras de um cliente
+// (lista completa de compras/promissórias, pra imprimir ou baixar em PDF).
+async function imprimirHistoricoComprasCliente(clienteId, modo = "preview") {
+  const win = window.open("", "_blank");
+  if (!win) {
+    window.mostrarToast?.("O navegador bloqueou a janela do relatório. Permita pop-ups para este site e tente novamente.", "error", 6000);
+    return;
+  }
+  try {
+    const [clienteSnap, comprasSnap] = await Promise.all([
+      getDoc(doc(db, COL_CLIENTES, clienteId)),
+      getDocs(query(collection(db, COL_COMPRAS), where("clienteId", "==", clienteId)))
+    ]);
+    const cliente = clienteSnap.data();
+    const origem = window.location.origin;
+    const agora = new Date();
+
+    let compras = [];
+    comprasSnap.forEach(d => compras.push({ id: d.id, ...d.data() }));
+    compras.sort((a, b) => _dataParaOrdenacao(b.dataCompra) - _dataParaOrdenacao(a.dataCompra));
+    const totalComprado = compras.reduce((s, c) => s + (c.valor || 0), 0);
+
+    win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
+      <meta charset="UTF-8"><title>Histórico de Compras — ${escHtml(cliente.nome)}</title>
+      <style>
+        * { box-sizing: border-box; }
+        body{font-family:Arial,Helvetica,sans-serif;font-size:13px;margin:0;padding:32px 36px;color:#1E1E1E;background:#fff}
+        .topo{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;border-bottom:1px solid #E2E8F0;padding-bottom:22px;margin-bottom:26px}
+        .empresa{display:flex;gap:16px;align-items:flex-start}
+        .empresa img{width:72px;height:72px;border-radius:14px;object-fit:cover}
+        .empresa h1{font-size:26px;margin:0 0 4px;color:#002D94;letter-spacing:.02em}
+        .empresa .subtitulo{font-size:15px;color:#334155;font-weight:700;margin-bottom:12px}
+        .empresa .linha{font-size:12px;color:#334155;line-height:1.7}
+        .empresa .linha strong{color:#111}
+        .cartao-info{background:#F7F9FC;border:1px solid #E2E8F0;border-radius:12px;padding:6px 22px;min-width:320px}
+        .cartao-info .item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #E7ECF3}
+        .cartao-info .item:last-child{border-bottom:none}
+        .cartao-info .ico{width:18px;height:18px;flex-shrink:0;color:#118DFF}
+        .cartao-info .rotulo{font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.03em;flex:1}
+        .cartao-info .valor{font-size:14px;font-weight:bold;color:#111;text-align:right}
+        .tabela-wrap{border:1px solid #E2E8F0;border-radius:12px;overflow:hidden;margin-bottom:22px}
+        table{width:100%;border-collapse:collapse}
+        th{background:#002D94;color:#fff;padding:14px 22px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+        th:last-child, td:last-child{text-align:right}
+        td{padding:14px 22px;border-bottom:1px solid #EEF1F5;font-size:14px}
+        tbody tr:last-child td{border-bottom:none}
+        .total-card{display:flex;align-items:center;justify-content:space-between;border:1px solid #E2E8F0;border-radius:12px;padding:16px 22px;margin-bottom:30px;background:#F7F9FC}
+        .total-card .esquerda{display:flex;align-items:center;gap:12px}
+        .total-card .bolinha{width:34px;height:34px;border-radius:50%;background:#002D94;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .total-card .bolinha svg{width:18px;height:18px}
+        .total-card .rotulo{font-size:13px;font-weight:800;color:#111;text-transform:uppercase;letter-spacing:.02em}
+        .total-card .valor{font-size:22px;font-weight:800;color:#DC2626}
+        .obrigado{text-align:center;margin-top:40px;font-size:16px;font-weight:800;color:#002D94}
+        .volte{text-align:center;margin-top:4px;font-size:13px;color:#475569}
+        .rodape{text-align:center;margin-top:26px;padding-top:18px;border-top:1px solid #E2E8F0;font-size:12px;color:#334155;line-height:1.8}
+        .rodape strong{display:block;color:#111;font-size:13px;margin-bottom:2px}
+        .btn-voltar{position:fixed;top:16px;left:16px;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #E2E8F0;border-radius:9999px;padding:8px 16px;font-size:13px;font-weight:600;color:#334155;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+        .btn-voltar:hover{background:#F7F9FC;border-color:#118DFF;color:#118DFF}
+        .btn-voltar svg{width:16px;height:16px}
+        @media print{.btn-voltar{display:none}}
+        @media (max-width: 640px) {
+          body{padding:18px 16px}
+          .topo{flex-direction:column}
+          .empresa img{width:56px;height:56px}
+          .empresa h1{font-size:20px}
+          .cartao-info{min-width:0;width:100%}
+          table{display:block;overflow-x:auto;white-space:nowrap}
+          .btn-voltar{position:static;display:inline-flex;margin-bottom:16px}
+        }
+        @media print{body{padding:14px 18px}}
+      </style></head><body>
+
+      <button class="btn-voltar" onclick="window.close()">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+        Voltar
+      </button>
+
+      <div class="topo">
+        <div class="empresa">
+          <img src="${origem}/img/logo.png" alt="Papelaria Futura" onerror="this.style.display='none'" />
+          <div>
+            <h1>PAPELARIA FUTURA</h1>
+            <div class="subtitulo">HISTÓRICO DE COMPRAS</div>
+            <div class="linha">
+              <strong>Papelaria Futura LTDA</strong><br>
+              Av. Dr. Ézio Carneiro Qd.32 Lt.31/33 — Setor Aeroporto, Luziânia/GO<br>
+              <strong>CNPJ:</strong> 01.064.836/0001-12 &nbsp;|&nbsp; <strong>Telefone:</strong> (61) 3621-4452 &nbsp;|&nbsp; <strong>Email:</strong> futuralza@gmail.com
+            </div>
+          </div>
+        </div>
+        <div class="cartao-info">
+          <div class="item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm10 7H4v7h12V9z" clip-rule="evenodd"/></svg>
+            <span class="rotulo">Data e Hora</span>
+            <span class="valor">${agora.toLocaleDateString("pt-BR")} ${agora.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</span>
+          </div>
+          <div class="item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+            <span class="rotulo">Cliente</span>
+            <span class="valor">${escHtml(cliente.nome)}</span>
+          </div>
+          <div class="item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9z" clip-rule="evenodd"/></svg>
+            <span class="rotulo">Tipo de Operação</span>
+            <span class="valor">Histórico de Compras</span>
+          </div>
+          <div class="item">
+            <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+            <span class="rotulo">Atendido por</span>
+            <span class="valor">${escHtml(_dadosUsuario?.nome || "—")}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>Data da Compra</th><th>Nº Compra</th><th>Vencimento</th><th>Valor (R$)</th></tr></thead>
+          <tbody>
+            ${compras.map(c => {
+              const dt = c.dataCompra?.toDate?.() || new Date(c.dataCompra);
+              const venc = c.vencimento?.toDate?.() || (c.vencimento ? new Date(c.vencimento) : null);
+              return `<tr>
+                <td>${dt.toLocaleDateString("pt-BR")} ${dt.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</td>
+                <td>COMPRA-${c.id.slice(-6).toUpperCase()}</td>
+                <td>${venc ? venc.toLocaleDateString("pt-BR") : "—"}</td>
+                <td style="color:#DC2626;font-weight:700">${formatarMoeda(c.valor).replace("R$", "").trim()}</td>
+              </tr>`;
+            }).join("") || `<tr><td colspan="4" style="text-align:center;color:#94A3B8">Nenhuma compra registrada.</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="total-card">
+        <div class="esquerda">
+          <div class="bolinha">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/></svg>
+          </div>
+          <span class="rotulo">Total Comprado</span>
+        </div>
+        <span class="valor">${formatarMoeda(totalComprado)}</span>
+      </div>
+
+      <div class="obrigado">Obrigado pela preferência!</div>
+      <div class="volte">Volte sempre!</div>
+
+      <div class="rodape">
+        <strong>Papelaria Futura LTDA</strong>
+        Av. Dr. Ézio Carneiro Qd.32 Lt.31/33 — Setor Aeroporto, Luziânia/GO<br>
+        CNPJ: 01.064.836/0001-12 &nbsp;|&nbsp; Telefone: (61) 3621-4452
+      </div>
+
+      </body></html>`);
+    win.document.close();
+    if (modo === "print") {
+      win.onload = () => win.print();
+    }
+  } catch (err) {
+    console.error(err);
+    win?.close?.();
+    window.mostrarToast?.("Erro ao gerar histórico de compras.", "error");
   }
 }
 
