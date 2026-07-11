@@ -1783,7 +1783,7 @@ async function imprimirComprovanteCompra(clienteId, compraId, valorCompra, dataS
             <h1>PAPELARIA FUTURA</h1>
             <div class="subtitulo">COMPROVANTE DE VENDA</div>
             <div class="linha">
-              <strong>Papelaria Futura LTDA</strong><br>
+              <strong>Livraria Papelaria Futura LTDA</strong><br>
               Av. Dr. Ézio Carneiro Qd.32 Lt.31/33 — Setor Aeroporto, Luziânia/GO<br>
               <strong>CNPJ:</strong> 01.064.836/0001-12 &nbsp;|&nbsp; <strong>Telefone:</strong> (61) 3621-4452 &nbsp;|&nbsp; <strong>Email:</strong> futuralza@gmail.com
             </div>
@@ -1834,7 +1834,7 @@ async function imprimirComprovanteCompra(clienteId, compraId, valorCompra, dataS
       </div>
 
       <div class="rodape">
-        <strong>Papelaria Futura LTDA</strong>
+        <strong>Livraria Papelaria Futura LTDA</strong>
         Av. Dr. Ézio Carneiro Qd.32 Lt.31/33 — Setor Aeroporto, Luziânia/GO<br>
         CNPJ: 01.064.836/0001-12 &nbsp;|&nbsp; Telefone: (61) 3621-4452
       </div>
@@ -1934,7 +1934,7 @@ async function imprimirHistoricoPagamentosCliente(clienteId, modo = "preview") {
             <h1>PAPELARIA FUTURA</h1>
             <div class="subtitulo">HISTÓRICO DE PAGAMENTOS</div>
             <div class="linha">
-              <strong>Papelaria Futura LTDA</strong><br>
+              <strong>Livraria Papelaria Futura LTDA</strong><br>
               Av. Dr. Ézio Carneiro Qd.32 Lt.31/33 — Setor Aeroporto, Luziânia/GO<br>
               <strong>CNPJ:</strong> 01.064.836/0001-12 &nbsp;|&nbsp; <strong>Telefone:</strong> (61) 3621-4452 &nbsp;|&nbsp; <strong>Email:</strong> futuralza@gmail.com
             </div>
@@ -1992,7 +1992,7 @@ async function imprimirHistoricoPagamentosCliente(clienteId, modo = "preview") {
       </div>
 
       <div class="rodape">
-        <strong>Papelaria Futura LTDA</strong>
+        <strong>Livraria Papelaria Futura LTDA</strong>
         Av. Dr. Ézio Carneiro Qd.32 Lt.31/33 — Setor Aeroporto, Luziânia/GO<br>
         CNPJ: 01.064.836/0001-12 &nbsp;|&nbsp; Telefone: (61) 3621-4452
       </div>
@@ -2093,7 +2093,7 @@ async function imprimirHistoricoComprasCliente(clienteId, modo = "preview") {
             <h1>PAPELARIA FUTURA</h1>
             <div class="subtitulo">HISTÓRICO DE COMPRAS</div>
             <div class="linha">
-              <strong>Papelaria Futura LTDA</strong><br>
+              <strong>Livraria Papelaria Futura LTDA</strong><br>
               Av. Dr. Ézio Carneiro Qd.32 Lt.31/33 — Setor Aeroporto, Luziânia/GO<br>
               <strong>CNPJ:</strong> 01.064.836/0001-12 &nbsp;|&nbsp; <strong>Telefone:</strong> (61) 3621-4452 &nbsp;|&nbsp; <strong>Email:</strong> futuralza@gmail.com
             </div>
@@ -2152,7 +2152,7 @@ async function imprimirHistoricoComprasCliente(clienteId, modo = "preview") {
       </div>
 
       <div class="rodape">
-        <strong>Papelaria Futura LTDA</strong>
+        <strong>Livraria Papelaria Futura LTDA</strong>
         Av. Dr. Ézio Carneiro Qd.32 Lt.31/33 — Setor Aeroporto, Luziânia/GO<br>
         CNPJ: 01.064.836/0001-12 &nbsp;|&nbsp; Telefone: (61) 3621-4452
       </div>
@@ -2524,7 +2524,7 @@ async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, f
             <h1>PAPELARIA FUTURA</h1>
             <div class="subtitulo">COMPROVANTE DE PAGAMENTO</div>
             <div class="linha">
-              <strong>Papelaria Futura LTDA</strong><br>
+              <strong>Livraria Papelaria Futura LTDA</strong><br>
               Av. Dr. Ézio Carneiro Qd.32 Lt.31/33 — Setor Aeroporto, Luziânia/GO<br>
               <strong>CNPJ:</strong> 01.064.836/0001-12<br>
               <strong>Telefone:</strong> (61) 3621-4452 &nbsp;|&nbsp; futuralza@gmail.com
@@ -2589,7 +2589,7 @@ async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, f
         ${historicoCompras.map(l => `<tr>
           <td>${formatarDataLocal(l.data)}</td>
           <td>${escHtml(l.numero)}</td>
-          <td>Papelaria Futura LTDA</td>
+          <td>Livraria Papelaria Futura LTDA</td>
           <td>${escHtml(l.forma)}</td>
           <td style="color:#DC2626">${formatarMoeda(l.valor)}</td>
         </tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:#94A3B8">Nenhuma compra registrada.</td></tr>`}
@@ -3142,7 +3142,7 @@ async function imprimirRelatorioInadimplencia() {
             <h1>PAPELARIA FUTURA</h1>
             <div class="subtitulo">RELATÓRIO DE INADIMPLÊNCIA</div>
             <div class="linha">
-              <strong>Papelaria Futura LTDA</strong><br>
+              <strong>Livraria Papelaria Futura LTDA</strong><br>
               Av. Dr. Ézio Carneiro Qd.32 Lt.31/33 — Setor Aeroporto, Luziânia/GO<br>
               <strong>CNPJ:</strong> 01.064.836/0001-12
             </div>
