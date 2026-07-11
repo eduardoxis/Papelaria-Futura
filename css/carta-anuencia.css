@@ -134,6 +134,13 @@
 .ca-toolbar button.ca-tool svg { width: 16px; height: 16px; }
 
 /* ── Área de edição (páginas A4) ──────────────────────────── */
+.ca-editor-wrap {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .ca-editor-scroll {
   flex: 1;
   overflow-y: auto;
@@ -196,6 +203,82 @@
   pointer-events: none;
 }
 
+/* ── Painel lateral de variáveis ──────────────────────────── */
+.ca-painel-variaveis {
+  width: 300px;
+  flex-shrink: 0;
+  background: #fff;
+  border-left: 1px solid var(--gray-200);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.ca-painel-variaveis-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--gray-100);
+  position: sticky;
+  top: 0;
+  background: #fff;
+}
+.ca-painel-variaveis-header strong { font-size: var(--text-sm); color: var(--gray-800); }
+.ca-painel-variaveis-header button {
+  width: 26px; height: 26px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none; background: transparent; color: var(--gray-500); cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.ca-painel-variaveis-header button:hover { background: var(--gray-100); color: var(--gray-800); }
+.ca-painel-variaveis-header button svg { width: 14px; height: 14px; }
+
+.ca-painel-variaveis-dica {
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+  padding: 12px 16px;
+  margin: 0;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.ca-painel-variaveis-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.ca-var-campo label {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--gray-600);
+  margin-bottom: 4px;
+}
+.ca-var-campo input {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  color: var(--gray-800);
+}
+.ca-var-campo input:focus {
+  outline: none;
+  border-color: var(--blue-400);
+  box-shadow: 0 0 0 3px var(--blue-050);
+}
+
+/* Destaque sutil das variáveis dentro do texto, só na tela (some ao imprimir) */
+.ca-corpo .ca-var {
+  background: #EFF6FF;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+@media print { .ca-corpo .ca-var { background: none; padding: 0; } }
+
 /* ── Painel lateral (histórico de versões) ────────────────── */
 .ca-versoes-lista {
   list-style: none;
@@ -223,6 +306,14 @@
   .ca-topbar .ca-titulo strong { max-width: 160px; }
   .ca-toolbar { gap: 2px; }
   .ca-toolbar select#caFonteSelect { width: 100px; }
+
+  .ca-painel-variaveis {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: min(320px, 90vw);
+    z-index: 10;
+    box-shadow: -4px 0 16px rgba(0,0,0,.18);
+  }
 }
 
 @media print {
