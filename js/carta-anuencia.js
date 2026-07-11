@@ -141,6 +141,8 @@ export async function abrirCartaAnuencia(clienteId) {
 
     let cartaId = null;
     let conteudoHtml = null;
+    let cabecalhoHtml = "";
+    let rodapeHtml = "";
 
     if (!existentes.empty) {
       const docExistente = existentes.docs.sort((a, b) => {
@@ -150,6 +152,8 @@ export async function abrirCartaAnuencia(clienteId) {
       })[0];
       cartaId = docExistente.id;
       conteudoHtml = docExistente.data().conteudoHtml;
+      cabecalhoHtml = docExistente.data().cabecalhoHtml || "";
+      rodapeHtml = docExistente.data().rodapeHtml || "";
     } else {
       conteudoHtml = _gerarModeloHtml(dados, _dadosUsuario?.nome);
       const ref = await addDoc(collection(db, COL_CARTAS), {
@@ -157,7 +161,7 @@ export async function abrirCartaAnuencia(clienteId) {
         clienteNome: dados.cliente.nome || "",
         conteudoHtml,
         cabecalhoHtml: "",
-        rodapeHtml: "Documento de controle interno — Papelaria Futura",
+        rodapeHtml: "",
         status: "rascunho",
         criadoPor: _usuarioAtual?.uid || null,
         criadoPorNome: _dadosUsuario?.nome || _usuarioAtual?.email || "—",
@@ -171,7 +175,7 @@ export async function abrirCartaAnuencia(clienteId) {
     }
 
     _cartaAtual = { id: cartaId, clienteId, status: "rascunho", autoSaveTimer: null, sujo: false };
-    _montarEditor(dados, conteudoHtml);
+    _montarEditor(dados, conteudoHtml, cabecalhoHtml, rodapeHtml);
   } catch (err) {
     console.error("Erro ao gerar carta de anuência:", err);
     window.mostrarToast?.("Erro ao gerar a carta de anuência.", "error");
@@ -179,7 +183,7 @@ export async function abrirCartaAnuencia(clienteId) {
 }
 
 // ── Monta a interface do editor (overlay fullscreen) ────────
-function _montarEditor(dadosCliente, conteudoHtml) {
+function _montarEditor(dadosCliente, conteudoHtml, cabecalhoHtml = "", rodapeHtml = "") {
   let overlay = document.getElementById("cartaAnuenciaOverlay");
   if (!overlay) {
     overlay = document.createElement("div");
@@ -276,13 +280,15 @@ function _montarEditor(dadosCliente, conteudoHtml) {
       <div class="ca-pagina">
         <div class="ca-cabecalho" id="caCabecalho" contenteditable="true" placeholder="Cabeçalho (opcional)"></div>
         <div class="ca-corpo" id="caCorpo" contenteditable="true"></div>
-        <div class="ca-rodape" id="caRodape" contenteditable="true">Documento de controle interno — Papelaria Futura</div>
+        <div class="ca-rodape" id="caRodape" contenteditable="true"></div>
       </div>
       <div class="ca-pagecount" id="caPageCount">~1 página</div>
     </div>
   `;
 
   document.getElementById("caCorpo").innerHTML = conteudoHtml || "";
+  document.getElementById("caCabecalho").innerHTML = cabecalhoHtml || "";
+  document.getElementById("caRodape").innerHTML = rodapeHtml || "";
   overlay.hidden = false;
   document.body.style.overflow = "hidden";
 
