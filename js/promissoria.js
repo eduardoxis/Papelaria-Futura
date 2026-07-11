@@ -2154,7 +2154,7 @@ async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, f
       totalComprado += c.valor || 0;
       linhas.push({
         data: c.dataCompra, tipo: "compra", numero: `COMPRA-${d.id.slice(-6).toUpperCase()}`,
-        forma: "Compra (Fiado)", valor: c.valor || 0
+        forma: "Compra (Convênio)", valor: c.valor || 0
       });
     });
     let totalPago = 0;
@@ -2285,7 +2285,7 @@ async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, f
           <div class="item">
             <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9z" clip-rule="evenodd"/></svg>
             <span class="rotulo">Tipo de Operação</span>
-            <span class="valor">Pagamento de Débito (Fiado)</span>
+            <span class="valor">Pagamento de Débito (Convênio)</span>
           </div>
           <div class="item">
             <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
