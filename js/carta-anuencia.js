@@ -316,6 +316,10 @@ function _montarEditor(dadosCliente, conteudoHtml, cabecalhoHtml = "", rodapeHtm
           </button>
         </div>
         <p class="ca-painel-variaveis-dica">Altere o valor abaixo e o documento é atualizado automaticamente em todos os lugares onde essa variável aparece.</p>
+        <div id="caAvisoDocAntigo" class="ca-aviso-doc-antigo" hidden>
+          <p>Este documento foi criado antes do sistema de variáveis existir, então o texto é só texto puro — os campos abaixo não vão atualizar nada nele.</p>
+          <button id="caBtnRegenerarVariaveis" type="button" class="ca-btn-primary">Recriar variáveis neste documento</button>
+        </div>
         <div class="ca-painel-variaveis-lista">
           ${CA_VARIAVEIS.map(v => `
             <div class="ca-var-campo">
@@ -407,6 +411,7 @@ function _ligarEventosEditor(dadosCliente) {
   // Painel de variáveis
   document.getElementById("caBtnVariaveis").addEventListener("click", () => _abrirPainelVariaveis());
   document.getElementById("caBtnFecharVariaveis").addEventListener("click", () => _fecharPainelVariaveis());
+  document.getElementById("caBtnRegenerarVariaveis").addEventListener("click", () => _regenerarVariaveisDocumentoAntigo(dadosCliente));
   CA_VARIAVEIS.forEach(v => {
     document.getElementById(`caVar_${v.key}`)?.addEventListener("input", (e) => {
       document.querySelectorAll(`.ca-corpo [data-var="${v.key}"], .ca-cabecalho [data-var="${v.key}"], .ca-rodape [data-var="${v.key}"]`)
@@ -532,13 +537,38 @@ async function _salvarCarta(novoStatus, mostrarFeedback) {
 function _abrirPainelVariaveis() {
   const painel = document.getElementById("caPainelVariaveis");
   if (!painel) return;
-  // Preenche cada campo com o valor atual encontrado no documento
-  CA_VARIAVEIS.forEach(v => {
-    const spanAtual = document.querySelector(`.ca-corpo [data-var="${v.key}"], .ca-cabecalho [data-var="${v.key}"], .ca-rodape [data-var="${v.key}"]`);
-    const input = document.getElementById(`caVar_${v.key}`);
-    if (input) input.value = spanAtual?.textContent || "";
-  });
+
+  const temVariaveis = document.querySelectorAll('.ca-corpo [data-var], .ca-cabecalho [data-var], .ca-rodape [data-var]').length > 0;
+  const aviso = document.getElementById("caAvisoDocAntigo");
+
+  if (!temVariaveis) {
+    // Documento antigo, salvo antes do sistema de variáveis existir: não há spans
+    // pra atualizar, então os campos abaixo não fariam nada. Mostra o aviso/ação.
+    if (aviso) aviso.hidden = false;
+    painel.querySelectorAll(".ca-var-campo").forEach(el => el.style.display = "none");
+  } else {
+    if (aviso) aviso.hidden = true;
+    painel.querySelectorAll(".ca-var-campo").forEach(el => el.style.display = "");
+    // Preenche cada campo com o valor atual encontrado no documento
+    CA_VARIAVEIS.forEach(v => {
+      const spanAtual = document.querySelector(`.ca-corpo [data-var="${v.key}"], .ca-cabecalho [data-var="${v.key}"], .ca-rodape [data-var="${v.key}"]`);
+      const input = document.getElementById(`caVar_${v.key}`);
+      if (input) input.value = spanAtual?.textContent || "";
+    });
+  }
   painel.hidden = false;
+}
+
+// Regenera o corpo do documento a partir do modelo atual (com os spans de variável),
+// usado quando a carta foi criada antes do sistema de variáveis existir.
+function _regenerarVariaveisDocumentoAntigo(dadosCliente) {
+  const ok = window.confirm("Isso vai substituir o texto atual do documento pelo modelo padrão preenchido automaticamente, permitindo editar as variáveis em tempo real. Qualquer edição manual feita no corpo do texto será perdida. Deseja continuar?");
+  if (!ok) return;
+  document.getElementById("caCorpo").innerHTML = _gerarModeloHtml(dadosCliente, _dadosUsuario?.nome);
+  _marcarSujo();
+  _atualizarContagemPaginas();
+  window.mostrarToast?.("Modelo regenerado. Agora as variáveis já atualizam em tempo real.", "success");
+  _abrirPainelVariaveis();
 }
 
 function _fecharPainelVariaveis() {
