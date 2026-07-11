@@ -15,9 +15,12 @@ import { formatarData, formatarDataHora, formatarMoeda, listarVendasEntre } from
 import {
   buscarConfigComissaoCriador, salvarConfigComissaoCriador,
   listarCotacoesAprovadas, marcarComissaoCriadorPaga, marcarCotacaoPagaLoja,
-  buscarConfigLembreteCotacao, salvarConfigLembreteCotacao
+  buscarConfigLembreteCotacao, salvarConfigLembreteCotacao,
+  exportarExcelMultiplasAbas, buscarUltimoBackup, salvarUltimoBackup
 } from "./database.js";
 import { cargosDoUsuario, temCargo } from "./auth.js";
+import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { db } from "./firebase-config.js";
 import { gerarPdfFechamentoCaixa } from "./pdf.js";
 
 let _dadosUsuario = null;
@@ -45,6 +48,7 @@ export function iniciarAdmin(usuario, dadosUsuario) {
       carregarConfigLembreteCotacao();
       carregarHistoricoCotacoes();
       carregarVendas();
+      carregarStatusBackup();
     }
   });
 
@@ -53,6 +57,9 @@ export function iniciarAdmin(usuario, dadosUsuario) {
 
   // Lembrete de Cotações — salvar prazo configurável
   document.getElementById("btnSalvarDiasLembreteCotacao")?.addEventListener("click", salvarDiasLembreteCotacao);
+
+  // Backup
+  document.getElementById("btnGerarBackup")?.addEventListener("click", gerarBackupExcel);
 
   // Menu de seções (Usuários / Senha Cotação / Histórico / Vendas)
   document.querySelectorAll(".admin-menu-item").forEach(btn => {
@@ -381,7 +388,8 @@ const PAINEIS_ADMIN = {
   senha:     "adminPanelSenha",
   historico: "adminPanelHistorico",
   vendas:    "adminPanelVendas",
-  comissaoCriador: "adminPanelComissaoCriador"
+  comissaoCriador: "adminPanelComissaoCriador",
+  backup: "adminPanelBackup"
 };
 
 function trocarPainelAdmin(painelId) {
@@ -460,6 +468,140 @@ async function salvarDiasLembreteCotacao() {
     window.mostrarToast?.("Prazo do lembrete salvo com sucesso!", "success");
   } else {
     window.mostrarToast?.("Erro ao salvar. Tente novamente.", "error");
+  }
+}
+
+// ================================================================
+// BACKUP
+// ================================================================
+async function carregarStatusBackup() {
+  const elData = document.getElementById("backupUltimaData");
+  const elAviso = document.getElementById("backupAviso");
+  if (!elData) return;
+
+  const resultado = await buscarUltimoBackup();
+  if (!resultado.sucesso || !resultado.data) {
+    elData.textContent = "Nenhum backup gerado ainda";
+    if (elAviso) elAviso.style.display = "block";
+    return;
+  }
+
+  const data = resultado.data.toDate ? resultado.data.toDate() : new Date(resultado.data);
+  const dias = Math.floor((Date.now() - data.getTime()) / 86400000);
+  elData.textContent = `${formatarDataHora(resultado.data)} (${dias === 0 ? "hoje" : `há ${dias} dia${dias > 1 ? "s" : ""}`})`;
+
+  if (elAviso) elAviso.style.display = dias >= 7 ? "block" : "none";
+  if (dias >= 7) {
+    window.mostrarToast?.(`Já faz ${dias} dias desde o último backup. Considere baixar um novo em Administração → Backup.`, "warning", 7000);
+  }
+}
+
+function _linhaCsvData(ts) {
+  if (!ts) return "";
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleString("pt-BR");
+}
+
+async function gerarBackupExcel() {
+  const btn = document.getElementById("btnGerarBackup");
+  btn.disabled = true;
+  btn.textContent = "Gerando backup...";
+
+  try {
+    const [
+      resCotacoes, resVendas, resUsuarios,
+      cliSnap, compSnap, pagSnap, prodSnap
+    ] = await Promise.all([
+      listarCotacoes({ limitQtd: 10000 }),
+      listarVendas({ limitQtd: 10000 }),
+      listarUsuarios(),
+      getDocs(collection(db, "prom_clientes")),
+      getDocs(collection(db, "prom_compras")),
+      getDocs(collection(db, "prom_pagamentos")),
+      getDocs(collection(db, "pf_produtos"))
+    ]);
+
+    const abas = [];
+
+    // Cotações
+    const cotacoes = resCotacoes.sucesso ? resCotacoes.cotacoes : [];
+    abas.push({
+      nome: "Cotações",
+      linhas: [
+        ["Cliente", "CNPJ", "Status", "Valor Total", "Criada em", "Funcionário"],
+        ...cotacoes.map(c => [c.cliente || "", c.cnpj || "", c.status || "", c.valorTotal || 0, _linhaCsvData(c.dataCriacao), c.funcionario || ""])
+      ]
+    });
+
+    // Vendas do Caixa
+    const vendas = resVendas.sucesso ? resVendas.vendas : [];
+    abas.push({
+      nome: "Vendas Caixa",
+      linhas: [
+        ["Data", "Vendedor", "Nº Venda", "Forma Pagto.", "Total"],
+        ...vendas.map(v => [_linhaCsvData(v.criadoEm), v.vendedorNome || "", v.numero || "", v.formaPagamento || "", v.total || 0])
+      ]
+    });
+
+    // Usuários
+    const usuarios = resUsuarios.sucesso ? resUsuarios.usuarios : [];
+    abas.push({
+      nome: "Usuários",
+      linhas: [
+        ["Nome", "E-mail", "Cargos"],
+        ...usuarios.map(u => [u.nome || "", u.email || "", (cargosDoUsuario(u) || []).join(", ")])
+      ]
+    });
+
+    // Promissórias — Clientes
+    const clientesLinhas = [["Nome", "Telefone", "CPF/CNPJ"]];
+    cliSnap.forEach(d => {
+      const c = d.data();
+      clientesLinhas.push([c.nome || "", c.telefone || "", c.documento || ""]);
+    });
+    abas.push({ nome: "Promissórias - Clientes", linhas: clientesLinhas });
+
+    // Promissórias — Compras
+    const comprasLinhas = [["Cliente ID", "Valor", "Data da Compra", "Vencimento", "Observações"]];
+    compSnap.forEach(d => {
+      const c = d.data();
+      comprasLinhas.push([c.clienteId || "", c.valor || 0, _linhaCsvData(c.dataCompra), _linhaCsvData(c.vencimento), c.observacoes || ""]);
+    });
+    abas.push({ nome: "Promissórias - Compras", linhas: comprasLinhas });
+
+    // Promissórias — Pagamentos
+    const pagamentosLinhas = [["Cliente ID", "Valor", "Data do Pagamento", "Forma", "Observações"]];
+    pagSnap.forEach(d => {
+      const p = d.data();
+      pagamentosLinhas.push([p.clienteId || "", p.valor || 0, _linhaCsvData(p.dataPagamento), p.forma || "", p.observacoes || ""]);
+    });
+    abas.push({ nome: "Promissórias - Pagamentos", linhas: pagamentosLinhas });
+
+    // Produtos
+    const produtosLinhas = [["Nome", "Código", "Categoria", "Preço", "Preço Custo", "Estoque", "Estoque Mínimo"]];
+    prodSnap.forEach(d => {
+      const p = d.data();
+      produtosLinhas.push([p.nome || "", p.codigo || "", p.categoria || "", p.preco || 0, p.precoCusto || 0, p.estoque || 0, p.estoqueMinimo || 0]);
+    });
+    abas.push({ nome: "Produtos", linhas: produtosLinhas });
+
+    const agora = new Date();
+    const nomeArquivo = `Backup_Papelaria_Futura_${agora.toISOString().split("T")[0]}.xlsx`;
+    const ok = exportarExcelMultiplasAbas(nomeArquivo, abas);
+
+    if (ok) {
+      await salvarUltimoBackup();
+      window.mostrarToast?.("Backup gerado e baixado com sucesso!", "success");
+      carregarStatusBackup();
+    } else {
+      window.mostrarToast?.("Erro ao gerar o arquivo de backup.", "error");
+    }
+  } catch (err) {
+    console.error(err);
+    window.mostrarToast?.("Erro ao gerar backup. Tente novamente.", "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg> Baixar Backup Agora`;
   }
 }
 
