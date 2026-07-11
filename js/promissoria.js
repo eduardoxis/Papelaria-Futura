@@ -2069,7 +2069,7 @@ async function salvarNovoPagamento(clienteId, temComprasAbertas, saldoDevedorTot
 }
 
 // ── Comprovante de Pagamento (impressão) ────────────────────────
-async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, forma, obs, modo = "print", winExistente = null) {
+async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, forma, obs, modo = "print", winExistente = null, tituloDoc = null, fichaCompleta = false) {
   const win = winExistente || window.open("", "_blank");
   if (!win) {
     window.mostrarToast?.("O navegador bloqueou a janela do comprovante. Permita pop-ups para este site e tente novamente.", "error", 6000);
@@ -2127,13 +2127,13 @@ async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, f
     const pagamentoAtual = linhas.find(l => l.id === pagamentoId);
     const numeroPagamento = pagamentoAtual?.numero || `PGT-${pagamentoId.slice(-6).toUpperCase()}`;
     const agora = new Date();
-    const historicoCompras    = linhas.filter(l => l.tipo === "compra").slice().reverse().slice(0, 10);
-    const historicoPagamentos = linhas.filter(l => l.tipo === "pagamento").slice().reverse().slice(0, 10);
+    const historicoCompras    = fichaCompleta ? linhas.filter(l => l.tipo === "compra").slice().reverse().slice(0, 10) : [];
+    const historicoPagamentos = fichaCompleta ? linhas.filter(l => l.tipo === "pagamento").slice().reverse().slice(0, 10) : [];
     const totalComprasHistorico    = historicoCompras.reduce((s, l) => s + l.valor, 0);
     const totalPagamentosHistorico = historicoPagamentos.reduce((s, l) => s + l.valor, 0);
 
     win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
-      <meta charset="UTF-8"><title>Comprovante de Pagamento — ${escHtml(cliente.nome)}</title>
+      <meta charset="UTF-8"><title>${escHtml(tituloDoc || `Comprovante de Pagamento — ${cliente.nome}`)}</title>
       <style>
         * { box-sizing: border-box; }
         body{font-family:Arial,Helvetica,sans-serif;font-size:13px;margin:0;padding:28px 32px;color:#1E1E1E;background:#fff}
@@ -2264,6 +2264,7 @@ async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, f
         </div>
       </div>
 
+      ${fichaCompleta ? `
       <h3 class="secao">Dados da Compra (Convênio)</h3>
       <table><thead><tr><th>Data da Compra</th><th>Nº Compra</th><th>Fornecedor</th><th>Descrição</th><th>Valor Total</th></tr></thead><tbody>
         ${historicoCompras.map(l => `<tr>
@@ -2289,6 +2290,7 @@ async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, f
       </tbody>
       ${historicoPagamentos.length ? `<tfoot><tr><td colspan="3" style="font-weight:800;background:#F7F9FC">TOTAL PAGO</td><td colspan="2" style="font-weight:800;background:#F7F9FC;color:#059669">${formatarMoeda(totalPagamentosHistorico)}</td></tr></tfoot>` : ''}
       </table>
+      ` : ''}
 
       <div class="info-box">
         <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
@@ -2559,7 +2561,8 @@ async function imprimirCliente(clienteId) {
     pagamentos.sort((a, b) => _dataParaOrdenacao(b.dataPagamento) - _dataParaOrdenacao(a.dataPagamento));
     const ultimo = pagamentos[0];
 
-    await imprimirComprovantePagamento(clienteId, ultimo.id, ultimo.valor || 0, ultimo.forma || "", ultimo.observacoes || "", "print");
+    await imprimirComprovantePagamento(clienteId, ultimo.id, ultimo.valor || 0, ultimo.forma || "", ultimo.observacoes || "", "print", null,
+      "FICHA COMPLETA DO CLIENTE (HISTÓRICO DE COMPRAS E PAGAMENTOS)", true);
   } catch (err) {
     console.error(err);
     window.mostrarToast?.("Erro ao gerar impressão.", "error");
