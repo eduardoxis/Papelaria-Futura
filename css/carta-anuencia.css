@@ -242,6 +242,28 @@
   border-bottom: 1px solid var(--gray-100);
 }
 
+.ca-aviso-doc-antigo {
+  margin: 12px 16px;
+  padding: 12px 14px;
+  background: #FEF9E7;
+  border: 1px solid #FDE68A;
+  border-radius: var(--radius-md);
+}
+.ca-aviso-doc-antigo p {
+  font-size: var(--text-xs);
+  color: #92400E;
+  margin: 0 0 10px;
+  line-height: 1.5;
+}
+.ca-aviso-doc-antigo button {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: var(--text-xs);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
 .ca-painel-variaveis-lista {
   display: flex;
   flex-direction: column;
