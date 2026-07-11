@@ -488,3 +488,41 @@
   .compra-field--valor, .compra-field--parcelas { flex-basis: 45%; }
   .compra-field--obs { flex-basis: 100%; }
 }
+
+/* ── Campo de data com máscara (digitar dd/mm/aaaa OU escolher no calendário) ── */
+.data-mask-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.data-mask-texto {
+  width: 100%;
+  padding-right: 34px !important;
+}
+.data-mask-btn-cal {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-400);
+  cursor: pointer;
+}
+.data-mask-btn-cal svg { width: 16px; height: 16px; }
+.data-mask-btn-cal:hover { color: var(--blue-600); }
+.data-mask-nativo {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
