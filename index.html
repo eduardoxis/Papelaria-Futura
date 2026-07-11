@@ -1796,6 +1796,12 @@
 <!-- Painel de notificações — único, reposicionado por CSS conforme a tela -->
 <div class="notificacoes-painel" id="notificacoesPainel">
   <div class="notificacoes-painel-header">Notificações</div>
+  <div class="notificacoes-tabs" id="notificacoesTabs">
+    <button type="button" class="notificacoes-tab notificacoes-tab--ativa" data-tipo="todas">Todas</button>
+    <button type="button" class="notificacoes-tab" data-tipo="cotacao">Cotações</button>
+    <button type="button" class="notificacoes-tab" data-tipo="cliente">Promissórias</button>
+    <button type="button" class="notificacoes-tab" data-tipo="estoque">Estoque</button>
+  </div>
   <div class="notificacoes-lista" id="notificacoesLista">
     <div class="notificacoes-vazio">Carregando...</div>
   </div>
