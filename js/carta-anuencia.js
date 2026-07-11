@@ -94,28 +94,46 @@ function _enderecoCompleto(c) {
 }
 
 // ── Modelo oficial da Carta de Anuência (preenchido automaticamente) ──
+// Lista de variáveis editáveis pelo painel lateral (chave, rótulo, tipo de campo)
+const CA_VARIAVEIS = [
+  { key: "nomeCliente",      label: "Nome do Cliente" },
+  { key: "documento",        label: "CPF/CNPJ" },
+  { key: "endereco",         label: "Endereço" },
+  { key: "numeroContrato",   label: "Número do Contrato" },
+  { key: "numeroNotaFiscal", label: "Nº Nota Fiscal" },
+  { key: "valorDivida",      label: "Valor da Dívida" },
+  { key: "valorPago",        label: "Valor Quitado" },
+  { key: "dataQuitacao",     label: "Data da Quitação" },
+  { key: "cidade",           label: "Cidade" },
+  { key: "dataAtual",        label: "Data Atual" },
+  { key: "nomeEmpresa",      label: "Nome da Empresa" },
+  { key: "responsavel",      label: "Responsável pela Empresa" }
+];
+
 function _gerarModeloHtml({ cliente, totalComprado, totalPago, saldo, ultimaDataPagamento }, responsavelNome) {
   const numeroContrato = `PROM-${cliente.id.slice(-6).toUpperCase()}`;
   const dataQuitacao = saldo <= 0 ? formatarDataExtenso(ultimaDataPagamento || new Date()) : "___/___/______";
   const docTipo = cliente.tipo === "juridica" ? "CNPJ" : "CPF";
   const cidadeEmpresa = "Luziânia/GO";
   const hoje = formatarDataExtenso();
+  const v = (key, valor) => `<span class="ca-var" data-var="${key}">${escHtml(valor)}</span>`;
 
   return `
 <p style="text-align:center;font-weight:bold;font-size:16px;letter-spacing:.02em;margin-bottom:24px">CARTA DE ANUÊNCIA</p>
 
-<p>Declaramos, para os devidos fins de direito, que o(a) Sr.(a) <strong>${escHtml(cliente.nome || "")}</strong>, inscrito(a) no ${docTipo} nº <strong>${escHtml(cliente.documento || "não informado")}</strong>, residente e domiciliado(a) em ${escHtml(_enderecoCompleto(cliente))}, realizou a quitação integral do débito referente ao contrato nº <strong>${numeroContrato}</strong>, no valor original de <strong>${formatarMoeda(totalComprado)}</strong>, tendo sido efetivamente pago o montante de <strong>${formatarMoeda(totalPago)}</strong>, em data de <strong>${dataQuitacao}</strong>.</p>
+<p>Declaramos, para os devidos fins de direito, que o(a) Sr.(a) <strong>${v("nomeCliente", cliente.nome || "")}</strong>, inscrito(a) no ${docTipo} nº <strong>${v("documento", cliente.documento || "não informado")}</strong>, residente e domiciliado(a) em ${v("endereco", _enderecoCompleto(cliente))}, realizou a quitação integral do débito referente ao contrato nº <strong>${v("numeroContrato", numeroContrato)}</strong>, referente à nota fiscal nº <strong>${v("numeroNotaFiscal", "")}</strong>, no valor original de <strong>${v("valorDivida", formatarMoeda(totalComprado))}</strong>, tendo sido efetivamente pago o montante de <strong>${v("valorPago", formatarMoeda(totalPago))}</strong>, em data de <strong>${v("dataQuitacao", dataQuitacao)}</strong>.</p>
 
 <p>Diante da quitação ora comprovada, inexiste, por parte desta empresa, qualquer impedimento, restrição ou óbice ao cancelamento de eventual protesto, negativação ou restrição cadastral existente em nome do(a) referido(a) cliente perante os órgãos de proteção ao crédito (SPC/SERASA) ou cartórios competentes, relacionados exclusivamente ao débito ora tratado.</p>
 
 <p>Por ser esta a expressão da verdade, firmamos a presente <strong>Carta de Anuência</strong>, para que produza os efeitos legais e seja apresentada perante quem de direito.</p>
 
-<p style="margin-top:32px">${cidadeEmpresa}, ${hoje}.</p>
+<p style="margin-top:32px">${v("cidade", cidadeEmpresa)}, ${v("dataAtual", hoje)}.</p>
 
 <p style="margin-top:56px;text-align:center">_______________________________________________</p>
-<p style="text-align:center"><strong>PAPELARIA FUTURA LTDA</strong></p>
+<p style="text-align:center"><strong>${v("nomeEmpresa", "PAPELARIA FUTURA LTDA")}</strong></p>
 <p style="text-align:center">CNPJ: 01.064.836/0001-12</p>
-<p style="text-align:center">Responsável: ${escHtml(responsavelNome || "—")}</p>
+<p style="text-align:center">Responsável: ${v("responsavel", responsavelNome || "—")}</p>
+
 `.trim();
 }
 
@@ -202,6 +220,10 @@ function _montarEditor(dadosCliente, conteudoHtml, cabecalhoHtml = "", rodapeHtm
         <span id="caAutoSaveMsg" class="ca-autosave-msg">Todas as alterações salvas</span>
       </div>
       <span id="caStatusPill" class="ca-status-pill ca-status-pill--rascunho">Rascunho</span>
+      <button id="caBtnVariaveis" title="Preencher variáveis do documento">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828zM5 4a2 2 0 00-2 2v9a2 2 0 002 2h9a2 2 0 002-2v-4a1 1 0 10-2 0v4H5V6h4a1 1 0 100-2H5z" clip-rule="evenodd"/></svg>
+        Variáveis
+      </button>
       <button id="caBtnVersoes" title="Histórico de versões">
         <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
         Versões
@@ -276,13 +298,32 @@ function _montarEditor(dadosCliente, conteudoHtml, cabecalhoHtml = "", rodapeHtm
       <input type="file" id="caInputAssinatura" accept="image/*" style="display:none" />
     </div>
 
-    <div class="ca-editor-scroll">
-      <div class="ca-pagina">
-        <div class="ca-cabecalho" id="caCabecalho" contenteditable="true" placeholder="Cabeçalho (opcional)"></div>
-        <div class="ca-corpo" id="caCorpo" contenteditable="true"></div>
-        <div class="ca-rodape" id="caRodape" contenteditable="true"></div>
+    <div class="ca-editor-wrap">
+      <div class="ca-editor-scroll">
+        <div class="ca-pagina">
+          <div class="ca-cabecalho" id="caCabecalho" contenteditable="true" placeholder="Cabeçalho (opcional)"></div>
+          <div class="ca-corpo" id="caCorpo" contenteditable="true"></div>
+          <div class="ca-rodape" id="caRodape" contenteditable="true"></div>
+        </div>
+        <div class="ca-pagecount" id="caPageCount">~1 página</div>
       </div>
-      <div class="ca-pagecount" id="caPageCount">~1 página</div>
+
+      <aside class="ca-painel-variaveis" id="caPainelVariaveis" hidden>
+        <div class="ca-painel-variaveis-header">
+          <strong>Variáveis do documento</strong>
+          <button id="caBtnFecharVariaveis" title="Fechar">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+          </button>
+        </div>
+        <p class="ca-painel-variaveis-dica">Altere o valor abaixo e o documento é atualizado automaticamente em todos os lugares onde essa variável aparece.</p>
+        <div class="ca-painel-variaveis-lista">
+          ${CA_VARIAVEIS.map(v => `
+            <div class="ca-var-campo">
+              <label for="caVar_${v.key}">${v.label}</label>
+              <input type="text" id="caVar_${v.key}" data-var-key="${v.key}" autocomplete="off" />
+            </div>`).join("")}
+        </div>
+      </aside>
     </div>
   `;
 
@@ -362,6 +403,18 @@ function _ligarEventosEditor(dadosCliente) {
 
   // Versões
   document.getElementById("caBtnVersoes").addEventListener("click", () => _abrirHistoricoVersoes());
+
+  // Painel de variáveis
+  document.getElementById("caBtnVariaveis").addEventListener("click", () => _abrirPainelVariaveis());
+  document.getElementById("caBtnFecharVariaveis").addEventListener("click", () => _fecharPainelVariaveis());
+  CA_VARIAVEIS.forEach(v => {
+    document.getElementById(`caVar_${v.key}`)?.addEventListener("input", (e) => {
+      document.querySelectorAll(`.ca-corpo [data-var="${v.key}"], .ca-cabecalho [data-var="${v.key}"], .ca-rodape [data-var="${v.key}"]`)
+        .forEach(el => { el.textContent = e.target.value; });
+      _marcarSujo();
+      _atualizarContagemPaginas();
+    });
+  });
 
   // Impressão / exportação
   document.getElementById("caBtnImprimir").addEventListener("click", () => _imprimirCarta());
@@ -474,6 +527,23 @@ async function _salvarCarta(novoStatus, mostrarFeedback) {
   } finally {
     if (mostrarFeedback) { btnRascunho.disabled = false; btnFinal.disabled = false; }
   }
+}
+
+function _abrirPainelVariaveis() {
+  const painel = document.getElementById("caPainelVariaveis");
+  if (!painel) return;
+  // Preenche cada campo com o valor atual encontrado no documento
+  CA_VARIAVEIS.forEach(v => {
+    const spanAtual = document.querySelector(`.ca-corpo [data-var="${v.key}"], .ca-cabecalho [data-var="${v.key}"], .ca-rodape [data-var="${v.key}"]`);
+    const input = document.getElementById(`caVar_${v.key}`);
+    if (input) input.value = spanAtual?.textContent || "";
+  });
+  painel.hidden = false;
+}
+
+function _fecharPainelVariaveis() {
+  const painel = document.getElementById("caPainelVariaveis");
+  if (painel) painel.hidden = true;
 }
 
 // ── Histórico de versões ────────────────────────────────────
