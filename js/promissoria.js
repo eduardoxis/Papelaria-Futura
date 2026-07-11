@@ -2189,7 +2189,10 @@ async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, f
     const pagamentoAtual = linhas.find(l => l.id === pagamentoId);
     const numeroPagamento = pagamentoAtual?.numero || `PGT-${pagamentoId.slice(-6).toUpperCase()}`;
     const agora = new Date();
-    const historico = linhas.slice().reverse().slice(0, 10); // mais recentes primeiro, até 10
+    const historicoCompras    = linhas.filter(l => l.tipo === "compra").slice().reverse().slice(0, 10);
+    const historicoPagamentos = linhas.filter(l => l.tipo === "pagamento").slice().reverse().slice(0, 10);
+    const totalComprasHistorico    = historicoCompras.reduce((s, l) => s + l.valor, 0);
+    const totalPagamentosHistorico = historicoPagamentos.reduce((s, l) => s + l.valor, 0);
 
     win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
       <meta charset="UTF-8"><title>Comprovante de Pagamento — ${escHtml(cliente.nome)}</title>
@@ -2323,16 +2326,31 @@ async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, f
         </div>
       </div>
 
-      <h3 class="secao">Histórico de Pagamentos</h3>
-      <table><thead><tr><th>Data</th><th>Nº Pagamento</th><th>Forma de Pagamento</th><th>Valor Pago</th><th>Saldo Após</th></tr></thead><tbody>
-        ${historico.map(l => `<tr>
+      <h3 class="secao">Dados da Compra (Convênio)</h3>
+      <table><thead><tr><th>Data da Compra</th><th>Nº Compra</th><th>Fornecedor</th><th>Descrição</th><th>Valor Total</th></tr></thead><tbody>
+        ${historicoCompras.map(l => `<tr>
+          <td>${formatarDataLocal(l.data)}</td>
+          <td>${escHtml(l.numero)}</td>
+          <td>Papelaria Futura LTDA</td>
+          <td>${escHtml(l.forma)}</td>
+          <td style="color:#DC2626">${formatarMoeda(l.valor)}</td>
+        </tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:#94A3B8">Nenhuma compra registrada.</td></tr>`}
+      </tbody>
+      ${historicoCompras.length ? `<tfoot><tr><td colspan="4" style="font-weight:800;background:#F7F9FC">TOTAL DA COMPRA</td><td style="font-weight:800;background:#F7F9FC;color:#DC2626">${formatarMoeda(totalComprasHistorico)}</td></tr></tfoot>` : ''}
+      </table>
+
+      <h3 class="secao">Dados do Pagamento</h3>
+      <table><thead><tr><th>Data do Pagamento</th><th>Nº Pagamento</th><th>Forma de Pagamento</th><th>Valor Pago</th><th>Saldo Após Pagamento</th></tr></thead><tbody>
+        ${historicoPagamentos.map(l => `<tr>
           <td>${formatarDataLocal(l.data)}</td>
           <td>${escHtml(l.numero)}</td>
           <td>${escHtml(l.forma)}</td>
-          <td style="color:${l.tipo==='compra'?'#DC2626':'#059669'}">${formatarMoeda(l.valor)}</td>
+          <td style="color:#059669">${formatarMoeda(l.valor)}</td>
           <td style="color:${l.saldoApos>0?'#DC2626':'#059669'}">${formatarMoeda(Math.max(0,l.saldoApos))}</td>
-        </tr>`).join('')}
-      </tbody></table>
+        </tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:#94A3B8">Nenhum pagamento registrado.</td></tr>`}
+      </tbody>
+      ${historicoPagamentos.length ? `<tfoot><tr><td colspan="3" style="font-weight:800;background:#F7F9FC">TOTAL PAGO</td><td colspan="2" style="font-weight:800;background:#F7F9FC;color:#059669">${formatarMoeda(totalPagamentosHistorico)}</td></tr></tfoot>` : ''}
+      </table>
 
       <div class="info-box">
         <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
