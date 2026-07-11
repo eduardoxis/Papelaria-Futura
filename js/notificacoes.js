@@ -160,16 +160,30 @@ async function atualizarBadgeNotificacoes() {
   });
 }
 
+let _abaAtiva = "todas";
+
 function renderPainelNotificacoes() {
   const lista = document.getElementById("notificacoesLista");
   if (!lista) return;
 
-  if (_cache.length === 0) {
-    lista.innerHTML = `<div class="notificacoes-vazio">Tudo em dia por aqui! 🎉</div>`;
+  // Atualiza a contagem em cada aba
+  const contagens = { todas: _cache.length, cotacao: 0, cliente: 0, estoque: 0 };
+  _cache.forEach(n => { if (contagens[n.tipo] !== undefined) contagens[n.tipo]++; });
+  document.querySelectorAll(".notificacoes-tab").forEach(tab => {
+    const tipo = tab.dataset.tipo;
+    const qtd = contagens[tipo] || 0;
+    const rotulo = { todas: "Todas", cotacao: "Cotações", cliente: "Promissórias", estoque: "Estoque" }[tipo];
+    tab.textContent = qtd > 0 ? `${rotulo} (${qtd})` : rotulo;
+  });
+
+  const filtradas = _abaAtiva === "todas" ? _cache : _cache.filter(n => n.tipo === _abaAtiva);
+
+  if (filtradas.length === 0) {
+    lista.innerHTML = `<div class="notificacoes-vazio">${_abaAtiva === "todas" ? "Tudo em dia por aqui! 🎉" : "Nada por aqui no momento."}</div>`;
     return;
   }
 
-  lista.innerHTML = _cache.map(n => `
+  lista.innerHTML = filtradas.map(n => `
     <button type="button" class="notificacao-item notificacao-item--${n.urgencia}" data-pagina="${n.pagina}">
       <span class="notificacao-icone">${ICONES[n.icone] || ""}</span>
       <span class="notificacao-texto">
@@ -207,6 +221,15 @@ export async function iniciarNotificacoes() {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       abrirPainelNotificacoes();
+    });
+  });
+
+  document.querySelectorAll(".notificacoes-tab").forEach(tab => {
+    tab.addEventListener("click", (e) => {
+      e.stopPropagation();
+      _abaAtiva = tab.dataset.tipo;
+      document.querySelectorAll(".notificacoes-tab").forEach(t => t.classList.toggle("notificacoes-tab--ativa", t === tab));
+      renderPainelNotificacoes();
     });
   });
 
