@@ -468,8 +468,8 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  flex: 1 1 110px;
-  min-width: 100px;
+  flex: 1 1 140px;
+  min-width: 130px;
 }
 .compra-field--valor    { flex: 1 1 110px; min-width: 100px; }
 .compra-field--parcelas { flex: 0 1 80px;  min-width: 70px; }
@@ -487,6 +487,7 @@
 @media (max-width: 520px) {
   .compra-field--valor, .compra-field--parcelas { flex-basis: 45%; }
   .compra-field--obs { flex-basis: 100%; }
+  .compra-row .compra-field:not(.compra-field--valor):not(.compra-field--parcelas):not(.compra-field--obs) { flex-basis: 47%; }
 }
 
 /* ── Campo de data com máscara (digitar dd/mm/aaaa OU escolher no calendário) ── */
