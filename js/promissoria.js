@@ -200,11 +200,14 @@ export function iniciarPromissoria(usuario, dadosUsuario) {
     if (action === "pdf-comprovante-compra")      reabrirComprovanteCompra(clienteId, id, "print");
     if (action === "ver-comprovante-pagamento")   reabrirComprovantePagamento(clienteId, id, "preview");
     if (action === "pdf-comprovante-pagamento")   reabrirComprovantePagamento(clienteId, id, "print");
+    if (action === "editar-compra")    abrirModalEditarCompra(clienteId, id);
+    if (action === "editar-pagamento") abrirModalEditarPagamento(clienteId, id);
   });
 
   // Botões de relatório/exportação
   document.getElementById("btnExportarProm")?.addEventListener("click", exportarRelatorio);
   document.getElementById("btnImprimirProm")?.addEventListener("click", imprimirRelatorio);
+  document.getElementById("btnRelatorioInadimplencia")?.addEventListener("click", imprimirRelatorioInadimplencia);
   document.getElementById("btnImportarCsvProm")?.addEventListener("click", () => {
     document.getElementById("inputImportarCsvProm").click();
   });
@@ -949,7 +952,12 @@ async function carregarListaClientes(busca = "", filtroStatus = "todos") {
     // Filtros
     if (busca) {
       const b = busca.toLowerCase();
-      clientes = clientes.filter(c => c.nome?.toLowerCase().includes(b) || c.telefone?.toLowerCase().includes(b));
+      const bSoDigitos = busca.replace(/\D/g, "");
+      clientes = clientes.filter(c =>
+        c.nome?.toLowerCase().includes(b) ||
+        c.telefone?.toLowerCase().includes(b) ||
+        (bSoDigitos && c.documento?.replace(/\D/g, "").includes(bSoDigitos))
+      );
     }
     if (filtroStatus !== "todos") {
       clientes = clientes.filter(c => c.situacao.toLowerCase() === filtroStatus.toLowerCase());
@@ -999,8 +1007,8 @@ async function abrirPainelCliente(clienteId) {
   try {
     const [clienteSnap, comprasSnap, pagamentosSnap] = await Promise.all([
       getDoc(doc(db, COL_CLIENTES, clienteId)),
-      getDocs(query(collection(db, COL_COMPRAS), where("clienteId", "==", clienteId), orderBy("dataCompra", "desc"))),
-      getDocs(query(collection(db, COL_PAGAMENTOS), where("clienteId", "==", clienteId), orderBy("dataPagamento", "desc")))
+      getDocs(query(collection(db, COL_COMPRAS), where("clienteId", "==", clienteId))),
+      getDocs(query(collection(db, COL_PAGAMENTOS), where("clienteId", "==", clienteId)))
     ]);
 
     if (!clienteSnap.exists()) {
@@ -1018,6 +1026,7 @@ async function abrirPainelCliente(clienteId) {
       totalComprado += c.valor || 0;
       compras.push(c);
     });
+    compras.sort((a, b) => _dataParaOrdenacao(b.dataCompra) - _dataParaOrdenacao(a.dataCompra));
 
     let pagamentos = [];
     let totalPago  = 0;
@@ -1028,6 +1037,7 @@ async function abrirPainelCliente(clienteId) {
       if (p.compraId) pagoPorCompra[p.compraId] = (pagoPorCompra[p.compraId] || 0) + (p.valor || 0);
       pagamentos.push(p);
     });
+    pagamentos.sort((a, b) => _dataParaOrdenacao(b.dataPagamento) - _dataParaOrdenacao(a.dataPagamento));
 
     let saldo = totalComprado - totalPago;
 
@@ -1190,6 +1200,9 @@ async function abrirPainelCliente(clienteId) {
                           <button class="btn-table-action" data-action="pdf-comprovante-compra" data-id="${c.id}" title="Baixar PDF do comprovante">
                             <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM9 3a1 1 0 012 0v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3z" clip-rule="evenodd"/></svg>
                           </button>
+                          <button class="btn-table-action" data-action="editar-compra" data-id="${c.id}" title="Editar compra">
+                            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
+                          </button>
                           <button class="btn-table-action btn-table-action--delete" data-action="excluir-compra" data-id="${c.id}" title="Excluir compra">
                             <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                           </button>
@@ -1237,6 +1250,9 @@ async function abrirPainelCliente(clienteId) {
                         </button>
                         <button class="btn-table-action" data-action="pdf-comprovante-pagamento" data-id="${p.id}" title="Baixar PDF do comprovante">
                           <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM9 3a1 1 0 012 0v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3z" clip-rule="evenodd"/></svg>
+                        </button>
+                        <button class="btn-table-action" data-action="editar-pagamento" data-id="${p.id}" title="Editar pagamento">
+                          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
                         </button>
                       </td>
                     </tr>`;
@@ -1646,8 +1662,8 @@ async function salvarNovaCompra(clienteId) {
     for (const l of lancamentos) {
       const compraRef = refs[idxDoc];
       idxDoc += l.parcelas;
-      const modo = await perguntarComprovante("Compra registrada com sucesso! Deseja visualizar ou imprimir o comprovante?");
-      if (modo) await imprimirComprovanteCompra(clienteId, compraRef.id, l.valor, l.dataStr, l.vencStr, l.obs, modo);
+      const { modo, win } = await perguntarComprovante("Compra registrada com sucesso! Deseja visualizar ou imprimir o comprovante?");
+      if (modo) await imprimirComprovanteCompra(clienteId, compraRef.id, l.valor, l.dataStr, l.vencStr, l.obs, modo, win);
     }
   } catch (err) {
     console.error(err);
@@ -1657,7 +1673,14 @@ async function salvarNovaCompra(clienteId) {
 }
 
 // ── Comprovante de Compra / Venda a Prazo (impressão) ───────────
-async function imprimirComprovanteCompra(clienteId, compraId, valorCompra, dataStr, vencStr, obsCompra, modo = "print") {
+// `winExistente`, se informado, já foi aberto de forma síncrona no clique do
+// usuário (necessário para não ser bloqueado como pop-up no mobile).
+async function imprimirComprovanteCompra(clienteId, compraId, valorCompra, dataStr, vencStr, obsCompra, modo = "print", winExistente = null) {
+  const win = winExistente || window.open("", "_blank");
+  if (!win) {
+    window.mostrarToast?.("O navegador bloqueou a janela do comprovante. Permita pop-ups para este site e tente novamente.", "error", 6000);
+    return;
+  }
   try {
     const [clienteSnap, comprasSnap, pagamentosSnap] = await Promise.all([
       getDoc(doc(db, COL_CLIENTES, clienteId)),
@@ -1679,7 +1702,6 @@ async function imprimirComprovanteCompra(clienteId, compraId, valorCompra, dataS
     const diasPrazo = vencimento ? Math.round((vencimento - dataCompra) / 86400000) : null;
     const numeroCompra = `CMP-${compraId.slice(-6).toUpperCase()}`;
 
-    const win = window.open("", "_blank");
     win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
       <meta charset="UTF-8"><title>Comprovante de Compra — ${escHtml(cliente.nome)}</title>
       <style>
@@ -1842,6 +1864,7 @@ async function imprimirComprovanteCompra(clienteId, compraId, valorCompra, dataS
     win.document.close();
   } catch (err) {
     console.error(err);
+    win?.close?.();
     window.mostrarToast?.("Compra salva, mas houve erro ao gerar o comprovante para impressão.", "warning");
   }
 }
@@ -1857,31 +1880,51 @@ function _timestampParaDataStr(ts) {
   return `${ano}-${mes}-${dia}`;
 }
 
+// Converte um Timestamp/Date/string para número (ms), usado só pra ordenar
+// no cliente — evita depender de orderBy do Firestore (exige índice composto).
+function _dataParaOrdenacao(ts) {
+  if (!ts) return 0;
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.getTime() || 0;
+}
+
 // Reabre (visualizar ou baixar PDF) o comprovante de uma compra já salva,
 // buscando os dados originais no Firestore.
 async function reabrirComprovanteCompra(clienteId, compraId, modo) {
+  const win = window.open("", "_blank");
+  if (!win) {
+    window.mostrarToast?.("O navegador bloqueou a janela do comprovante. Permita pop-ups para este site e tente novamente.", "error", 6000);
+    return;
+  }
   try {
     const snap = await getDoc(doc(db, COL_COMPRAS, compraId));
-    if (!snap.exists()) { window.mostrarToast?.("Compra não encontrada.", "error"); return; }
+    if (!snap.exists()) { win.close(); window.mostrarToast?.("Compra não encontrada.", "error"); return; }
     const c = snap.data();
     const dataStr = _timestampParaDataStr(c.dataCompra);
     const vencStr = c.vencimento ? _timestampParaDataStr(c.vencimento) : "";
-    await imprimirComprovanteCompra(clienteId, compraId, c.valor, dataStr, vencStr, c.observacoes || "", modo);
+    await imprimirComprovanteCompra(clienteId, compraId, c.valor, dataStr, vencStr, c.observacoes || "", modo, win);
   } catch (err) {
     console.error(err);
+    win?.close?.();
     window.mostrarToast?.("Erro ao gerar comprovante.", "error");
   }
 }
 
 // Reabre (visualizar ou baixar PDF) o comprovante de um pagamento já salvo.
 async function reabrirComprovantePagamento(clienteId, pagamentoId, modo) {
+  const win = window.open("", "_blank");
+  if (!win) {
+    window.mostrarToast?.("O navegador bloqueou a janela do comprovante. Permita pop-ups para este site e tente novamente.", "error", 6000);
+    return;
+  }
   try {
     const snap = await getDoc(doc(db, COL_PAGAMENTOS, pagamentoId));
-    if (!snap.exists()) { window.mostrarToast?.("Pagamento não encontrado.", "error"); return; }
+    if (!snap.exists()) { win.close(); window.mostrarToast?.("Pagamento não encontrado.", "error"); return; }
     const p = snap.data();
-    await imprimirComprovantePagamento(clienteId, pagamentoId, p.valor, p.forma || "", p.observacoes || "", modo);
+    await imprimirComprovantePagamento(clienteId, pagamentoId, p.valor, p.forma || "", p.observacoes || "", modo, win);
   } catch (err) {
     console.error(err);
+    win?.close?.();
     window.mostrarToast?.("Erro ao gerar comprovante.", "error");
   }
 }
@@ -1901,7 +1944,7 @@ async function abrirModalNovoPagamento(clienteId) {
   let saldoDevedorTotal = 0;
   try {
     const [comprasSnap, pagamentosSnap] = await Promise.all([
-      getDocs(query(collection(db, COL_COMPRAS), where("clienteId", "==", clienteId), orderBy("dataCompra", "asc"))),
+      getDocs(query(collection(db, COL_COMPRAS), where("clienteId", "==", clienteId))),
       getDocs(query(collection(db, COL_PAGAMENTOS), where("clienteId", "==", clienteId)))
     ]);
 
@@ -1923,8 +1966,10 @@ async function abrirModalNovoPagamento(clienteId) {
       const saldo = Math.round(((c.valor || 0) - pago) * 100) / 100;
       if (saldo > 0.004) comprasAbertas.push({ ...c, pago, saldo });
     });
+    comprasAbertas.sort((a, b) => _dataParaOrdenacao(a.dataCompra) - _dataParaOrdenacao(b.dataCompra));
   } catch (err) {
     console.error("Erro ao buscar compras em aberto:", err);
+    window.mostrarToast?.("Erro ao carregar o saldo devedor do cliente. Tente novamente.", "error");
   }
 
   const listaHtml = comprasAbertas.length === 0
@@ -2076,8 +2121,8 @@ async function salvarNovoPagamento(clienteId, temComprasAbertas, saldoDevedorTot
     carregarIndicadores();
 
     const valorTotalPago = lancamentos.reduce((s, l) => s + l.valor, 0);
-    const modo = await perguntarComprovante("Pagamento registrado com sucesso! Deseja visualizar ou imprimir o comprovante?");
-    if (modo) await imprimirComprovantePagamento(clienteId, refs[0].id, valorTotalPago, forma, obs, modo);
+    const { modo, win } = await perguntarComprovante("Pagamento registrado com sucesso! Deseja visualizar ou imprimir o comprovante?");
+    if (modo) await imprimirComprovantePagamento(clienteId, refs[0].id, valorTotalPago, forma, obs, modo, win);
   } catch (err) {
     console.error(err);
     window.mostrarToast?.("Erro ao registrar pagamento.", "error");
@@ -2086,7 +2131,12 @@ async function salvarNovoPagamento(clienteId, temComprasAbertas, saldoDevedorTot
 }
 
 // ── Comprovante de Pagamento (impressão) ────────────────────────
-async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, forma, obs, modo = "print") {
+async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, forma, obs, modo = "print", winExistente = null) {
+  const win = winExistente || window.open("", "_blank");
+  if (!win) {
+    window.mostrarToast?.("O navegador bloqueou a janela do comprovante. Permita pop-ups para este site e tente novamente.", "error", 6000);
+    return;
+  }
   try {
     const [clienteSnap, comprasSnap, pagamentosSnap] = await Promise.all([
       getDoc(doc(db, COL_CLIENTES, clienteId)),
@@ -2141,7 +2191,6 @@ async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, f
     const agora = new Date();
     const historico = linhas.slice().reverse().slice(0, 10); // mais recentes primeiro, até 10
 
-    const win = window.open("", "_blank");
     win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
       <meta charset="UTF-8"><title>Comprovante de Pagamento — ${escHtml(cliente.nome)}</title>
       <style>
@@ -2305,6 +2354,7 @@ async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, f
     win.document.close();
   } catch (err) {
     console.error(err);
+    win?.close?.();
     window.mostrarToast?.("Pagamento salvo, mas houve erro ao gerar o comprovante para impressão.", "warning");
   }
 }
@@ -2350,6 +2400,159 @@ async function excluirCliente(clienteId) {
   }
 }
 
+// ── Editar Compra já lançada ─────────────────────────────────
+async function abrirModalEditarCompra(clienteId, compraId) {
+  const snap = await getDoc(doc(db, COL_COMPRAS, compraId));
+  if (!snap.exists()) { window.mostrarToast?.("Compra não encontrada.", "error"); return; }
+  const c = snap.data();
+  const dataStr = _timestampParaDataStr(c.dataCompra);
+  const vencStr = c.vencimento ? _timestampParaDataStr(c.vencimento) : "";
+
+  const body = `
+    <div class="field">
+      <label class="field-label">Valor (R$) *</label>
+      <input type="number" id="mEditCompraValor" class="field-input--plain" min="0.01" step="0.01" value="${c.valor}" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label class="field-label">Data da Compra *</label>
+      <input type="date" id="mEditCompraData" class="field-input--plain" value="${dataStr}" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label class="field-label">Vencimento</label>
+      <input type="date" id="mEditCompraVenc" class="field-input--plain" value="${vencStr}" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label class="field-label">Observações</label>
+      <input type="text" id="mEditCompraObs" class="field-input--plain" value="${escHtml(c.observacoes || "")}" autocomplete="off" />
+    </div>
+  `;
+  const footer = `
+    <button class="btn-ghost" id="btnCancelarModalProm">Cancelar</button>
+    <button class="btn-primary" id="btnSalvarEditCompra">Salvar Alterações</button>`;
+  abrirModal("Editar Compra", body, footer);
+  document.getElementById("btnCancelarModalProm").onclick = fecharModal;
+  document.getElementById("btnSalvarEditCompra").onclick = () => salvarEdicaoCompra(clienteId, compraId, c);
+}
+
+async function salvarEdicaoCompra(clienteId, compraId, original) {
+  const btn = document.getElementById("btnSalvarEditCompra");
+  const novoValor = parseFloat(document.getElementById("mEditCompraValor").value);
+  const novaDataStr = document.getElementById("mEditCompraData").value;
+  const novoVencStr = document.getElementById("mEditCompraVenc").value;
+  const novaObs = document.getElementById("mEditCompraObs").value.trim();
+
+  if (!novoValor || novoValor <= 0) { window.mostrarToast?.("Informe um valor válido.", "error"); return; }
+  if (!novaDataStr) { window.mostrarToast?.("Informe a data da compra.", "error"); return; }
+
+  btn.disabled = true; btn.textContent = "Salvando...";
+  try {
+    const dadosAtualizados = {
+      valor: novoValor,
+      dataCompra: Timestamp.fromDate(new Date(novaDataStr + "T12:00:00")),
+      vencimento: novoVencStr ? Timestamp.fromDate(new Date(novoVencStr + "T23:59:59")) : null,
+      observacoes: novaObs
+    };
+    await updateDoc(doc(db, COL_COMPRAS, compraId), dadosAtualizados);
+
+    // Monta um resumo do que mudou, pro histórico de alterações
+    const mudancas = [];
+    if (novoValor !== original.valor) mudancas.push(`Valor: ${formatarMoeda(original.valor)} → ${formatarMoeda(novoValor)}`);
+    const dataOriginalStr = _timestampParaDataStr(original.dataCompra);
+    if (novaDataStr !== dataOriginalStr) mudancas.push(`Data: ${formatarDataLocal(original.dataCompra)} → ${new Date(novaDataStr+"T12:00:00").toLocaleDateString("pt-BR")}`);
+    const vencOriginalStr = original.vencimento ? _timestampParaDataStr(original.vencimento) : "";
+    if (novoVencStr !== vencOriginalStr) mudancas.push(`Vencimento: ${vencOriginalStr ? formatarDataLocal(original.vencimento) : "—"} → ${novoVencStr ? new Date(novoVencStr+"T23:59:59").toLocaleDateString("pt-BR") : "—"}`);
+    if (novaObs !== (original.observacoes || "")) mudancas.push(`Observações alteradas`);
+
+    await _registrarHistorico("compra", "editado", clienteId, compraId, novoValor,
+      mudancas.length ? mudancas.join(" · ") : "Sem alterações de valor");
+
+    fecharModal();
+    window.mostrarToast?.("Compra atualizada com sucesso!", "success");
+    abrirPainelCliente(clienteId);
+    carregarIndicadores();
+  } catch (err) {
+    console.error(err);
+    window.mostrarToast?.("Erro ao salvar as alterações.", "error");
+    btn.disabled = false; btn.textContent = "Salvar Alterações";
+  }
+}
+
+// ── Editar Pagamento já lançado ──────────────────────────────
+async function abrirModalEditarPagamento(clienteId, pagamentoId) {
+  const snap = await getDoc(doc(db, COL_PAGAMENTOS, pagamentoId));
+  if (!snap.exists()) { window.mostrarToast?.("Pagamento não encontrado.", "error"); return; }
+  const p = snap.data();
+  const dataStr = _timestampParaDataStr(p.dataPagamento);
+
+  const body = `
+    <div class="field">
+      <label class="field-label">Valor Pago (R$) *</label>
+      <input type="number" id="mEditPagValor" class="field-input--plain" min="0.01" step="0.01" value="${p.valor}" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label class="field-label">Data do Pagamento *</label>
+      <input type="date" id="mEditPagData" class="field-input--plain" value="${dataStr}" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label class="field-label">Forma de Pagamento</label>
+      <select id="mEditPagForma" class="field-input--plain">
+        ${["Dinheiro","Pix","Cartão de Débito","Cartão de Crédito","Transferência","Outro"].map(f =>
+          `<option value="${f}" ${p.forma === f ? "selected" : ""}>${f}</option>`).join("")}
+      </select>
+    </div>
+    <div class="field">
+      <label class="field-label">Observações</label>
+      <input type="text" id="mEditPagObs" class="field-input--plain" value="${escHtml(p.observacoes || "")}" autocomplete="off" />
+    </div>
+  `;
+  const footer = `
+    <button class="btn-ghost" id="btnCancelarModalProm">Cancelar</button>
+    <button class="btn-primary" id="btnSalvarEditPagamento">Salvar Alterações</button>`;
+  abrirModal("Editar Pagamento", body, footer);
+  document.getElementById("btnCancelarModalProm").onclick = fecharModal;
+  document.getElementById("btnSalvarEditPagamento").onclick = () => salvarEdicaoPagamento(clienteId, pagamentoId, p);
+}
+
+async function salvarEdicaoPagamento(clienteId, pagamentoId, original) {
+  const btn = document.getElementById("btnSalvarEditPagamento");
+  const novoValor = parseFloat(document.getElementById("mEditPagValor").value);
+  const novaDataStr = document.getElementById("mEditPagData").value;
+  const novaForma = document.getElementById("mEditPagForma").value;
+  const novaObs = document.getElementById("mEditPagObs").value.trim();
+
+  if (!novoValor || novoValor <= 0) { window.mostrarToast?.("Informe um valor válido.", "error"); return; }
+  if (!novaDataStr) { window.mostrarToast?.("Informe a data do pagamento.", "error"); return; }
+
+  btn.disabled = true; btn.textContent = "Salvando...";
+  try {
+    await updateDoc(doc(db, COL_PAGAMENTOS, pagamentoId), {
+      valor: novoValor,
+      dataPagamento: Timestamp.fromDate(new Date(novaDataStr + "T12:00:00")),
+      forma: novaForma,
+      observacoes: novaObs
+    });
+
+    const mudancas = [];
+    if (novoValor !== original.valor) mudancas.push(`Valor: ${formatarMoeda(original.valor)} → ${formatarMoeda(novoValor)}`);
+    const dataOriginalStr = _timestampParaDataStr(original.dataPagamento);
+    if (novaDataStr !== dataOriginalStr) mudancas.push(`Data: ${formatarDataLocal(original.dataPagamento)} → ${new Date(novaDataStr+"T12:00:00").toLocaleDateString("pt-BR")}`);
+    if (novaForma !== (original.forma || "")) mudancas.push(`Forma: ${original.forma || "—"} → ${novaForma}`);
+    if (novaObs !== (original.observacoes || "")) mudancas.push(`Observações alteradas`);
+
+    await _registrarHistorico("pagamento", "editado", clienteId, pagamentoId, novoValor,
+      mudancas.length ? mudancas.join(" · ") : "Sem alterações de valor");
+
+    fecharModal();
+    window.mostrarToast?.("Pagamento atualizado com sucesso!", "success");
+    abrirPainelCliente(clienteId);
+    carregarIndicadores();
+  } catch (err) {
+    console.error(err);
+    window.mostrarToast?.("Erro ao salvar as alterações.", "error");
+    btn.disabled = false; btn.textContent = "Salvar Alterações";
+  }
+}
+
 function confirmarExcluirCompra(compraId) {
   const body = `<div class="delete-warning"><strong>⚠️ Confirmar exclusão</strong>Esta compra será removida permanentemente.</div>`;
   const footer = `
@@ -2386,22 +2589,29 @@ async function excluirCompra(compraId) {
 
 // ── Impressão / Exportação ───────────────────────────────────
 async function imprimirCliente(clienteId) {
+  const win = window.open("", "_blank");
+  if (win) win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Gerando comprovante...</title></head><body style="font-family:Arial,sans-serif;padding:40px;text-align:center;color:#555">Gerando comprovante...</body></html>`);
+
   try {
     const [clienteSnap, comprasSnap, pagamentosSnap] = await Promise.all([
       getDoc(doc(db, COL_CLIENTES, clienteId)),
-      getDocs(query(collection(db, COL_COMPRAS), where("clienteId", "==", clienteId), orderBy("dataCompra", "desc"))),
-      getDocs(query(collection(db, COL_PAGAMENTOS), where("clienteId", "==", clienteId), orderBy("dataPagamento", "desc")))
+      getDocs(query(collection(db, COL_COMPRAS), where("clienteId", "==", clienteId))),
+      getDocs(query(collection(db, COL_PAGAMENTOS), where("clienteId", "==", clienteId)))
     ]);
     const cliente = clienteSnap.data();
     const hoje = new Date();
     let totalComprado = 0, totalPago = 0;
     const compras = [];
     comprasSnap.forEach(d => { const c={id:d.id,...d.data()}; totalComprado+=c.valor||0; compras.push(c); });
+    compras.sort((a, b) => _dataParaOrdenacao(b.dataCompra) - _dataParaOrdenacao(a.dataCompra));
     pagamentosSnap.forEach(d => { totalPago+=(d.data().valor||0); });
     const saldo = totalComprado - totalPago;
     const origem = window.location.origin;
 
-    const win = window.open("", "_blank");
+    if (!win) {
+      window.mostrarToast?.("O navegador bloqueou a janela do comprovante. Permita pop-ups para este site e tente novamente.", "error", 6000);
+      return;
+    }
     win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
       <meta charset="UTF-8"><title>Comprovante — ${cliente.nome}</title>
       <style>
@@ -2528,10 +2738,19 @@ async function imprimirCliente(clienteId) {
       <script>window.onload=()=>{window.print();}<\/script>
       </body></html>`);
     win.document.close();
-  } catch (err) { console.error(err); window.mostrarToast?.("Erro ao gerar impressão.", "error"); }
+  } catch (err) {
+    console.error(err);
+    win?.close?.();
+    window.mostrarToast?.("Erro ao gerar impressão.", "error");
+  }
 }
 
 async function imprimirRelatorio() {
+  const win = window.open("", "_blank");
+  if (!win) {
+    window.mostrarToast?.("O navegador bloqueou a janela do relatório. Permita pop-ups para este site e tente novamente.", "error", 6000);
+    return;
+  }
   try {
     const [clientesSnap, comprasSnap, pagamentosSnap] = await Promise.all([
       getDocs(query(collection(db, COL_CLIENTES), orderBy("nome"))),
@@ -2558,7 +2777,6 @@ async function imprimirRelatorio() {
       clientes.push({ ...data, totalC, totalP, saldo: totalC - totalP });
     });
 
-    const win = window.open("", "_blank");
     const origem = window.location.origin;
     const agora = new Date();
     const idDoc = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -2664,7 +2882,166 @@ async function imprimirRelatorio() {
       <script>window.onload=()=>{window.print();}<\/script>
       </body></html>`);
     win.document.close();
-  } catch (err) { console.error(err); window.mostrarToast?.("Erro ao gerar relatório.", "error"); }
+  } catch (err) {
+    console.error(err);
+    win?.close?.();
+    window.mostrarToast?.("Erro ao gerar relatório.", "error");
+  }
+}
+
+// ── Relatório de Inadimplência (devedores em atraso) ────────────
+async function imprimirRelatorioInadimplencia() {
+  const win = window.open("", "_blank");
+  if (!win) {
+    window.mostrarToast?.("O navegador bloqueou a janela do relatório. Permita pop-ups para este site e tente novamente.", "error", 6000);
+    return;
+  }
+  try {
+    const [clientesSnap, comprasSnap, pagamentosSnap] = await Promise.all([
+      getDocs(query(collection(db, COL_CLIENTES), orderBy("nome"))),
+      getDocs(collection(db, COL_COMPRAS)),
+      getDocs(collection(db, COL_PAGAMENTOS))
+    ]);
+
+    const hoje = new Date();
+    const comprasPorCliente = {};
+    comprasSnap.forEach(d => {
+      const c = d.data();
+      if (!comprasPorCliente[c.clienteId]) comprasPorCliente[c.clienteId] = [];
+      comprasPorCliente[c.clienteId].push(c);
+    });
+    const pagamentosPorCliente = {};
+    pagamentosSnap.forEach(d => {
+      const p = d.data();
+      pagamentosPorCliente[p.clienteId] = (pagamentosPorCliente[p.clienteId] || 0) + (p.valor || 0);
+    });
+
+    const devedores = [];
+    clientesSnap.forEach(d => {
+      const cliente = d.data();
+      const compras = comprasPorCliente[d.id] || [];
+      const totalComprado = compras.reduce((s, c) => s + (c.valor || 0), 0);
+      const totalPago = pagamentosPorCliente[d.id] || 0;
+      const saldo = Math.round((totalComprado - totalPago) * 100) / 100;
+      if (saldo <= 0.004) return;
+
+      // Vencimento mais antigo em aberto (define os dias de atraso)
+      let vencimentoMaisAntigo = null;
+      compras.forEach(c => {
+        if (!c.vencimento) return;
+        const venc = c.vencimento.toDate ? c.vencimento.toDate() : new Date(c.vencimento);
+        if (!vencimentoMaisAntigo || venc < vencimentoMaisAntigo) vencimentoMaisAntigo = venc;
+      });
+
+      const diasAtraso = vencimentoMaisAntigo
+        ? Math.floor((hoje - vencimentoMaisAntigo) / 86400000)
+        : null;
+
+      if (diasAtraso === null || diasAtraso <= 0) return; // só entra quem está de fato vencido
+
+      devedores.push({
+        nome: cliente.nome || "—",
+        telefone: cliente.telefone || "",
+        documento: cliente.documento || "",
+        saldo,
+        vencimentoMaisAntigo,
+        diasAtraso
+      });
+    });
+
+    devedores.sort((a, b) => b.diasAtraso - a.diasAtraso);
+
+    const totalDevido = devedores.reduce((s, d2) => s + d2.saldo, 0);
+    const origem = window.location.origin;
+    const agora = new Date();
+
+    const linhasHTML = devedores.map(d2 => `
+      <tr>
+        <td>${escHtml(d2.nome)}</td>
+        <td>${escHtml(d2.telefone || "—")}</td>
+        <td>${escHtml(d2.documento || "—")}</td>
+        <td style="color:#DC2626;font-weight:600">${formatarMoeda(d2.saldo)}</td>
+        <td>${d2.vencimentoMaisAntigo.toLocaleDateString("pt-BR")}</td>
+        <td style="color:${d2.diasAtraso > 30 ? "#DC2626" : "#B45309"};font-weight:600">${d2.diasAtraso} dia${d2.diasAtraso > 1 ? "s" : ""}</td>
+      </tr>`).join("");
+
+    win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head>
+      <meta charset="UTF-8"><title>Relatório de Inadimplência — Papelaria Futura</title>
+      <style>
+        * { box-sizing: border-box; }
+        body{font-family:Arial,Helvetica,sans-serif;font-size:13px;margin:0;padding:28px 32px;color:#1E1E1E;background:#fff}
+        .topo{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;border-bottom:1px solid #E2E8F0;padding-bottom:20px;margin-bottom:20px}
+        .empresa{display:flex;gap:14px;align-items:flex-start}
+        .empresa img{width:70px;height:70px;border-radius:14px;object-fit:cover}
+        .empresa h1{font-size:22px;margin:0 0 2px;color:#002D94;letter-spacing:.02em}
+        .empresa .subtitulo{font-size:13px;color:#475569;font-weight:bold;margin-bottom:8px}
+        .empresa .linha{font-size:11.5px;color:#334155;line-height:1.5}
+        .meta{font-size:12px;color:#475569;text-align:right}
+        .resumo{display:flex;gap:16px;margin-bottom:22px}
+        .box{flex:1;background:#F7F9FC;border-radius:10px;padding:14px 18px;text-align:center}
+        .box-label{font-size:10.5px;color:#64748B;text-transform:uppercase;letter-spacing:.03em;margin-bottom:6px}
+        .box-val{font-size:20px;font-weight:800}
+        table{width:100%;border-collapse:collapse;margin-bottom:22px}
+        th{background:#002D94;color:#fff;padding:9px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.02em}
+        td{padding:9px 12px;border-bottom:1px solid #EEF1F5;font-size:12px}
+        tr:last-child td{border-bottom:none}
+        .info-box{display:flex;gap:12px;align-items:flex-start;background:#F7F9FC;border-radius:10px;padding:14px 18px;margin-top:10px}
+        .info-box .ico{width:18px;height:18px;color:#118DFF;flex-shrink:0;margin-top:1px}
+        .info-box strong{display:block;font-size:12px;margin-bottom:2px}
+        .info-box span{font-size:11.5px;color:#475569}
+        .rodape{display:flex;justify-content:center;gap:22px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid #E2E8F0;font-size:11.5px;color:#334155}
+        @media print{body{padding:14px 18px}}
+      </style></head><body>
+
+      <div class="topo">
+        <div class="empresa">
+          <img src="${origem}/img/logo.png" alt="Papelaria Futura" onerror="this.style.display='none'" />
+          <div>
+            <h1>PAPELARIA FUTURA</h1>
+            <div class="subtitulo">RELATÓRIO DE INADIMPLÊNCIA</div>
+            <div class="linha">
+              <strong>Papelaria Futura LTDA</strong><br>
+              Av. Dr. Ézio Carneiro Qd.32 Lt.31/33 — Setor Aeroporto, Luziânia/GO<br>
+              <strong>CNPJ:</strong> 01.064.836/0001-12
+            </div>
+          </div>
+        </div>
+        <div class="meta">
+          Gerado em ${agora.toLocaleDateString("pt-BR")} ${agora.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}
+        </div>
+      </div>
+
+      <div class="resumo">
+        <div class="box"><div class="box-label">Clientes Inadimplentes</div><div class="box-val" style="color:#DC2626">${devedores.length}</div></div>
+        <div class="box"><div class="box-label">Total em Atraso</div><div class="box-val" style="color:#DC2626">${formatarMoeda(totalDevido)}</div></div>
+      </div>
+
+      <table>
+        <thead><tr><th>Cliente</th><th>Telefone</th><th>CPF/CNPJ</th><th>Valor Devido</th><th>Venc. mais antigo</th><th>Dias de Atraso</th></tr></thead>
+        <tbody>${linhasHTML || `<tr><td colspan="6" style="text-align:center;padding:20px;color:#64748B">Nenhum cliente inadimplente no momento. 🎉</td></tr>`}</tbody>
+      </table>
+
+      <div class="info-box">
+        <svg class="ico" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+        <div>
+          <strong>Informação</strong>
+          <span>Lista apenas clientes com pelo menos uma compra vencida e saldo em aberto. Este relatório não possui valor fiscal.</span>
+        </div>
+      </div>
+
+      <div class="rodape">
+        <span>📞 (61) 3621-4452</span>
+        <span>✉️ futuralza@gmail.com</span>
+      </div>
+
+      <script>window.onload=()=>{window.print();}<\/script>
+      </body></html>`);
+    win.document.close();
+  } catch (err) {
+    console.error(err);
+    win?.close?.();
+    window.mostrarToast?.("Erro ao gerar relatório de inadimplência.", "error");
+  }
 }
 
 async function exportarRelatorio() {
@@ -2969,7 +3346,7 @@ async function abrirModalHistoricoCliente(clienteId) {
       return db_ - da;
     });
 
-    const acaoLabel = { criado: "Criou", excluido: "Excluiu" };
+    const acaoLabel = { criado: "Criou", excluido: "Excluiu", editado: "Editou" };
     const tipoLabel = { compra: "Compra", pagamento: "Pagamento" };
 
     const html = registros.length === 0
@@ -3016,6 +3393,9 @@ function fecharModal() {
 
 // Pergunta ao usuário o que fazer com um comprovante recém-gerado.
 // Retorna uma Promise que resolve para "preview", "print" ou null (fechar sem fazer nada).
+// Retorna uma Promise que resolve para { modo, win } — a janela (win) já é
+// aberta de forma síncrona dentro do próprio clique do botão, senão o
+// navegador do celular bloqueia o pop-up por ele vir de um código assíncrono.
 function perguntarComprovante(mensagem) {
   return new Promise((resolve) => {
     const body = `<p style="color:var(--gray-600)">${mensagem}</p>`;
@@ -3028,15 +3408,17 @@ function perguntarComprovante(mensagem) {
 
     document.getElementById("btnComprovanteFechar")?.addEventListener("click", () => {
       fecharModal();
-      resolve(null);
+      resolve({ modo: null, win: null });
     });
     document.getElementById("btnComprovanteVisualizar")?.addEventListener("click", () => {
+      const win = window.open("", "_blank");
       fecharModal();
-      resolve("preview");
+      resolve({ modo: "preview", win });
     });
     document.getElementById("btnComprovanteImprimir")?.addEventListener("click", () => {
+      const win = window.open("", "_blank");
       fecharModal();
-      resolve("print");
+      resolve({ modo: "print", win });
     });
   });
 }
