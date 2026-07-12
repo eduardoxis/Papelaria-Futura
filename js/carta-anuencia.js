@@ -148,14 +148,17 @@ export async function abrirCartaAnuencia(clienteId) {
   try {
     const dados = await _buscarDadosCliente(clienteId);
 
-    // Verifica se já existe uma carta em rascunho para este cliente — se existir, reabre-a
+    // Verifica se já existe alguma carta (rascunho ou finalizada) para este cliente —
+    // se existir, reabre a mais recente pra continuar editando e manter o histórico
+    // de versões junto. Antes isso só buscava "rascunho", então reabrir uma carta que
+    // já tinha sido finalizada criava um documento novo do zero e perdia o histórico.
     const existentes = await getDocs(query(
       collection(db, COL_CARTAS),
-      where("clienteId", "==", clienteId),
-      where("status", "==", "rascunho")
+      where("clienteId", "==", clienteId)
     ));
 
     let cartaId = null;
+    let statusCarta = "rascunho";
     let conteudoHtml = null;
     let cabecalhoHtml = "";
     let rodapeHtml = "";
@@ -167,6 +170,7 @@ export async function abrirCartaAnuencia(clienteId) {
         return dbb - da;
       })[0];
       cartaId = docExistente.id;
+      statusCarta = docExistente.data().status || "rascunho";
       conteudoHtml = docExistente.data().conteudoHtml;
       cabecalhoHtml = docExistente.data().cabecalhoHtml || "";
       rodapeHtml = docExistente.data().rodapeHtml || "";
@@ -190,7 +194,7 @@ export async function abrirCartaAnuencia(clienteId) {
       cartaId = ref.id;
     }
 
-    _cartaAtual = { id: cartaId, clienteId, status: "rascunho", autoSaveTimer: null, sujo: false };
+    _cartaAtual = { id: cartaId, clienteId, status: statusCarta, autoSaveTimer: null, sujo: false };
     _montarEditor(dados, conteudoHtml, cabecalhoHtml, rodapeHtml);
   } catch (err) {
     console.error("Erro ao gerar carta de anuência:", err);
