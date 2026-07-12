@@ -691,7 +691,10 @@ async function _abrirHistoricoVersoes() {
                 <strong>${formatarDataLocal(v.data)} às ${(v.data?.toDate?.() || new Date()).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</strong>
                 <span>Por ${escHtml(v.usuarioNome || "—")} · ${v.status === "finalizada" ? "Finalizada" : "Rascunho"}</span>
               </div>
-              <button class="btn-secondary" data-versao-id="${v.id}" id="btnRestaurar_${v.id}">Restaurar</button>
+              <div class="ca-versao-acoes">
+                <button class="btn-ghost" data-versao-id="${v.id}" id="btnComparar_${v.id}">Comparar</button>
+                <button class="btn-secondary" data-versao-id="${v.id}" id="btnRestaurar_${v.id}">Restaurar</button>
+              </div>
             </li>`).join("")}
         </ul>`;
 
@@ -700,6 +703,7 @@ async function _abrirHistoricoVersoes() {
       modalEl.innerHTML = `<div class="form-usuario">${html}</div>`;
       versoes.forEach(v => {
         document.getElementById(`btnRestaurar_${v.id}`)?.addEventListener("click", () => _restaurarVersao(v));
+        document.getElementById(`btnComparar_${v.id}`)?.addEventListener("click", () => _abrirComparacaoVersao(v));
       });
     }
   } catch (err) {
@@ -707,6 +711,92 @@ async function _abrirHistoricoVersoes() {
     const modalEl = document.getElementById("modalBody");
     if (modalEl) modalEl.innerHTML = `<p style="color:var(--color-danger)">Erro ao carregar histórico de versões.</p>`;
   }
+}
+
+// ── Comparação lado a lado (estilo diff do GitHub) entre uma versão antiga e o texto atual ──
+function _extrairTextoParaDiff(html) {
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html || "";
+  // Insere quebra de linha entre blocos (parágrafos, divs) pra não grudar o texto todo numa linha só
+  tmp.querySelectorAll("p, div, br, li").forEach(el => el.insertAdjacentText("beforebegin", "\n"));
+  return (tmp.textContent || "").replace(/\n{2,}/g, "\n").split("\n").map(l => l.trim()).filter(Boolean);
+}
+
+// Diff palavra-a-palavra usando LCS (maior subsequência comum), como um diff de texto simples
+function _diffPalavras(a, b) {
+  const wa = a.split(/(\s+)/).filter(t => t !== "");
+  const wb = b.split(/(\s+)/).filter(t => t !== "");
+  const n = wa.length, m = wb.length;
+  const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i][j] = wa[i] === wb[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  let i = 0, j = 0;
+  const ops = [];
+  while (i < n && j < m) {
+    if (wa[i] === wb[j]) { ops.push({ tipo: "igual", texto: wa[i] }); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) { ops.push({ tipo: "del", texto: wa[i] }); i++; }
+    else { ops.push({ tipo: "add", texto: wb[j] }); j++; }
+  }
+  while (i < n) { ops.push({ tipo: "del", texto: wa[i] }); i++; }
+  while (j < m) { ops.push({ tipo: "add", texto: wb[j] }); j++; }
+  return ops;
+}
+
+function _abrirComparacaoVersao(versao) {
+  const linhasAntigas = _extrairTextoParaDiff(versao.conteudoHtml);
+  const linhasAtuais = _extrairTextoParaDiff(document.getElementById("caCorpo").innerHTML);
+
+  // Alinha linha a linha usando LCS também nas linhas (pra não misturar parágrafos diferentes),
+  // e dentro de cada par de linhas "trocadas" faz o diff palavra-a-palavra.
+  const n = linhasAntigas.length, m = linhasAtuais.length;
+  const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i][j] = linhasAntigas[i] === linhasAtuais[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  let i = 0, j = 0;
+  const linhasEsq = [], linhasDir = [];
+  while (i < n && j < m) {
+    if (linhasAntigas[i] === linhasAtuais[j]) {
+      linhasEsq.push({ tipo: "igual", html: escHtml(linhasAntigas[i]) });
+      linhasDir.push({ tipo: "igual", html: escHtml(linhasAtuais[j]) });
+      i++; j++;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      linhasEsq.push({ tipo: "removida", html: `<del>${escHtml(linhasAntigas[i])}</del>` });
+      i++;
+    } else {
+      linhasDir.push({ tipo: "adicionada", html: `<ins>${escHtml(linhasAtuais[j])}</ins>` });
+      j++;
+    }
+  }
+  while (i < n) { linhasEsq.push({ tipo: "removida", html: `<del>${escHtml(linhasAntigas[i])}</del>` }); i++; }
+  while (j < m) { linhasDir.push({ tipo: "adicionada", html: `<ins>${escHtml(linhasAtuais[j])}</ins>` }); j++; }
+
+  const renderLado = (linhas) => linhas.map(l =>
+    `<p class="ca-diff-linha ca-diff-linha--${l.tipo}">${l.html}</p>`
+  ).join("") || `<p class="ca-diff-linha" style="color:var(--gray-400)">(vazio)</p>`;
+
+  const body = `
+    <div class="ca-diff-wrap">
+      <div class="ca-diff-coluna">
+        <div class="ca-diff-coluna-titulo">Versão de ${formatarDataLocal(versao.data)}</div>
+        <div class="ca-diff-conteudo">${renderLado(linhasEsq)}</div>
+      </div>
+      <div class="ca-diff-coluna">
+        <div class="ca-diff-coluna-titulo">Versão Atual</div>
+        <div class="ca-diff-conteudo">${renderLado(linhasDir)}</div>
+      </div>
+    </div>`;
+  const footer = `
+    <button class="btn-ghost" onclick="window.fecharModal()">Fechar</button>
+    <button class="btn-primary" id="btnRestaurarDaComparacao">Restaurar esta versão</button>`;
+
+  window.abrirModal?.(`Comparar Versões`, body, footer, { tamanho: "lg" });
+  document.getElementById("btnRestaurarDaComparacao")?.addEventListener("click", () => _restaurarVersao(versao));
 }
 
 function _restaurarVersao(versao) {
