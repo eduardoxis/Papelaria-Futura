@@ -319,7 +319,17 @@ function _montarEditor(dadosCliente, conteudoHtml, cabecalhoHtml = "", rodapeHtm
           <button id="caBtnRegenerarVariaveis" type="button" class="ca-btn-primary">Recriar variáveis neste documento</button>
         </div>
         <div class="ca-painel-variaveis-lista">
-          ${CA_VARIAVEIS.map(v => `
+          ${CA_VARIAVEIS.map(v => v.key === "dataQuitacao" ? `
+            <div class="ca-var-campo">
+              <label for="caVar_dataQuitacao">${v.label}</label>
+              <div class="ca-data-mask-wrap">
+                <input type="text" id="caVar_dataQuitacao" data-var-key="dataQuitacao" placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric" autocomplete="off" />
+                <button type="button" id="caBtnCalDataQuitacao" class="ca-data-mask-btn-cal" title="Escolher no calendário">
+                  <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm10 7H4v7h12V9z" clip-rule="evenodd"/></svg>
+                </button>
+                <input type="date" id="caVar_dataQuitacao_nativo" class="ca-data-mask-nativo" tabindex="-1" autocomplete="off" />
+              </div>
+            </div>` : `
             <div class="ca-var-campo">
               <label for="caVar_${v.key}">${v.label}</label>
               <input type="text" id="caVar_${v.key}" data-var-key="${v.key}" autocomplete="off" />
@@ -411,6 +421,7 @@ function _ligarEventosEditor(dadosCliente) {
   document.getElementById("caBtnFecharVariaveis").addEventListener("click", () => _fecharPainelVariaveis());
   document.getElementById("caBtnRegenerarVariaveis").addEventListener("click", () => _regenerarVariaveisDocumentoAntigo(dadosCliente));
   CA_VARIAVEIS.forEach(v => {
+    if (v.key === "dataQuitacao") return; // tratado à parte, com máscara dd/mm/aaaa
     document.getElementById(`caVar_${v.key}`)?.addEventListener("input", (e) => {
       document.querySelectorAll(`.ca-corpo [data-var="${v.key}"], .ca-cabecalho [data-var="${v.key}"], .ca-rodape [data-var="${v.key}"]`)
         .forEach(el => { el.textContent = e.target.value; });
@@ -418,6 +429,7 @@ function _ligarEventosEditor(dadosCliente) {
       _atualizarContagemPaginas();
     });
   });
+  _ligarMascaraDataQuitacao();
 
   // Impressão / exportação
   document.getElementById("caBtnImprimir").addEventListener("click", () => _imprimirCarta());
@@ -530,6 +542,77 @@ async function _salvarCarta(novoStatus, mostrarFeedback) {
   } finally {
     if (mostrarFeedback) { btnRascunho.disabled = false; btnFinal.disabled = false; }
   }
+}
+
+// ── Máscara de data pro campo "Data da Quitação" (digitar dd/mm/aaaa OU escolher no calendário) ──
+function _formatarDigitosDataCA(digitos) {
+  let out = digitos.slice(0, 2);
+  if (digitos.length > 2) out += "/" + digitos.slice(2, 4);
+  if (digitos.length > 4) out += "/" + digitos.slice(4, 8);
+  return out;
+}
+
+function _validarDigitosDataCA(digitos) {
+  let raw = digitos;
+  if (raw.length >= 2) {
+    let dia = parseInt(raw.slice(0, 2), 10);
+    if (dia === 0) dia = 1;
+    if (dia > 31) dia = 31;
+    raw = String(dia).padStart(2, "0") + raw.slice(2);
+  }
+  if (raw.length >= 4) {
+    let mes = parseInt(raw.slice(2, 4), 10);
+    if (mes === 0) mes = 1;
+    if (mes > 12) mes = 12;
+    raw = raw.slice(0, 2) + String(mes).padStart(2, "0") + raw.slice(4);
+  }
+  if (raw.length >= 4) {
+    const dia = parseInt(raw.slice(0, 2), 10);
+    const mes = parseInt(raw.slice(2, 4), 10);
+    const ano = raw.length >= 8 ? parseInt(raw.slice(4, 8), 10) : new Date().getFullYear();
+    const diasNoMes = new Date(ano, mes, 0).getDate();
+    if (dia > diasNoMes) raw = String(diasNoMes).padStart(2, "0") + raw.slice(2);
+  }
+  return raw;
+}
+
+function _atualizarSpanDataQuitacao(texto) {
+  document.querySelectorAll(`.ca-corpo [data-var="dataQuitacao"], .ca-cabecalho [data-var="dataQuitacao"], .ca-rodape [data-var="dataQuitacao"]`)
+    .forEach(el => { el.textContent = texto; });
+  _marcarSujo();
+  _atualizarContagemPaginas();
+}
+
+function _ligarMascaraDataQuitacao() {
+  const texto = document.getElementById("caVar_dataQuitacao");
+  const nativo = document.getElementById("caVar_dataQuitacao_nativo");
+  const btnCal = document.getElementById("caBtnCalDataQuitacao");
+  if (!texto || !nativo || !btnCal) return;
+
+  texto.addEventListener("input", () => {
+    let digitos = texto.value.replace(/\D/g, "").slice(0, 8);
+    digitos = _validarDigitosDataCA(digitos);
+    texto.value = _formatarDigitosDataCA(digitos);
+    if (digitos.length === 8) {
+      const dia = digitos.slice(0, 2), mes = digitos.slice(2, 4), ano = digitos.slice(4, 8);
+      nativo.value = `${ano}-${mes}-${dia}`;
+    } else {
+      nativo.value = "";
+    }
+    _atualizarSpanDataQuitacao(texto.value || "___/___/______");
+  });
+
+  nativo.addEventListener("change", () => {
+    if (!nativo.value) return;
+    const [ano, mes, dia] = nativo.value.split("-");
+    texto.value = `${dia}/${mes}/${ano}`;
+    _atualizarSpanDataQuitacao(texto.value);
+  });
+
+  btnCal.addEventListener("click", () => {
+    if (typeof nativo.showPicker === "function") nativo.showPicker();
+    else nativo.click();
+  });
 }
 
 function _abrirPainelVariaveis() {
