@@ -15,6 +15,13 @@
       ]
     },
     {
+      "source": "/js/service-worker.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    },
+    {
       "source": "/js/(.*)",
       "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
     },
