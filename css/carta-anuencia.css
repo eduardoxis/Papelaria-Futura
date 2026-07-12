@@ -344,3 +344,41 @@
   #cartaAnuenciaOverlay { position: static; background: #fff; }
   .ca-pagina { box-shadow: none; width: 100%; min-height: 0; }
 }
+
+/* ── Campo de data com máscara (Data da Quitação): digitar dd/mm/aaaa OU calendário ── */
+.ca-data-mask-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.ca-data-mask-wrap input[type="text"] {
+  width: 100%;
+  padding-right: 34px;
+}
+.ca-data-mask-btn-cal {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-400);
+  cursor: pointer;
+}
+.ca-data-mask-btn-cal svg { width: 16px; height: 16px; }
+.ca-data-mask-btn-cal:hover { color: var(--blue-600); }
+.ca-var-campo input.ca-data-mask-nativo {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
