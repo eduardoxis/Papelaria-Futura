@@ -2444,7 +2444,7 @@ async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, f
     });
 
     const pagamentoAtual = linhas.find(l => l.id === pagamentoId);
-    const numeroPagamento = pagamentoAtual?.numero || `PGT-${pagamentoId.slice(-6).toUpperCase()}`;
+    const numeroPagamento = pagamentoAtual?.numero || (pagamentoId ? `PGT-${pagamentoId.slice(-6).toUpperCase()}` : "—");
     const agora = new Date();
     const historicoCompras    = fichaCompleta ? linhas.filter(l => l.tipo === "compra").slice().reverse().slice(0, 10) : [];
     const historicoPagamentos = fichaCompleta ? linhas.filter(l => l.tipo === "pagamento").slice().reverse().slice(0, 10) : [];
@@ -2522,7 +2522,7 @@ async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, f
           <img src="${origem}/img/logo.png" alt="Papelaria Futura" onerror="this.style.display='none'" />
           <div>
             <h1>PAPELARIA FUTURA</h1>
-            <div class="subtitulo">COMPROVANTE DE PAGAMENTO</div>
+            <div class="subtitulo">${fichaCompleta ? "FICHA COMPLETA DO CLIENTE" : "COMPROVANTE DE PAGAMENTO"}</div>
             <div class="linha">
               <strong>Livraria Papelaria Futura LTDA</strong><br>
               Av. Dr. Ézio Carneiro Qd.32 Lt.31/33 — Setor Aeroporto, Luziânia/GO<br>
@@ -2555,6 +2555,7 @@ async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, f
         </div>
       </div>
 
+      ${pagamentoId ? `
       <div class="resumo">
         <div class="box"><div class="box-label">Saldo Anterior</div><div class="box-val" style="color:${saldoAnterior>0?'#DC2626':'#059669'}">${formatarMoeda(Math.max(0,saldoAnterior))}</div></div>
         <div class="box"><div class="box-label">Valor Pago</div><div class="box-val" style="color:#059669">${formatarMoeda(valorPago)}</div></div>
@@ -2581,7 +2582,12 @@ async function imprimirComprovantePagamento(clienteId, pagamentoId, valorPago, f
             <div><span class="rotulo">Valor Pago</span><span class="valor" style="color:#059669">${formatarMoeda(valorPago)}</span></div>
           </div>
         </div>
-      </div>
+      </div>` : `
+      <div class="resumo">
+        <div class="box"><div class="box-label">Total Comprado</div><div class="box-val" style="color:#111">${formatarMoeda(totalComprado)}</div></div>
+        <div class="box"><div class="box-label">Total Pago</div><div class="box-val" style="color:#059669">${formatarMoeda(totalPago)}</div></div>
+        <div class="box"><div class="box-label">Saldo Devedor</div><div class="box-val" style="color:${(totalComprado-totalPago)>0?'#DC2626':'#059669'}">${formatarMoeda(Math.max(0,totalComprado-totalPago))}</div></div>
+      </div>`}
 
       ${fichaCompleta ? `
       <h3 class="secao">Dados da Compra (Convênio)</h3>
@@ -2869,16 +2875,15 @@ async function imprimirCliente(clienteId) {
     const pagamentos = [];
     pagamentosSnap.forEach(d => pagamentos.push({ id: d.id, ...d.data() }));
 
-    if (!pagamentos.length) {
-      window.mostrarToast?.("Este cliente ainda não possui nenhum pagamento registrado para imprimir.", "error");
-      return;
+    // Pega o pagamento mais recente, se existir — senão a ficha é gerada mesmo assim,
+    // só sem os "Detalhes do Pagamento" (não tem nenhum pagamento pra detalhar).
+    let ultimo = null;
+    if (pagamentos.length) {
+      pagamentos.sort((a, b) => _dataParaOrdenacao(b.dataPagamento) - _dataParaOrdenacao(a.dataPagamento));
+      ultimo = pagamentos[0];
     }
 
-    // Pega o pagamento mais recente
-    pagamentos.sort((a, b) => _dataParaOrdenacao(b.dataPagamento) - _dataParaOrdenacao(a.dataPagamento));
-    const ultimo = pagamentos[0];
-
-    await imprimirComprovantePagamento(clienteId, ultimo.id, ultimo.valor || 0, ultimo.forma || "", ultimo.observacoes || "", "print", null,
+    await imprimirComprovantePagamento(clienteId, ultimo?.id || null, ultimo?.valor || 0, ultimo?.forma || "", ultimo?.observacoes || "", "print", null,
       "FICHA COMPLETA DO CLIENTE (HISTÓRICO DE COMPRAS E PAGAMENTOS)", true);
   } catch (err) {
     console.error(err);
