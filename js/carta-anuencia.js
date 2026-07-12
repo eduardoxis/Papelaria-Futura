@@ -111,7 +111,7 @@ const CA_VARIAVEIS = [
 
 function _gerarModeloHtml({ cliente, totalComprado, totalPago, saldo, ultimaDataPagamento }, responsavelNome) {
   const numeroContrato = `PROM-${cliente.id.slice(-6).toUpperCase()}`;
-  const dataQuitacao = saldo <= 0 ? formatarDataExtenso(ultimaDataPagamento || new Date()) : "__/__/____";
+  const dataQuitacao = saldo <= 0 ? formatarDataExtenso(ultimaDataPagamento || new Date()) : "dd/mm/aaaa";
   const docTipo = cliente.tipo === "juridica" ? "CNPJ" : "CPF";
   const cidadeEmpresa = "Luziânia/GO";
   const hoje = formatarDataExtenso();
@@ -612,7 +612,7 @@ function _ligarMascaraDataQuitacao() {
     } else {
       nativo.value = "";
     }
-    _atualizarSpanDataQuitacao(texto.value || "__/__/____");
+    _atualizarSpanDataQuitacao(texto.value || "dd/mm/aaaa");
   });
 
   nativo.addEventListener("change", () => {
