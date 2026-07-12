@@ -749,8 +749,7 @@ function _abrirComparacaoVersao(versao) {
   const linhasAntigas = _extrairTextoParaDiff(versao.conteudoHtml);
   const linhasAtuais = _extrairTextoParaDiff(document.getElementById("caCorpo").innerHTML);
 
-  // Alinha linha a linha usando LCS também nas linhas (pra não misturar parágrafos diferentes),
-  // e dentro de cada par de linhas "trocadas" faz o diff palavra-a-palavra.
+  // Alinha linha a linha usando LCS também nas linhas (pra não misturar parágrafos diferentes)
   const n = linhasAntigas.length, m = linhasAtuais.length;
   const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
   for (let i = n - 1; i >= 0; i--) {
@@ -759,22 +758,61 @@ function _abrirComparacaoVersao(versao) {
     }
   }
   let i = 0, j = 0;
-  const linhasEsq = [], linhasDir = [];
+  // Monta uma sequência de operações em ordem: "igual" (linha idêntica) ou blocos
+  // consecutivos de "removida"/"adicionada" (linhas que saíram/entraram naquele trecho).
+  const passos = [];
   while (i < n && j < m) {
     if (linhasAntigas[i] === linhasAtuais[j]) {
-      linhasEsq.push({ tipo: "igual", html: escHtml(linhasAntigas[i]) });
-      linhasDir.push({ tipo: "igual", html: escHtml(linhasAtuais[j]) });
+      passos.push({ tipo: "igual", esq: linhasAntigas[i], dir: linhasAtuais[j] });
       i++; j++;
     } else if (dp[i + 1][j] >= dp[i][j + 1]) {
-      linhasEsq.push({ tipo: "removida", html: `<del>${escHtml(linhasAntigas[i])}</del>` });
+      passos.push({ tipo: "removida", texto: linhasAntigas[i] });
       i++;
     } else {
-      linhasDir.push({ tipo: "adicionada", html: `<ins>${escHtml(linhasAtuais[j])}</ins>` });
+      passos.push({ tipo: "adicionada", texto: linhasAtuais[j] });
       j++;
     }
   }
-  while (i < n) { linhasEsq.push({ tipo: "removida", html: `<del>${escHtml(linhasAntigas[i])}</del>` }); i++; }
-  while (j < m) { linhasDir.push({ tipo: "adicionada", html: `<ins>${escHtml(linhasAtuais[j])}</ins>` }); j++; }
+  while (i < n) { passos.push({ tipo: "removida", texto: linhasAntigas[i] }); i++; }
+  while (j < m) { passos.push({ tipo: "adicionada", texto: linhasAtuais[j] }); j++; }
+
+  // Agrupa blocos consecutivos de removidas + adicionadas: quando um trecho de linhas
+  // saiu e outro entrou no mesmo lugar, tratamos como "linhas editadas" e fazemos o
+  // diff palavra-a-palavra entre elas, em vez de marcar a linha inteira como trocada.
+  const linhasEsq = [], linhasDir = [];
+  let k = 0;
+  while (k < passos.length) {
+    const p = passos[k];
+    if (p.tipo === "igual") {
+      linhasEsq.push({ tipo: "igual", html: escHtml(p.esq) });
+      linhasDir.push({ tipo: "igual", html: escHtml(p.dir) });
+      k++;
+      continue;
+    }
+    // Coleta o bloco de removidas seguido do bloco de adicionadas (nessa ordem)
+    const removidas = [];
+    while (k < passos.length && passos[k].tipo === "removida") { removidas.push(passos[k].texto); k++; }
+    const adicionadas = [];
+    while (k < passos.length && passos[k].tipo === "adicionada") { adicionadas.push(passos[k].texto); k++; }
+
+    const pares = Math.min(removidas.length, adicionadas.length);
+    for (let p2 = 0; p2 < pares; p2++) {
+      const ops = _diffPalavras(removidas[p2], adicionadas[p2]);
+      const htmlEsq = ops.filter(o => o.tipo !== "add")
+        .map(o => o.tipo === "del" ? `<del>${escHtml(o.texto)}</del>` : escHtml(o.texto)).join("");
+      const htmlDir = ops.filter(o => o.tipo !== "del")
+        .map(o => o.tipo === "add" ? `<ins>${escHtml(o.texto)}</ins>` : escHtml(o.texto)).join("");
+      linhasEsq.push({ tipo: "editada", html: htmlEsq });
+      linhasDir.push({ tipo: "editada", html: htmlDir });
+    }
+    // Linhas removidas/adicionadas que sobraram sem par viram remoção/adição pura
+    for (let p2 = pares; p2 < removidas.length; p2++) {
+      linhasEsq.push({ tipo: "removida", html: `<del>${escHtml(removidas[p2])}</del>` });
+    }
+    for (let p2 = pares; p2 < adicionadas.length; p2++) {
+      linhasDir.push({ tipo: "adicionada", html: `<ins>${escHtml(adicionadas[p2])}</ins>` });
+    }
+  }
 
   const renderLado = (linhas) => linhas.map(l =>
     `<p class="ca-diff-linha ca-diff-linha--${l.tipo}">${l.html}</p>`
