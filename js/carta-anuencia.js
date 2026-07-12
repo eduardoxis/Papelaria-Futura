@@ -663,6 +663,12 @@ async function _abrirHistoricoVersoes() {
     window.mostrarToast?.("Salve a carta pelo menos uma vez antes de ver o histórico de versões.", "error");
     return;
   }
+
+  // Se tiver alteração pendente, salva agora (silencioso) pra já registrar a versão
+  // na hora, sem precisar esperar o auto-save ou sair do editor.
+  if (_cartaAtual.sujo) {
+    await _salvarCarta(_cartaAtual.status, false);
+  }
   const body = `<div class="loading-cell" style="padding:24px 0">Carregando versões...</div>`;
   const footer = `<button class="btn-ghost" onclick="window.fecharModal()">Fechar</button>`;
   window.abrirModal?.("Histórico de Versões", body, footer);
