@@ -3,7 +3,7 @@
 // ============================================================
 // Sobe a versão do cache sempre que alterar arquivos estáticos
 // para forçar os usuários a receberem a versão nova.
-const CACHE_VERSION = "pf-v3";
+const CACHE_VERSION = "pf-v4";
 const CACHE_NAME = `papelaria-futura-${CACHE_VERSION}`;
 
 const APP_SHELL = [
@@ -89,7 +89,10 @@ self.addEventListener("fetch", (event) => {
       caches.match(request).then((cached) => {
         const rede = fetch(request)
           .then((resposta) => {
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, resposta.clone()));
+            const copiaParaCache = resposta.clone();
+            caches.open(CACHE_NAME)
+              .then((cache) => cache.put(request, copiaParaCache))
+              .catch((err) => console.warn("Falha ao atualizar cache:", err));
             return resposta;
           })
           .catch(() => cached);
@@ -104,8 +107,14 @@ self.addEventListener("fetch", (event) => {
     caches.match(request).then((cached) => {
       const redeAtualizando = fetch(request)
         .then((resposta) => {
+          // Clona ANTES de qualquer outra coisa: o corpo de uma Response só pode
+          // ser lido uma vez, então o clone tem que ser a primeira coisa feita
+          // com ela, antes de devolvê-la pro navegador consumir.
           if (resposta && resposta.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, resposta.clone()));
+            const copiaParaCache = resposta.clone();
+            caches.open(CACHE_NAME)
+              .then((cache) => cache.put(request, copiaParaCache))
+              .catch((err) => console.warn("Falha ao atualizar cache:", err));
           }
           return resposta;
         })
