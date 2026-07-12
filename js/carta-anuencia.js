@@ -659,7 +659,10 @@ function _fecharPainelVariaveis() {
 
 // ── Histórico de versões ────────────────────────────────────
 async function _abrirHistoricoVersoes() {
-  if (!_cartaAtual.id) return;
+  if (!_cartaAtual.id) {
+    window.mostrarToast?.("Salve a carta pelo menos uma vez antes de ver o histórico de versões.", "error");
+    return;
+  }
   const body = `<div class="loading-cell" style="padding:24px 0">Carregando versões...</div>`;
   const footer = `<button class="btn-ghost" onclick="window.fecharModal()">Fechar</button>`;
   window.abrirModal?.("Histórico de Versões", body, footer);
