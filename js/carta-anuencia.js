@@ -111,7 +111,7 @@ const CA_VARIAVEIS = [
 
 function _gerarModeloHtml({ cliente, totalComprado, totalPago, saldo, ultimaDataPagamento }, responsavelNome) {
   const numeroContrato = `PROM-${cliente.id.slice(-6).toUpperCase()}`;
-  const dataQuitacao = saldo <= 0 ? formatarDataExtenso(ultimaDataPagamento || new Date()) : "___/___/______";
+  const dataQuitacao = saldo <= 0 ? formatarDataExtenso(ultimaDataPagamento || new Date()) : "__/__/____";
   const docTipo = cliente.tipo === "juridica" ? "CNPJ" : "CPF";
   const cidadeEmpresa = "Luziânia/GO";
   const hoje = formatarDataExtenso();
@@ -233,6 +233,10 @@ function _montarEditor(dadosCliente, conteudoHtml, cabecalhoHtml = "", rodapeHtm
       <button id="caBtnAssinatura" title="Inserir assinatura/carimbo">
         <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm5 7l-2.5 2.5L5 12l3-3 2 2 4-4 1.5 1.5L10 13l-1-2z"/></svg>
         Assinatura
+      </button>
+      <button id="caBtnResetar" title="Resetar documento para o modelo padrão">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+        Resetar
       </button>
       <button id="caBtnImprimir" title="Imprimir">
         <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a1 1 0 001 1h8a1 1 0 001-1v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a1 1 0 00-1-1H6a1 1 0 00-1 1zm2 0h6v3H7V4zm-1 9v-1h8v1H6zm8-4a1 1 0 11-2 0 1 1 0 012 0z" clip-rule="evenodd"/></svg>
@@ -407,6 +411,9 @@ function _ligarEventosEditor(dadosCliente) {
   });
   document.getElementById("caInputAssinatura").addEventListener("change", (e) => _inserirImagemArquivo(e.target.files[0], 220));
 
+  // Resetar documento para o modelo padrão (com confirmação)
+  document.getElementById("caBtnResetar").addEventListener("click", () => _confirmarResetarDocumento(dadosCliente));
+
   // Marcar como "sujo" (não salvo) em qualquer edição
   ["caCorpo", "caCabecalho", "caRodape"].forEach(id => {
     document.getElementById(id).addEventListener("input", () => {
@@ -551,8 +558,10 @@ async function _salvarCarta(novoStatus, mostrarFeedback) {
 // ── Máscara de data pro campo "Data da Quitação" (digitar dd/mm/aaaa OU escolher no calendário) ──
 function _formatarDigitosDataCA(digitos) {
   let out = digitos.slice(0, 2);
-  if (digitos.length > 2) out += "/" + digitos.slice(2, 4);
-  if (digitos.length > 4) out += "/" + digitos.slice(4, 8);
+  if (digitos.length >= 2) out += "/";
+  out += digitos.slice(2, 4);
+  if (digitos.length >= 4) out += "/";
+  out += digitos.slice(4, 8);
   return out;
 }
 
@@ -603,7 +612,7 @@ function _ligarMascaraDataQuitacao() {
     } else {
       nativo.value = "";
     }
-    _atualizarSpanDataQuitacao(texto.value || "___/___/______");
+    _atualizarSpanDataQuitacao(texto.value || "__/__/____");
   });
 
   nativo.addEventListener("change", () => {
@@ -659,6 +668,33 @@ function _regenerarVariaveisDocumentoAntigo(dadosCliente) {
 function _fecharPainelVariaveis() {
   const painel = document.getElementById("caPainelVariaveis");
   if (painel) painel.hidden = true;
+}
+
+// ── Resetar documento para o modelo padrão (com confirmação) ────────
+function _confirmarResetarDocumento(dadosCliente) {
+  const body = `<div class="delete-warning">
+    <strong>⚠️ Atenção!</strong> Isso vai apagar TODO o conteúdo atual do documento
+    (texto, imagens, cabeçalho e rodapé) e substituir pelo modelo padrão, preenchido
+    automaticamente com os dados do cliente. Essa ação não pode ser desfeita — a versão
+    atual (não salva) será perdida. Se você já salvou versões antes, elas continuam
+    disponíveis no Histórico de Versões.
+  </div>`;
+  const footer = `
+    <button class="btn-ghost" id="caBtnCancelarReset">Cancelar</button>
+    <button class="btn-danger" id="caBtnConfirmarReset">Resetar Documento</button>`;
+  window.abrirModal?.("Resetar Documento", body, footer);
+  document.getElementById("caBtnCancelarReset")?.addEventListener("click", () => window.fecharModal?.());
+  document.getElementById("caBtnConfirmarReset")?.addEventListener("click", () => _resetarDocumento(dadosCliente));
+}
+
+function _resetarDocumento(dadosCliente) {
+  document.getElementById("caCorpo").innerHTML = _gerarModeloHtml(dadosCliente, _dadosUsuario?.nome);
+  document.getElementById("caCabecalho").innerHTML = "";
+  document.getElementById("caRodape").innerHTML = "";
+  _marcarSujo();
+  _atualizarContagemPaginas();
+  window.fecharModal?.();
+  window.mostrarToast?.("Documento resetado para o modelo padrão. Salve para confirmar.", "success");
 }
 
 // ── Histórico de versões ────────────────────────────────────
