@@ -414,11 +414,14 @@ function _ligarEventosEditor(dadosCliente) {
   // Resetar documento para o modelo padrão (com confirmação)
   document.getElementById("caBtnResetar").addEventListener("click", () => _confirmarResetarDocumento(dadosCliente));
 
-  // Marcar como "sujo" (não salvo) em qualquer edição
+  // Marcar como "sujo" (não salvo) em qualquer edição + sincronizar edição
+  // direta no documento com o painel de variáveis (funciona nos dois sentidos)
   ["caCorpo", "caCabecalho", "caRodape"].forEach(id => {
-    document.getElementById(id).addEventListener("input", () => {
+    const host = document.getElementById(id);
+    host.addEventListener("input", () => {
       _marcarSujo();
       _atualizarContagemPaginas();
+      _sincronizarEdicaoDiretaDeVariavel(host);
     });
   });
   document.getElementById("caCorpo").addEventListener("keyup", _atualizarEstadoBotoes);
@@ -553,6 +556,52 @@ async function _salvarCarta(novoStatus, mostrarFeedback) {
   } finally {
     if (mostrarFeedback) { btnRascunho.disabled = false; btnFinal.disabled = false; }
   }
+}
+
+// Quando o usuário edita uma variável DIRETO no texto do documento (em vez de usar
+// o painel lateral), sincroniza esse valor de volta pro campo do painel e propaga
+// pras outras cópias da mesma variável (cabeçalho/corpo/rodapé). Pra "Data da
+// Quitação" especificamente, aplica a mesma máscara dd/mm/aaaa em tempo real.
+function _sincronizarEdicaoDiretaDeVariavel(host) {
+  const sel = window.getSelection();
+  if (!sel || !sel.anchorNode) return;
+  const node = sel.anchorNode.nodeType === 3 ? sel.anchorNode.parentElement : sel.anchorNode;
+  const span = node?.closest?.("[data-var]");
+  if (!span || !host.contains(span)) return;
+  const key = span.dataset.var;
+
+  if (key === "dataQuitacao") {
+    let digitos = (span.textContent || "").replace(/\D/g, "").slice(0, 8);
+    digitos = _validarDigitosDataCA(digitos);
+    const formatado = _formatarDigitosDataCA(digitos);
+
+    if (span.textContent !== formatado) {
+      span.textContent = formatado;
+      // Reposiciona o cursor no final do texto, já que reescrever o conteúdo
+      // da span move o cursor pro início
+      const range = document.createRange();
+      range.selectNodeContents(span);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+
+    const texto = document.getElementById("caVar_dataQuitacao");
+    const nativo = document.getElementById("caVar_dataQuitacao_nativo");
+    if (texto) texto.value = formatado;
+    if (nativo) nativo.value = digitos.length === 8 ? `${digitos.slice(4, 8)}-${digitos.slice(2, 4)}-${digitos.slice(0, 2)}` : "";
+
+    document.querySelectorAll(`.ca-corpo [data-var="dataQuitacao"], .ca-cabecalho [data-var="dataQuitacao"], .ca-rodape [data-var="dataQuitacao"]`)
+      .forEach(el => { if (el !== span) el.textContent = formatado; });
+    return;
+  }
+
+  // Demais variáveis: só propaga o texto digitado pro campo do painel e pras outras cópias
+  const valor = span.textContent || "";
+  const input = document.getElementById(`caVar_${key}`);
+  if (input) input.value = valor;
+  document.querySelectorAll(`.ca-corpo [data-var="${key}"], .ca-cabecalho [data-var="${key}"], .ca-rodape [data-var="${key}"]`)
+    .forEach(el => { if (el !== span) el.textContent = valor; });
 }
 
 // ── Máscara de data pro campo "Data da Quitação" (digitar dd/mm/aaaa OU escolher no calendário) ──
