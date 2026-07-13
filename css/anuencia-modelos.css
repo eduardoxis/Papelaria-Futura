@@ -1,0 +1,290 @@
+/* ============================================================
+   anuencia-modelos.css — "Modelos de Carta de Anuência"
+   Papelaria Futura
+============================================================ */
+
+/* ---------- Grid de cards de seleção ---------- */
+.modelos-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+  max-width: 900px;
+}
+
+@media (max-width: 720px) {
+  .modelos-grid { grid-template-columns: 1fr; }
+}
+
+.modelo-card {
+  background: var(--white);
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.modelo-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+
+.modelo-card__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-5);
+}
+.modelo-card__icon svg { width: 28px; height: 28px; }
+
+.modelo-card__icon--azul  { background: var(--blue-050); color: var(--blue-600); }
+.modelo-card__icon--cinza { background: var(--gray-100); color: var(--gray-600); }
+
+.modelo-card__title {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--gray-900);
+  margin: 0 0 var(--space-2);
+}
+
+.modelo-card__desc {
+  font-size: var(--text-sm);
+  color: var(--gray-600);
+  line-height: 1.6;
+  margin: 0 0 var(--space-6);
+  flex: 1;
+}
+
+.modelo-card__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.modelo-card__btn svg { width: 16px; height: 16px; }
+
+/* ============================================================
+   EDITOR — modal de tela cheia com toolbar + folha A4
+============================================================ */
+.anmod-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(3px);
+  z-index: var(--z-modal);
+  display: flex;
+  flex-direction: column;
+  animation: fade-in 0.2s ease;
+}
+
+.anmod-topbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  background: var(--white);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--gray-200);
+  box-shadow: var(--shadow-sm);
+}
+
+.anmod-topbar__titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-base);
+  color: var(--gray-900);
+}
+.anmod-topbar__titulo svg { width: 20px; height: 20px; color: var(--blue-600); flex-shrink: 0; }
+
+.anmod-topbar__acoes { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+
+.anmod-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--gray-200);
+  background: var(--white);
+  color: var(--gray-700);
+  transition: all var(--duration-fast) ease;
+}
+.anmod-btn:hover { background: var(--gray-050); border-color: var(--gray-300); }
+.anmod-btn svg { width: 15px; height: 15px; }
+
+.anmod-btn--primary {
+  background: var(--blue-600);
+  border-color: var(--blue-600);
+  color: var(--white);
+}
+.anmod-btn--primary:hover { background: var(--blue-700); }
+
+.anmod-btn--ghost {
+  border-color: transparent;
+  background: transparent;
+}
+.anmod-btn--ghost:hover { background: var(--gray-100); }
+
+/* ---------- Toolbar de formatação ---------- */
+.anmod-toolbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-5);
+  background: var(--gray-050);
+  border-bottom: 1px solid var(--gray-200);
+  flex-wrap: wrap;
+}
+
+.anmod-toolbar__grupo {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+}
+
+.anmod-toolbar__btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  color: var(--gray-700);
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+  transition: all var(--duration-fast) ease;
+}
+.anmod-toolbar__btn:hover  { background: var(--gray-100); }
+.anmod-toolbar__btn.ativo  { background: var(--blue-600); color: var(--white); }
+.anmod-toolbar__btn svg    { width: 15px; height: 15px; }
+
+.anmod-toolbar__select {
+  height: 30px;
+  border: none;
+  background: transparent;
+  font-size: var(--text-sm);
+  color: var(--gray-700);
+  padding: 0 6px;
+  cursor: pointer;
+}
+
+/* ---------- Área de rolagem com a folha ---------- */
+.anmod-canvas {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-8) var(--space-4);
+  display: flex;
+  justify-content: center;
+}
+
+.anmod-folha {
+  background: var(--white);
+  width: 100%;
+  max-width: 794px;   /* ~ A4 a 96dpi */
+  min-height: 1123px; /* ~ A4 a 96dpi */
+  box-shadow: var(--shadow-xl);
+  padding: 72px 64px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 14px;
+  line-height: 1.8;
+  color: #1a1a1a;
+  outline: none;
+}
+
+.anmod-folha:focus { outline: none; }
+
+.anmod-folha h1, .anmod-folha h2 {
+  font-family: var(--font-display), Georgia, serif;
+  text-align: center;
+  color: #111;
+  margin: 0 0 28px;
+  letter-spacing: 0.03em;
+}
+.anmod-folha h1 { font-size: 20px; }
+
+.anmod-folha p { margin: 0 0 16px; }
+
+.anmod-var {
+  background: var(--blue-050);
+  border-bottom: 1.5px dashed var(--blue-400);
+  padding: 1px 4px;
+  border-radius: 3px;
+  color: var(--blue-700);
+  font-weight: 600;
+  cursor: text;
+}
+.anmod-var:hover  { background: var(--blue-100); }
+.anmod-var:empty::before {
+  content: attr(data-placeholder);
+  color: var(--gray-400);
+  font-weight: 400;
+  font-style: italic;
+}
+
+.anmod-assinaturas {
+  margin-top: 64px;
+  display: flex;
+  justify-content: space-between;
+  gap: 40px;
+}
+.anmod-assinatura {
+  flex: 1;
+  text-align: center;
+}
+.anmod-assinatura .linha {
+  border-top: 1px solid #333;
+  margin-bottom: 6px;
+}
+.anmod-assinatura .rotulo {
+  font-family: var(--font-display), sans-serif;
+  font-size: 11px;
+  color: #555;
+}
+
+/* ---------- Rodapé com dica ---------- */
+.anmod-dica {
+  flex-shrink: 0;
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+  padding: var(--space-2);
+  background: var(--white);
+  border-top: 1px solid var(--gray-100);
+}
+
+/* ---------- Responsivo mobile ---------- */
+@media (max-width: 720px) {
+  .anmod-topbar { flex-wrap: wrap; }
+  .anmod-topbar__acoes { width: 100%; justify-content: flex-end; }
+  .anmod-folha { padding: 36px 24px; }
+  .anmod-canvas { padding: var(--space-4) var(--space-2); }
+}
+
+/* ---------- Impressão (janela dedicada usa seu próprio HTML;
+   isto cobre o caso de impressão direto do modal, se usado) ---------- */
+@media print {
+  .anmod-topbar, .anmod-toolbar, .anmod-dica, .anmod-backdrop::before { display: none !important; }
+  .anmod-canvas { padding: 0; overflow: visible; }
+  .anmod-folha { box-shadow: none; max-width: none; min-height: 0; }
+}
