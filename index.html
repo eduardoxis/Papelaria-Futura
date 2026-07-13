@@ -27,6 +27,7 @@
   <link rel="stylesheet" href="css/produtos.css" />
   <link rel="stylesheet" href="css/promissoria.css" />
   <link rel="stylesheet" href="css/carta-anuencia.css" />
+  <link rel="stylesheet" href="css/anuencia-modelos.css" />
   <link rel="stylesheet" href="css/clientes.css" />
   <link rel="stylesheet" href="css/mobile.css" />
 </head>
@@ -99,6 +100,12 @@
         <a href="#" class="nav-item" data-page="admin">
           <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
           Administração
+        </a>
+      </li>
+      <li>
+        <a href="#" class="nav-item" data-page="modelos-anuencia">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 000 2h.01a1 1 0 100-2H6zm3 0a1 1 0 100 2h5a1 1 0 100-2H9zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H6zm3 0a1 1 0 100 2h5a1 1 0 100-2H9z" clip-rule="evenodd"/></svg>
+          Modelos de Carta de Anuência
         </a>
       </li>
       <li class="nav-item-admin" hidden>
@@ -1384,6 +1391,46 @@
     </section>
 
     <!-- ======================================================== -->
+    <!-- PÁGINA: MODELOS DE CARTA DE ANUÊNCIA                      -->
+    <!-- ======================================================== -->
+    <section id="page-modelos-anuencia" class="page" aria-label="Modelos de Carta de Anuência" hidden>
+
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">Modelos de Carta de Anuência</h2>
+          <p class="page-subtitle">Escolha um modelo pra começar — edite, visualize e exporte em PDF.</p>
+        </div>
+      </div>
+
+      <div class="modelos-grid">
+        <div class="modelo-card">
+          <div class="modelo-card__icon modelo-card__icon--azul">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 000 2h.01a1 1 0 100-2H6zm3 0a1 1 0 100 2h5a1 1 0 100-2H9zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H6zm3 0a1 1 0 100 2h5a1 1 0 100-2H9z" clip-rule="evenodd"/></svg>
+          </div>
+          <h3 class="modelo-card__title">Modelo Padrão</h3>
+          <p class="modelo-card__desc">Carta de anuência já preenchida com uma estrutura profissional completa. Edite apenas os campos destacados (nome, CPF/CNPJ, endereço, valores e datas).</p>
+          <button class="btn-primary modelo-card__btn" data-modelo="padrao">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
+            Utilizar Modelo
+          </button>
+        </div>
+
+        <div class="modelo-card">
+          <div class="modelo-card__icon modelo-card__icon--cinza">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
+          </div>
+          <h3 class="modelo-card__title">Modelo em Branco</h3>
+          <p class="modelo-card__desc">Apenas a estrutura do documento, sem nenhum dado preenchido. Ideal quando você quer digitar tudo manualmente do zero.</p>
+          <button class="btn-secondary modelo-card__btn" data-modelo="branco">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 000 2h.01a1 1 0 100-2H6zm3 0a1 1 0 100 2h5a1 1 0 100-2H9zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H6zm3 0a1 1 0 100 2h5a1 1 0 100-2H9z" clip-rule="evenodd"/></svg>
+            Utilizar Modelo
+          </button>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ======================================================== -->
     <!-- PÁGINA: ADMINISTRAÇÃO                                     -->
     <!-- ======================================================== -->
     <section id="page-admin" class="page" aria-label="Administração" hidden>
@@ -1827,6 +1874,7 @@
   import { iniciarServicos }             from "./js/servicos.js";
   import { iniciarPromissoria }          from "./js/promissoria.js";
   import { iniciarCartaAnuencia }        from "./js/carta-anuencia.js";
+  import { iniciarAnuenciaModelos }      from "./js/anuencia-modelos.js";
   import { iniciarNotificacoes }         from "./js/notificacoes.js";
 
   // ----------------------------------------------------------------
@@ -1870,6 +1918,7 @@
     if (isAdmin) iniciarServicos(usuario, dadosUsuario);
     if (isAdmin) iniciarPromissoria(usuario, dadosUsuario);
     if (isAdmin) iniciarCartaAnuencia(usuario, dadosUsuario);
+    iniciarAnuenciaModelos(usuario, dadosUsuario);
     iniciarNotificacoes();
 
     // Navegação
@@ -1894,7 +1943,8 @@
       "estoque":       "Produtos / Estoque",
       "servicos":      "Serviços Personalizados",
       "admin":         "Administração",
-      "promissoria":   "Promissórias"
+      "promissoria":   "Promissórias",
+      "modelos-anuencia": "Modelos de Carta de Anuência"
     };
 
     function navegar(pageId) {
