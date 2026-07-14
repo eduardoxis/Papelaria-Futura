@@ -26,6 +26,7 @@
   <link rel="stylesheet" href="css/comissao.css" />
   <link rel="stylesheet" href="css/produtos.css" />
   <link rel="stylesheet" href="css/promissoria.css" />
+  <link rel="stylesheet" href="css/entregas.css" />
   <link rel="stylesheet" href="css/carta-anuencia.css" />
   <link rel="stylesheet" href="css/anuencia-modelos.css" />
   <link rel="stylesheet" href="css/clientes.css" />
@@ -82,6 +83,12 @@
         <a href="#" class="nav-item" data-page="comissao">
           <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V8z" clip-rule="evenodd"/></svg>
           Comissão
+        </a>
+      </li>
+      <li>
+        <a href="#" class="nav-item" data-page="entregas">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/><path d="M3 4a1 1 0 000 2v7a2 2 0 002 2h.05a2.5 2.5 0 014.9 0h1.1a2.5 2.5 0 014.9 0H16a1 1 0 001-1v-2.586a1 1 0 00-.293-.707l-2.414-2.414A1 1 0 0013.586 6H12V4H3z"/></svg>
+          Controle de Entregas
         </a>
       </li>
       <li class="nav-item-admin" hidden>
@@ -829,6 +836,146 @@
                 </tr>
               </tfoot>
             </table>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- PÁGINA: CONTROLE DE ENTREGAS                              -->
+    <!-- ======================================================== -->
+    <section id="page-entregas" class="page" aria-label="Controle de Entregas" hidden>
+
+      <!-- Mobile page header -->
+      <div class="mobile-page-header">
+        <h2>Controle de Entregas</h2>
+      </div>
+
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">Controle de Entregas</h2>
+          <p class="page-subtitle">Acompanhe as entregas realizadas aos clientes</p>
+        </div>
+        <button class="btn-primary" id="btnNovaEntrega">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+          Nova Entrega
+        </button>
+      </div>
+
+      <!-- Cards de estatísticas -->
+      <div class="stats-grid">
+        <div class="stat-card stat-card--blue">
+          <div class="stat-card__icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 4a1 1 0 000 2v7a2 2 0 002 2h.05a2.5 2.5 0 014.9 0h1.1a2.5 2.5 0 014.9 0H16a1 1 0 001-1v-2.586a1 1 0 00-.293-.707l-2.414-2.414A1 1 0 0013.586 6H12V4H3z"/></svg>
+          </div>
+          <div class="stat-card__body">
+            <span class="stat-card__label">Total de Entregas</span>
+            <strong class="stat-card__value" id="statEntTotal">—</strong>
+          </div>
+        </div>
+        <div class="stat-card stat-card--green">
+          <div class="stat-card__icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+          </div>
+          <div class="stat-card__body">
+            <span class="stat-card__label">Realizadas Hoje</span>
+            <strong class="stat-card__value" id="statEntHoje">—</strong>
+          </div>
+        </div>
+        <div class="stat-card stat-card--purple">
+          <div class="stat-card__icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>
+          </div>
+          <div class="stat-card__body">
+            <span class="stat-card__label">Entregas no Mês</span>
+            <strong class="stat-card__value" id="statEntMes">—</strong>
+          </div>
+        </div>
+        <div class="stat-card stat-card--gold">
+          <div class="stat-card__icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+          </div>
+          <div class="stat-card__body">
+            <span class="stat-card__label">Clientes Atendidos</span>
+            <strong class="stat-card__value" id="statEntClientes">—</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Busca por cliente e por local -->
+      <div class="filter-bar">
+        <div class="filter-search">
+          <svg class="filter-search-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+          <input type="text" class="filter-input" id="entFiltroCliente" placeholder="Buscar por cliente..." autocomplete="off" />
+        </div>
+        <div class="filter-search">
+          <svg class="filter-search-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+          <input type="text" class="filter-input" id="entFiltroLocal" placeholder="Buscar por local..." autocomplete="off" />
+        </div>
+        <button class="btn-secondary" id="btnBuscarEntregas">Buscar</button>
+        <button class="btn-ghost" id="btnLimparBuscaEntregas">Limpar</button>
+      </div>
+
+      <!-- Filtro por período + ordenação + exportação -->
+      <div class="filter-bar">
+        <div class="filter-periodo">
+          <label class="field-label" style="white-space:nowrap">Data inicial</label>
+          <input type="date" class="filter-input filter-input--date" id="entFiltroDataInicio" autocomplete="off" />
+        </div>
+        <div class="filter-periodo">
+          <label class="field-label" style="white-space:nowrap">Data final</label>
+          <input type="date" class="filter-input filter-input--date" id="entFiltroDataFim" autocomplete="off" />
+        </div>
+        <button class="btn-secondary" id="btnAplicarFiltroDataEntregas">Filtrar</button>
+        <button class="btn-ghost" id="btnLimparFiltroDataEntregas">Limpar</button>
+
+        <div class="ent-toolbar-extra" style="margin-left:auto">
+          <button class="btn-ghost ent-btn-ordenar" id="btnOrdenarDataEntregas" title="Alternar ordenação por data">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 000 2h11a1 1 0 100-2H3zm0 4a1 1 0 000 2h7a1 1 0 100-2H3zm0 4a1 1 0 100 2h4a1 1 0 100-2H3zm12-5a1 1 0 011 1v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 111.414-1.414L14 14.586V7a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+            <span class="ent-ordem-label">Data (mais recentes)</span>
+          </button>
+          <button class="btn-secondary" id="btnEntregasPdf">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM9 3a1 1 0 012 0v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3z" clip-rule="evenodd"/></svg>
+            PDF
+          </button>
+          <button class="btn-secondary" id="btnEntregasExcel">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM9 3a1 1 0 012 0v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3z" clip-rule="evenodd"/></svg>
+            Excel
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data-table" id="tabelaEntregas">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Local</th>
+                <th>Data</th>
+                <th>Horário de Saída</th>
+                <th>Horário de Chegada</th>
+                <th class="col-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyEntregas">
+              <tr><td colspan="6" class="loading-cell">Carregando entregas...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="prod-paginacao" id="entPaginacao" hidden>
+          <span class="prod-paginacao-info" id="entPaginacaoInfo">—</span>
+          <div class="prod-paginacao-botoes">
+            <button class="btn-ghost" id="btnEntPaginaAnterior">
+              <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              Anterior
+            </button>
+            <span class="prod-paginacao-pagina" id="entPaginacaoPagina">Página 1</span>
+            <button class="btn-ghost" id="btnEntPaginaProxima">
+              Próxima
+              <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+            </button>
           </div>
         </div>
       </div>
@@ -1869,6 +2016,7 @@
   import { iniciarCotacao }              from "./js/cotacao.js";
   import { iniciarAdmin }                from "./js/admin.js";
   import { iniciarComissao }             from "./js/comissao.js";
+  import { iniciarEntregas }             from "./js/entregas.js";
   import { iniciarCaixa }                from "./js/caixa.js";
   import { iniciarProdutos }             from "./js/produtos.js";
   import { iniciarServicos }             from "./js/servicos.js";
@@ -1913,6 +2061,7 @@
     iniciarCotacao(usuario, dadosUsuario);
     iniciarAdmin(usuario, dadosUsuario);
     iniciarComissao(usuario, dadosUsuario);
+    iniciarEntregas(usuario, dadosUsuario);
     iniciarCaixa(usuario, dadosUsuario);
     if (isAdmin) iniciarProdutos(usuario, dadosUsuario);
     if (isAdmin) iniciarServicos(usuario, dadosUsuario);
@@ -1940,6 +2089,7 @@
       "nova-cotacao":  "Nova Cotação",
       "caixa":         "Caixa",
       "comissao":      "Comissão",
+      "entregas":      "Controle de Entregas",
       "estoque":       "Produtos / Estoque",
       "servicos":      "Serviços Personalizados",
       "admin":         "Administração",
