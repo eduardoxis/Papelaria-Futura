@@ -42,6 +42,12 @@ service cloud.firestore {
         allow delete: if estaAutenticado();
       }
     }
+    match /entregas/{entregaId} {
+      allow read:   if estaAutenticado();
+      allow create: if estaAutenticado();
+      allow update: if estaAutenticado();
+      allow delete: if estaAutenticado();
+    }
     // ── Produtos / Estoque — leitura liberada p/ o Caixa (PDV),
     //     escrita de estoque também liberada p/ dar baixa nas vendas.
     //     Cadastro/edição completa do módulo Estoque continua admin.
