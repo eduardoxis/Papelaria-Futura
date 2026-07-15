@@ -16,12 +16,12 @@ import {
   buscarConfigComissaoCriador, salvarConfigComissaoCriador,
   listarCotacoesAprovadas, marcarComissaoCriadorPaga, marcarCotacaoPagaLoja,
   buscarConfigLembreteCotacao, salvarConfigLembreteCotacao,
-  exportarExcelMultiplasAbas, buscarUltimoBackup, salvarUltimoBackup
+  exportarExcelMultiplasAbas, exportarExcel, buscarUltimoBackup, salvarUltimoBackup
 } from "./database.js";
 import { cargosDoUsuario, temCargo } from "./auth.js";
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
-import { gerarPdfFechamentoCaixa } from "./pdf.js";
+import { gerarPdfFechamentoCaixa, gerarPdfComissaoCriador } from "./pdf.js";
 
 let _dadosUsuario = null;
 
@@ -127,6 +127,21 @@ export function iniciarAdmin(usuario, dadosUsuario) {
     if (btnPagoLoja) {
       alternarPagoLoja(btnPagoLoja.dataset.id, btnPagoLoja.dataset.pago === "true");
     }
+  });
+  document.getElementById("ccgStatusTabs")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-status]");
+    if (!btn) return;
+    _ccgFiltroStatus = btn.dataset.status;
+    document.querySelectorAll("#ccgStatusTabs [data-status]").forEach(b => {
+      b.classList.toggle("caixa-relatorio-tab--ativa", b === btn);
+    });
+    renderTabelaComissaoCriador(document.getElementById("filtroBuscaComissaoCriador")?.value.trim());
+  });
+  document.getElementById("btnExportarComissaoCriadorPDF")?.addEventListener("click", () => {
+    exportarComissaoCriador("pdf");
+  });
+  document.getElementById("btnExportarComissaoCriadorExcel")?.addEventListener("click", () => {
+    exportarComissaoCriador("excel");
   });
 }
 
@@ -841,6 +856,13 @@ async function carregarComissaoCriador() {
 
   _todasCotacoesAprovadasCache = resCotacoes.sucesso ? resCotacoes.cotacoes : [];
 
+  _ccgFiltroStatus = "todas";
+  document.querySelectorAll("#ccgStatusTabs [data-status]").forEach(b => {
+    b.classList.toggle("caixa-relatorio-tab--ativa", b.dataset.status === "todas");
+  });
+  const inputBusca = document.getElementById("filtroBuscaComissaoCriador");
+  if (inputBusca) inputBusca.value = "";
+
   renderStatsComissaoCriador();
   renderTabelaComissaoCriador();
 }
@@ -898,17 +920,32 @@ function renderTabelaComissaoCriador(termoBusca = "") {
   const tbody = document.getElementById("tbodyComissaoCriador");
   if (!tbody) return;
 
-  const termo = termoBusca.trim().toLowerCase();
-  const cotacoes = termo
-    ? _todasCotacoesAprovadasCache.filter(c => (c.cliente || "").toLowerCase().includes(termo))
-    : _todasCotacoesAprovadasCache;
+  const cotacoes = obterCotacoesComissaoCriadorFiltradas(termoBusca);
 
   if (cotacoes.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="empty-cell">Nenhuma cotação aprovada encontrada.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-cell">Nenhuma cotação encontrada para este filtro.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = cotacoes.map(linhaComissaoCriadorHtml).join("");
+}
+
+// Aplica busca por cliente + filtro de aba (todas / pagas / não pagas),
+// considerando o pagamento da COMISSÃO (comissaoCriadorPaga), que é o que
+// as abas "Pagas"/"Não Pagas" representam.
+function obterCotacoesComissaoCriadorFiltradas(termoBusca = "") {
+  const termo = (termoBusca || "").trim().toLowerCase();
+  let cotacoes = termo
+    ? _todasCotacoesAprovadasCache.filter(c => (c.cliente || "").toLowerCase().includes(termo))
+    : _todasCotacoesAprovadasCache;
+
+  if (_ccgFiltroStatus === "pagas") {
+    cotacoes = cotacoes.filter(c => !!c.comissaoCriadorPaga);
+  } else if (_ccgFiltroStatus === "naopagas") {
+    cotacoes = cotacoes.filter(c => !c.comissaoCriadorPaga);
+  }
+
+  return cotacoes;
 }
 
 function linhaComissaoCriadorHtml(c) {
@@ -971,6 +1008,50 @@ async function alternarPagamentoComissao(cotacaoId, novoPago) {
   window.mostrarToast?.(novoPago ? "Marcada como paga!" : "Marcada como pendente.", "success");
   renderStatsComissaoCriador();
   renderTabelaComissaoCriador(document.getElementById("filtroBuscaComissaoCriador")?.value.trim());
+}
+
+// Rótulo legível da aba ativa, usado no título do PDF/nome do arquivo
+function rotuloStatusComissaoCriador() {
+  if (_ccgFiltroStatus === "pagas") return "Pagas";
+  if (_ccgFiltroStatus === "naopagas") return "Não Pagas";
+  return "Todas Ganhas";
+}
+
+// Exporta (PDF ou Excel) exatamente o que está sendo exibido na aba/busca
+// atual do painel de Comissão por Cotação Ganhada.
+function exportarComissaoCriador(formato) {
+  const termo = document.getElementById("filtroBuscaComissaoCriador")?.value.trim() || "";
+  const cotacoes = obterCotacoesComissaoCriadorFiltradas(termo);
+
+  if (cotacoes.length === 0) {
+    window.mostrarToast?.("Não há cotações para exportar nesse filtro.", "warning");
+    return;
+  }
+
+  const pct = _percentualComissaoCriador / 100;
+  const rotulo = rotuloStatusComissaoCriador();
+
+  if (formato === "pdf") {
+    gerarPdfComissaoCriador(cotacoes, _percentualComissaoCriador, rotulo);
+  } else {
+    const linhas = [
+      ["Comissão por Cotação Ganhada", `Aba: ${rotulo}`],
+      [],
+      ["Cliente", "Data", "Valor da Cotação", "Cotação Paga (Loja)", "Comissão", "Pagamento Comissão"],
+      ...cotacoes.map(c => [
+        c.cliente || "—",
+        formatarData(c.dataCriacao),
+        Number(c.valorTotal) || 0,
+        c.pagoLoja ? "Paga" : "Pendente",
+        (Number(c.valorTotal) || 0) * pct,
+        c.comissaoCriadorPaga ? "Paga" : "Pendente"
+      ])
+    ];
+    const nomeArquivo = `Comissao_Cotacoes_${rotulo.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.xlsx`;
+    const ok = exportarExcel(nomeArquivo, linhas);
+    if (ok) window.mostrarToast?.("Excel gerado com sucesso!", "success");
+    else window.mostrarToast?.("Erro ao gerar Excel. Tente novamente.", "error");
+  }
 }
 
 // ================================================================
@@ -1151,6 +1232,7 @@ let _chartVendasDias = null;
 let _comissaoCriadorCarregado = false;
 let _todasCotacoesAprovadasCache = [];
 let _percentualComissaoCriador = 0;
+let _ccgFiltroStatus = "todas"; // "todas" | "pagas" | "naopagas"
 
 async function carregarVendas(termoBusca = "") {
   const tbody = document.getElementById("tbodyVendas");
