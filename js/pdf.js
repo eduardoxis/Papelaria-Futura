@@ -572,8 +572,99 @@ export async function gerarPDF(cotacao) {
 }
 
 // ============================================================
-// PDF — Fechamento de Caixa (relatório geral ou por vendedor)
+// PDF — Comissão por Cotação Ganhada (painel do criador)
+// Exporta exatamente a lista já filtrada (aba Todas/Pagas/Não Pagas
+// + busca por cliente) recebida do admin.js.
 // ============================================================
+export function gerarPdfComissaoCriador(cotacoes, percentual, rotuloStatus = "Todas Ganhas") {
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+
+    const MX = 14;
+    const pct = (Number(percentual) || 0) / 100;
+
+    function fmtMoeda(v) {
+      return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(v) || 0);
+    }
+    function fmtData(d) {
+      if (!d) return "—";
+      const dt = d?.toDate ? d.toDate() : (d instanceof Date ? d : new Date(d));
+      return dt.toLocaleDateString("pt-BR");
+    }
+
+    let Y = 20;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text("Papelaria Futura — Comissão por Cotação Ganhada", MX, Y);
+
+    Y += 7;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(90, 90, 90);
+    doc.text(`Filtro: ${rotuloStatus}`, MX, Y);
+    Y += 5;
+    doc.text(`Percentual de comissão: ${pct * 100}%`, MX, Y);
+    Y += 5;
+    doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, MX, Y);
+    Y += 8;
+
+    const valorTotal = cotacoes.reduce((s, c) => s + (Number(c.valorTotal) || 0), 0);
+    const comissaoTotal = valorTotal * pct;
+
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("Resumo", MX, Y);
+    Y += 4;
+
+    doc.autoTable({
+      startY: Y,
+      head: [["Qtd. Cotações", "Valor Total Aprovado", "Comissão Total"]],
+      body: [[String(cotacoes.length), fmtMoeda(valorTotal), fmtMoeda(comissaoTotal)]],
+      margin: { left: MX, right: MX },
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [21, 82, 181] },
+      columnStyles: { 1: { halign: "right" }, 2: { halign: "right" } }
+    });
+    Y = doc.lastAutoTable.finalY + 10;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("Cotações", MX, Y);
+    Y += 4;
+
+    const body = cotacoes.map(c => {
+      const comissao = (Number(c.valorTotal) || 0) * pct;
+      return [
+        c.cliente || "—",
+        fmtData(c.dataCriacao),
+        fmtMoeda(c.valorTotal || 0),
+        c.pagoLoja ? "Paga" : "Pendente",
+        fmtMoeda(comissao),
+        c.comissaoCriadorPaga ? "Paga" : "Pendente"
+      ];
+    });
+
+    doc.autoTable({
+      startY: Y,
+      head: [["Cliente", "Data", "Valor Cotação", "Cotação Paga (Loja)", "Comissão", "Pagamento Comissão"]],
+      body,
+      margin: { left: MX, right: MX },
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [21, 82, 181] },
+      columnStyles: { 2: { halign: "right" }, 4: { halign: "right" } }
+    });
+
+    const sufixo = rotuloStatus.replace(/\s+/g, "_");
+    doc.save(`Comissao_Cotacoes_${sufixo}_${new Date().toISOString().split("T")[0]}.pdf`);
+
+    window.mostrarToast?.("PDF gerado com sucesso!", "success");
+  } catch (err) {
+    console.error("Erro ao gerar PDF de comissão por cotação ganhada:", err);
+    window.mostrarToast?.("Erro ao gerar PDF. Tente novamente.", "error");
+  }
+}
 export function gerarPdfFechamentoCaixa(relatorio, vendedor = null) {
   try {
     const { jsPDF } = window.jspdf;
