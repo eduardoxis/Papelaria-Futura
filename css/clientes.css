@@ -1,0 +1,137 @@
+/* ============================================================
+   clientes.css — Cadastro de Clientes (PF/PJ) + Autocomplete
+   ============================================================ */
+
+/* ----------------------------------------------------------------
+   Modal largo (formulário de cadastro)
+   ---------------------------------------------------------------- */
+.modal.modal--lg {
+  max-width: 760px;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal.modal--lg .modal-header {
+  flex-shrink: 0;
+}
+
+.modal.modal--lg .modal-body {
+  flex: 1;
+  overflow-y: auto;
+  max-height: calc(90vh - 140px);
+}
+
+.modal.modal--lg .modal-footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--gray-100);
+}
+
+@media (max-width: 800px) {
+  .modal.modal--lg {
+    max-width: 100%;
+  }
+}
+
+/* ----------------------------------------------------------------
+   Toggle Pessoa Física / Jurídica (segmented control)
+   ---------------------------------------------------------------- */
+.cli-tipo-toggle {
+  display: flex;
+  background: var(--gray-100);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  gap: 4px;
+}
+
+.cli-tipo-btn {
+  flex: 1;
+  padding: 9px var(--space-3);
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--gray-500);
+  cursor: pointer;
+  transition: background var(--duration-fast) ease, color var(--duration-fast) ease;
+}
+
+.cli-tipo-btn:hover {
+  color: var(--gray-800);
+}
+
+.cli-tipo-btn--active {
+  background: var(--white);
+  color: var(--blue-600);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ----------------------------------------------------------------
+   Grid do formulário
+   ---------------------------------------------------------------- */
+.cli-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+}
+
+@media (max-width: 640px) {
+  .cli-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .cli-form-grid .field[style*="span 2"],
+  .cli-form-grid .field[style*="1 / -1"] {
+    grid-column: 1 !important;
+  }
+}
+
+/* ----------------------------------------------------------------
+   Autocomplete de cliente (tela de Cotação)
+   ---------------------------------------------------------------- */
+.cli-autocomplete-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.cli-autocomplete-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 9px var(--space-3);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.cli-autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.cli-autocomplete-item:hover {
+  background: var(--blue-050);
+}
+
+.cli-autocomplete-item strong {
+  color: var(--gray-900);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cli-autocomplete-item span {
+  color: var(--gray-400);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  flex-shrink: 0;
+}

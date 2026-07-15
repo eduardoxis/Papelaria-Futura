@@ -1,0 +1,529 @@
+/* ============================================================
+   promissoria.css — Estilos da aba Promissórias
+   Papelaria Futura
+   ============================================================ */
+
+/* ── Botões de ação na tabela ──────────────────────────────── */
+.actions-cell {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-table-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  color: var(--gray-500);
+  flex-shrink: 0;
+}
+
+.btn-table-action svg {
+  width: 16px;
+  height: 16px;
+}
+
+.btn-table-action--view:hover {
+  background: var(--blue-50, #EFF6FF);
+  color: var(--blue-600);
+  border-color: var(--blue-200, #BFDBFE);
+}
+
+.btn-table-action--delete:hover {
+  background: #FEE2E2;
+  color: #DC2626;
+  border-color: #FECACA;
+}
+
+/* ── Painel de detalhes do cliente ─────────────────────────── */
+#painelDetalhesClienteProm .card {
+  margin-bottom: var(--space-5);
+}
+
+#painelDetalhesClienteProm .card:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Card header com título + badge contador ────────────────── */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.card-section-title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.card-section-subtitle {
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+}
+
+/* ── Comparativo mensal (KPI com variação vs mês anterior) ──── */
+.prom-delta {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  margin-top: 2px;
+}
+.prom-delta--up      { color: var(--color-success, #10B981); }
+.prom-delta--down    { color: var(--color-danger, #E54957); }
+.prom-delta--neutro  { color: var(--gray-400); }
+
+/* ── Garantia extra: nunca deixa conteúdo sair do card ──────── */
+.stat-card { overflow: hidden; }
+.stat-card__value--sm {
+  display: block;
+  width: 100%;
+  font-size: clamp(0.95rem, 2.2vw, 1.25rem) !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stat-card__body {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+/* ── Campo de busca por nome/telefone — sempre grande ────────── */
+#filtroBuscaProm {
+  height: 50px !important;
+  padding: 0 var(--space-5) !important;
+  font-size: 1rem !important;
+  border-radius: var(--radius-lg) !important;
+}
+
+/* ── Responsivo — filtros empilhados no mobile ──────────────── */
+@media (max-width: 640px) {
+  #painelListaClientesProm .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #painelListaClientesProm .filter-bar input,
+  #painelListaClientesProm .filter-bar select {
+    width: 100%;
+  }
+}
+
+/* ── Responsivo — campos e botões maiores para toque no mobile ── */
+@media (max-width: 768px) {
+  #painelListaClientesProm .filter-bar {
+    gap: var(--space-3);
+  }
+
+  #painelListaClientesProm .filter-input {
+    height: 50px;
+    font-size: var(--text-base);
+    border-radius: var(--radius-lg);
+  }
+
+  #filtroBuscaProm {
+    height: 64px !important;
+    padding: 0 var(--space-5) !important;
+    font-size: 1.1rem !important;
+    border-radius: var(--radius-lg) !important;
+  }
+
+  #painelListaClientesProm .filter-bar select.filter-input {
+    padding-right: var(--space-8);
+  }
+
+  #painelListaClientesProm .filter-bar .btn-secondary,
+  #painelListaClientesProm .filter-bar .btn-ghost {
+    width: 100%;
+    height: 50px;
+    font-size: var(--text-base);
+    justify-content: center;
+  }
+}
+
+/* ── Responsivo — tabela de clientes vira cards com labels ──── */
+@media (max-width: 768px) {
+  #tbodyClientesProm tr {
+    display: block;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--gray-100);
+  }
+
+  #tbodyClientesProm td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: 4px 0;
+    text-align: right;
+  }
+
+  /* Mostra o rótulo (Compras, Total Comprado, etc.) antes do valor */
+  #tbodyClientesProm td[data-label]::before {
+    content: attr(data-label) ": ";
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--gray-500);
+    text-align: left;
+    flex-shrink: 0;
+  }
+
+  /* Linha de ações — botões alinhados à direita, sem centralizar */
+  #tbodyClientesProm .td-actions-prom {
+    justify-content: flex-end;
+    padding-top: var(--space-2);
+  }
+
+  #tbodyClientesProm .actions-cell {
+    justify-content: flex-end;
+  }
+}
+
+/* ── Responsivo — Histórico de Compras / Pagamentos vira cards com labels ──── */
+@media (max-width: 768px) {
+  .data-table--historico tbody tr {
+    display: block;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--gray-100);
+  }
+
+  .data-table--historico td {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 8px;
+    padding: 6px 0;
+    text-align: left;
+    max-width: none !important;
+  }
+
+  /* Mostra o rótulo (Data, Valor, Status, etc.) antes do valor, com espaçamento */
+  .data-table--historico td[data-label]::before {
+    content: attr(data-label) " :";
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--gray-500);
+    text-align: left;
+    flex-shrink: 0;
+    min-width: 130px;
+  }
+
+  .data-table--historico td.col-center {
+    justify-content: flex-end;
+    width: 100%;
+    padding-top: var(--space-2);
+  }
+
+  .data-table--historico td.col-center::before {
+    display: none;
+  }
+}
+.prom-tabs {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.prom-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px var(--space-4);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--gray-500);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  margin-bottom: -1px;
+}
+
+.prom-tab svg {
+  width: 16px;
+  height: 16px;
+}
+
+.prom-tab:hover {
+  color: var(--gray-800);
+}
+
+.prom-tab--active {
+  color: var(--blue-600);
+  border-bottom-color: var(--blue-600);
+}
+
+/* ── Grade de gráficos do dashboard (estilo Power BI) ───────── */
+.prom-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-5);
+}
+
+.prom-chart-card {
+  padding: var(--space-5);
+}
+
+.prom-chart-card--lg {
+  grid-column: span 2;
+}
+
+.prom-chart-card .card-header {
+  padding: 0 0 var(--space-4) 0;
+  border-bottom: none;
+}
+
+.prom-chart-wrap {
+  position: relative;
+  height: 260px;
+}
+
+.prom-chart-wrap--lg {
+  height: 320px;
+}
+
+@media (max-width: 900px) {
+  .prom-charts-grid { grid-template-columns: 1fr; }
+  .prom-chart-card--lg { grid-column: span 1; }
+}
+
+/* ── KPIs do novo Dashboard de Promissórias ──────────────────── */
+.prom-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.prom-kpi-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--white);
+  border: 1px solid var(--gray-100);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.prom-kpi-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+}
+.prom-kpi-icon svg { width: 20px; height: 20px; }
+.prom-kpi-icon--blue  { background: var(--blue-050);  color: var(--blue-600); }
+.prom-kpi-icon--green { background: #ECFDF5;          color: #10B981; }
+.prom-kpi-icon--gold  { background: #FEF9E7;          color: #B45309; }
+.prom-kpi-icon--red   { background: #FEE2E2;          color: #DC2626; }
+
+.prom-kpi-body { min-width: 0; flex: 1 1 auto; overflow: hidden; }
+.prom-kpi-label {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: .02em;
+}
+.prom-kpi-value {
+  display: block;
+  font-size: var(--text-xl);
+  font-weight: 800;
+  color: var(--gray-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Legenda ao lado dos donuts (Situação / Novos x Recorrentes) ── */
+.prom-situacao-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: var(--space-3);
+}
+.prom-situacao-legend .psl-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm);
+}
+.prom-situacao-legend .psl-dot {
+  width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+}
+.prom-situacao-legend .psl-label { color: var(--gray-600); flex: 1 1 auto; }
+.prom-situacao-legend .psl-valor { font-weight: 700; color: var(--gray-900); }
+.prom-situacao-legend .psl-total {
+  margin-top: 4px;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--blue-600);
+}
+
+/* ── Calendário de Vendas (heatmap por dia) ──────────────────── */
+.prom-calendario { overflow-x: auto; }
+.prom-cal-table { border-collapse: collapse; width: 100%; min-width: 560px; }
+.prom-cal-table th {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--gray-500);
+  padding: 4px 6px;
+  text-align: center;
+}
+.prom-cal-cell {
+  width: 15%;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  text-align: center;
+  vertical-align: middle;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--gray-700);
+  padding: 2px;
+}
+.prom-cal-cell--vazia { background: transparent; }
+.prom-cal-legenda {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+}
+.prom-cal-legenda-barra {
+  flex: 1 1 auto;
+  max-width: 160px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(to right, var(--blue-050), var(--blue-500));
+}
+
+/* ── Metas (gauges em semicírculo) ───────────────────────────── */
+.prom-metas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-5);
+}
+.prom-meta-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+  padding: var(--space-4);
+  background: var(--gray-050);
+  border-radius: var(--radius-lg);
+}
+.prom-meta-label {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: .02em;
+}
+.prom-gauge-wrap { position: relative; width: 180px; height: 100px; }
+.prom-gauge-pct {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  color: var(--gray-900);
+}
+.prom-meta-valores { font-size: var(--text-xs); color: var(--gray-500); }
+.prom-meta-editar { font-size: var(--text-xs); padding: 4px var(--space-3); }
+
+/* ── Linha de "Nova Compra" (valor/data/venc/parcelas/obs) ───── */
+.compra-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-3);
+  border-bottom: 1px solid var(--gray-100);
+}
+.compra-row:last-of-type { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+.compra-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 140px;
+  min-width: 130px;
+}
+.compra-field--valor    { flex: 1 1 110px; min-width: 100px; }
+.compra-field--parcelas { flex: 0 1 80px;  min-width: 70px; }
+.compra-field--obs      { flex: 2 1 200px; min-width: 160px; }
+
+.compra-field .field-label { font-size: var(--text-xs); margin-bottom: 0; }
+.compra-field .field-input--plain { width: 100%; }
+
+.compra-row .btn-remove-compra-row {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-bottom: 2px;
+}
+
+@media (max-width: 520px) {
+  .compra-field--valor, .compra-field--parcelas { flex-basis: 45%; }
+  .compra-field--obs { flex-basis: 100%; }
+  .compra-row .compra-field:not(.compra-field--valor):not(.compra-field--parcelas):not(.compra-field--obs) { flex-basis: 47%; }
+}
+
+/* ── Campo de data com máscara (digitar dd/mm/aaaa OU escolher no calendário) ── */
+.data-mask-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.data-mask-texto {
+  width: 100%;
+  padding-right: 34px !important;
+}
+.data-mask-btn-cal {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-400);
+  cursor: pointer;
+}
+.data-mask-btn-cal svg { width: 16px; height: 16px; }
+.data-mask-btn-cal:hover { color: var(--blue-600); }
+.data-mask-nativo {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
