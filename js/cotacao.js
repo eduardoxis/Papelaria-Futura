@@ -380,6 +380,10 @@ function prepararNovaCotacao() {
   ["cotCliente","cotCnpj","cotObs"].forEach(id => {
     document.getElementById(id).value = "";
   });
+  ["cotEntregaCliente","cotEntregaLocal","cotEntregaSaida","cotEntregaVolta"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
   document.getElementById("cotStatus").value = "ativa";
   definirValidadePadrao();
 
@@ -578,7 +582,14 @@ function coletarDadosCotacao() {
   const itens    = coletarItens();
   const valorTotal = itens.reduce((s, i) => s + i.valorTotal, 0);
 
-  return { cliente, cnpj, telefone, validade, observacoes: obs, status, itens, valorTotal, funcionario: nomeFuncionarioLogado() };
+  const entrega = {
+    cliente:   document.getElementById("cotEntregaCliente")?.value.trim() || "",
+    local:     document.getElementById("cotEntregaLocal")?.value.trim() || "",
+    horaSaida: document.getElementById("cotEntregaSaida")?.value || "",
+    horaVolta: document.getElementById("cotEntregaVolta")?.value || ""
+  };
+
+  return { cliente, cnpj, telefone, validade, observacoes: obs, status, itens, valorTotal, entrega, funcionario: nomeFuncionarioLogado() };
 }
 
 // ================================================================
@@ -666,6 +677,16 @@ async function abrirCotacaoSomenteLeitura(id) {
   document.getElementById("cotObs").value      = c.observacoes || "";
   document.getElementById("cotStatus").value   = c.status      || "ativa";
 
+  const entregaLeitura = c.entrega || {};
+  ["cotEntregaCliente","cotEntregaLocal","cotEntregaSaida","cotEntregaVolta"].forEach(campoId => {
+    const el = document.getElementById(campoId);
+    if (el) el.disabled = true;
+  });
+  document.getElementById("cotEntregaCliente").value = entregaLeitura.cliente   || "";
+  document.getElementById("cotEntregaLocal").value   = entregaLeitura.local     || "";
+  document.getElementById("cotEntregaSaida").value   = entregaLeitura.horaSaida || "";
+  document.getElementById("cotEntregaVolta").value   = entregaLeitura.horaVolta || "";
+
   document.getElementById("btnSalvarCotacao")?.setAttribute("hidden", "true");
   document.getElementById("btnAdicionarLinha")?.setAttribute("hidden", "true");
 
@@ -688,6 +709,10 @@ function restaurarModoEdicao() {
   if (!_modoSomenteLeitura) return;
   _modoSomenteLeitura = false;
   ["cotCliente","cotCnpj","cotTelefone","cotValidade","cotStatus","cotObs"].forEach(campoId => {
+    const el = document.getElementById(campoId);
+    if (el) el.disabled = false;
+  });
+  ["cotEntregaCliente","cotEntregaLocal","cotEntregaSaida","cotEntregaVolta"].forEach(campoId => {
     const el = document.getElementById(campoId);
     if (el) el.disabled = false;
   });
@@ -719,6 +744,12 @@ async function editarCotacaoById(id) {
   document.getElementById("cotValidade").value = c.validade   || "";
   document.getElementById("cotObs").value      = c.observacoes || "";
   document.getElementById("cotStatus").value   = c.status     || "ativa";
+
+  const entregaEdicao = c.entrega || {};
+  document.getElementById("cotEntregaCliente").value = entregaEdicao.cliente   || "";
+  document.getElementById("cotEntregaLocal").value   = entregaEdicao.local     || "";
+  document.getElementById("cotEntregaSaida").value   = entregaEdicao.horaSaida || "";
+  document.getElementById("cotEntregaVolta").value   = entregaEdicao.horaVolta || "";
 
   document.getElementById("tbodyItens").innerHTML = "";
   _contadorLinhas = 0;
