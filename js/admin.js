@@ -407,6 +407,16 @@ const PAINEIS_ADMIN = {
   backup: "adminPanelBackup"
 };
 
+const TITULOS_ADMIN = {
+  usuarios: "Usuários do Sistema",
+  senha: "Senha Cotação",
+  historico: "Histórico de Alterações",
+  vendas: "Vendas Realizadas",
+  dashboardVendas: "Dashboard de Vendas",
+  comissaoCriador: "Comissão por Cotação Ganhada",
+  backup: "Backup"
+};
+
 function trocarPainelAdmin(painelId) {
   document.querySelectorAll(".admin-menu-item").forEach(btn => {
     btn.classList.toggle("admin-menu-item--ativo", btn.dataset.adminPanel === painelId);
@@ -414,6 +424,8 @@ function trocarPainelAdmin(painelId) {
   Object.entries(PAINEIS_ADMIN).forEach(([chave, elId]) => {
     document.getElementById(elId)?.classList.toggle("admin-panel--ativo", chave === painelId);
   });
+  const tituloEl = document.getElementById("adminPanelAtualTitulo");
+  if (tituloEl) tituloEl.textContent = TITULOS_ADMIN[painelId] || "";
   // Botão "Novo Usuário" só aparece na seção de Usuários
   const btnNovo = document.getElementById("btnNovoUsuario");
   if (btnNovo) btnNovo.style.display = painelId === "usuarios" ? "" : "none";
