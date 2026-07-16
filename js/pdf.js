@@ -454,6 +454,50 @@ export async function gerarPDF(cotacao) {
     Y += TOT_H + 7;
 
     // ══════════════════════════════════════════════════════
+    // 6. ENTREGA (opcional — só aparece se algum campo foi preenchido)
+    // ══════════════════════════════════════════════════════
+    const entrega = cotacao.entrega || {};
+    const temEntrega = entrega.cliente || entrega.local || entrega.horaSaida || entrega.horaVolta;
+    if (temEntrega) {
+      if (Y + 24 > 272) { doc.addPage(); Y = 16; }
+
+      const linhasEntrega = [];
+      if (entrega.cliente)   linhasEntrega.push(`CLIENTE: ${entrega.cliente}`);
+      if (entrega.local)     linhasEntrega.push(`LOCAL: ${entrega.local}`);
+      if (entrega.horaSaida) linhasEntrega.push(`SAÍDA: ${entrega.horaSaida}    VOLTA: ${entrega.horaVolta || "—"}`);
+      else if (entrega.horaVolta) linhasEntrega.push(`VOLTA: ${entrega.horaVolta}`);
+
+      const ENT_H = Math.max(20, 12 + linhasEntrega.length * 5);
+
+      doc.setGState(doc.GState({ opacity: 0.05 }));
+      fill([0, 45, 148]);
+      doc.roundedRect(MX + 0.8, Y + 0.8, CW, ENT_H, 2.5, 2.5, "F");
+      doc.setGState(doc.GState({ opacity: 1 }));
+
+      fill(C.cinzaFundo);
+      draw(C.cinzaLinha);
+      doc.setLineWidth(0.35);
+      doc.roundedRect(MX, Y, CW, ENT_H, 2.5, 2.5, "FD");
+
+      fill(C.azulMedio);
+      doc.roundedRect(MX, Y, 3, ENT_H, 2, 2, "F");
+      fill(C.cinzaFundo);
+      doc.rect(MX + 1.5, Y, 2, ENT_H, "F");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.5);
+      rgb(C.azulMedio);
+      doc.text("ENTREGA", MX + 8, Y + 8);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      rgb(C.pretoTexto);
+      doc.text(linhasEntrega, MX + 8, Y + 14.5);
+
+      Y += ENT_H + 7;
+    }
+
+    // ══════════════════════════════════════════════════════
     // 6. OBSERVAÇÕES
     // ══════════════════════════════════════════════════════
     if (cotacao.observacoes) {
