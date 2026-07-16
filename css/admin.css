@@ -1,1134 +1,1029 @@
-/* ============================================================
-   dashboard.css — Layout e componentes do painel principal
-   ============================================================ */
-
-/* Garante que o atributo [hidden] sempre funcione, mesmo em elementos
-   com display:flex/inline-flex definido via classe (ex: .btn-primary,
-   .btn-icon). Sem isso, esses componentes ficam visíveis mesmo com
-   [hidden], pois a especificidade da classe empata com [hidden] e a
-   ordem no arquivo acaba prevalecendo. */
-[hidden] { display: none !important; }
-
-/* ----------------------------------------------------------------
-   Layout raiz
-   ---------------------------------------------------------------- */
-body {
-  display: flex;
-  background: var(--gray-100);
-  min-height: 100vh;
-}
-
-/* ----------------------------------------------------------------
-   Sidebar
-   ---------------------------------------------------------------- */
-.sidebar {
-  width: 260px;
-  flex-shrink: 0;
-  background: linear-gradient(170deg, var(--blue-950) 0%, var(--blue-900) 100%);
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow-y: auto;
-  z-index: var(--z-raised);
-  transition: transform var(--duration-base) var(--ease-out);
-}
-
-.sidebar-header {
-  padding: var(--space-6) var(--space-6) var(--space-4);
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.sidebar-logo {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.sidebar-logo-icon {
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-}
-.sidebar-logo-icon svg { width: 100%; height: 100%; }
-.sidebar-logo-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 11px;
-}
-
-.sidebar-logo-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.2;
-}
-
-.sidebar-logo-name {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: var(--text-sm);
-  color: var(--white);
-}
-.sidebar-logo-sub {
-  font-size: var(--text-xs);
-  color: var(--blue-300);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-weight: 500;
-}
-
-.sidebar-close {
-  display: none;
-  width: 32px;
-  height: 32px;
-  background: rgba(255,255,255,0.1);
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  color: var(--white);
-  align-items: center;
-  justify-content: center;
-  transition: background var(--duration-fast) ease;
-}
-.sidebar-close:hover { background: rgba(255,255,255,0.2); }
-.sidebar-close svg   { width: 18px; height: 18px; }
-
-/* Nav */
-.sidebar-nav {
-  flex: 1;
-  padding: var(--space-4) var(--space-3);
-}
-
-.nav-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: 10px var(--space-4);
-  border-radius: var(--radius-md);
-  color: rgba(255,255,255,0.65);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  transition:
-    background var(--duration-fast) ease,
-    color var(--duration-fast) ease;
-  cursor: pointer;
-}
-
-.nav-item:hover {
-  background: rgba(255,255,255,0.08);
-  color: var(--white);
-}
-
-.nav-item--active {
-  background: var(--blue-600);
-  color: var(--white);
-  box-shadow: 0 4px 12px rgba(37,99,235,0.4);
-}
-
-.nav-icon {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-
-/* Footer sidebar */
-.sidebar-footer {
-  padding: var(--space-4) var(--space-4);
-  border-top: 1px solid rgba(255,255,255,0.08);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.sidebar-user {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-3);
-  border-radius: var(--radius-md);
-  background: rgba(255,255,255,0.06);
-}
-
-.user-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--blue-500);
-  color: var(--white);
-  font-size: var(--text-sm);
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.user-info {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.user-name {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--white);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.user-role {
-  font-size: var(--text-xs);
-  color: var(--blue-300);
-}
-
-.btn-logout {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: 9px var(--space-4);
-  background: rgba(239,68,68,0.12);
-  border: 1px solid rgba(239,68,68,0.2);
-  border-radius: var(--radius-md);
-  color: #FCA5A5;
-  font-size: var(--text-sm);
-  font-weight: 500;
-  cursor: pointer;
-  width: 100%;
-  justify-content: center;
-  transition:
-    background var(--duration-fast) ease,
-    color var(--duration-fast) ease;
-}
-.btn-logout:hover {
-  background: rgba(239,68,68,0.22);
-  color: #FEE2E2;
-}
-.btn-logout svg { width: 16px; height: 16px; }
-
-/* ----------------------------------------------------------------
-   Main wrap
-   ---------------------------------------------------------------- */
-.main-wrap {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-/* ----------------------------------------------------------------
-   Topbar
-   ---------------------------------------------------------------- */
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: var(--z-raised);
-  background: var(--white);
-  border-bottom: 1px solid var(--gray-200);
-  padding: 0 var(--space-6);
-  height: 64px;
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  box-shadow: var(--shadow-sm);
-}
-
-.topbar-menu {
-  display: none;
-  width: 36px;
-  height: 36px;
-  background: none;
-  border: 1px solid var(--gray-200);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  color: var(--gray-600);
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: background var(--duration-fast) ease;
-}
-.topbar-menu:hover { background: var(--gray-100); }
-.topbar-menu svg   { width: 20px; height: 20px; }
-
-.topbar-title {
-  font-family: var(--font-display);
-  font-size: var(--text-lg);
-  font-weight: 700;
-  color: var(--gray-900);
-  flex: 1;
-}
-
-.topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-/* ----------------------------------------------------------------
-   Área de conteúdo
-   ---------------------------------------------------------------- */
-.content-area {
-  flex: 1;
-  padding: var(--space-6) var(--space-6);
-  max-width: 1400px;
-  width: 100%;
-}
-
-/* ----------------------------------------------------------------
-   Páginas
-   ---------------------------------------------------------------- */
-.page {
-  animation: page-in 0.25s var(--ease-out) both;
-}
-
-@keyframes page-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-4);
-  margin-bottom: var(--space-6);
-  flex-wrap: wrap;
-}
-
-.page-title-com-voltar {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-}
-.page-title-com-voltar .btn-icon {
-  margin-top: 2px;
-  flex-shrink: 0;
-}
-
-.page-title {
-  font-family: var(--font-display);
-  font-size: var(--text-2xl);
-  font-weight: 700;
-  color: var(--gray-900);
-  line-height: 1.2;
-}
-
-.page-subtitle {
-  font-size: var(--text-sm);
-  color: var(--gray-500);
-  margin-top: var(--space-1);
-}
-
-.page-header-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-}
-
-/* ----------------------------------------------------------------
-   Cards de estatísticas
-   ---------------------------------------------------------------- */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-5);
-  margin-bottom: var(--space-6);
-}
-
-.stat-card {
-  background: var(--white);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5) var(--space-5);
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--gray-100);
-  transition: box-shadow var(--duration-fast) ease, transform var(--duration-fast) ease;
-}
-
-.stat-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-}
-
-.stat-card__icon {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.stat-card__icon svg { width: 24px; height: 24px; }
-
-.stat-card--blue  .stat-card__icon { background: var(--blue-100);  color: var(--blue-600); }
-.stat-card--green .stat-card__icon { background: #D1FAE5;           color: #059669; }
-.stat-card--purple .stat-card__icon{ background: #EDE9FE;           color: #7C3AED; }
-.stat-card--gold  .stat-card__icon { background: #FEF3C7;           color: #D97706; }
-
-.stat-card__label {
-  display: block;
-  font-size: var(--text-xs);
-  font-weight: 500;
-  color: var(--gray-500);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: var(--space-1);
-}
-
-.stat-card__value {
-  font-family: var(--font-display);
-  font-size: var(--text-2xl);
-  font-weight: 800;
-  color: var(--gray-900);
-  line-height: 1;
-}
-
-.stat-card__value--sm {
-  font-size: var(--text-lg);
-}
-
-/* Pendente/Paga (Comissão por Cotação) — empilha em 2 linhas em vez
-   de truncar com "..." quando os dois valores não cabem numa linha só */
-#ccgPendentePaga.stat-card__value--sm {
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
-  font-size: var(--text-sm) !important;
-  font-weight: 700;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.ccg-pp-linha {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-}
-.ccg-pp-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.ccg-pp-label {
-  color: var(--gray-500);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  white-space: nowrap;
-}
-.ccg-pp-valor {
-  margin-left: auto;
-  color: var(--gray-900);
-  font-weight: 700;
-  font-size: var(--text-sm);
-  white-space: nowrap;
-}
-.admin-menu {
-  display: flex;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  gap: var(--space-2);
-  padding: var(--space-1) var(--space-1) var(--space-3);
-  margin-bottom: var(--space-6);
-  border-bottom: 1px solid var(--gray-200);
-  scrollbar-width: thin;
-}
-
-.admin-menu-item {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  flex-shrink: 0;
-  padding: var(--space-2) var(--space-4);
-  background: var(--gray-050);
-  border: 1px solid transparent;
-  border-radius: var(--radius-full);
-  color: var(--gray-600);
-  font-family: var(--font-body);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  text-align: center;
-  white-space: nowrap;
-  line-height: 1.3;
-  cursor: pointer;
-  transition: background-color .15s ease, color .15s ease, border-color .15s ease;
-}
-
-.admin-menu-item svg {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-
-.admin-menu-item:hover {
-  background: var(--blue-050);
-  color: var(--blue-600);
-}
-
-.admin-menu-item--ativo {
-  background: var(--blue-500);
-  border-color: var(--blue-500);
-  color: var(--white);
-  box-shadow: var(--shadow-sm);
-}
-
-.admin-menu-item--ativo:hover {
-  background: var(--blue-600);
-  color: var(--white);
-}
-
-/* ----------------------------------------------------------------
-   Painéis de conteúdo da Administração — só o painel ativo aparece
-   ---------------------------------------------------------------- */
-.admin-panel {
-  display: none;
-}
-
-.admin-panel--ativo {
-  display: block;
-}
-
-/* ----------------------------------------------------------------
-   Comissão por Cotação Ganhada — status + ação lado a lado
-   ---------------------------------------------------------------- */
-.status-inline {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-wrap: nowrap;
-  justify-content: center;
-}
-
-.truncate-cell {
-  display: inline-block;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  vertical-align: middle;
-}
-  background: var(--white);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--gray-100);
-  box-shadow: var(--shadow-sm);
-  padding: var(--space-6);
-  margin-bottom: var(--space-6);
-}
-
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-5);
-  flex-wrap: wrap;
-  gap: var(--space-3);
-}
-
-.card-title {
-  font-family: var(--font-display);
-  font-size: var(--text-lg);
-  font-weight: 700;
-  color: var(--gray-900);
-}
-
-.card-section-title {
-  font-family: var(--font-display);
-  font-size: var(--text-base);
-  font-weight: 700;
-  color: var(--gray-800);
-  margin-bottom: var(--space-5);
-}
-
-.link-ver-todas {
-  font-size: var(--text-sm);
-  color: var(--blue-500);
-  font-weight: 500;
-  cursor: pointer;
-  transition: color var(--duration-fast) ease;
-}
-.link-ver-todas:hover { color: var(--blue-700); }
-
-/* ----------------------------------------------------------------
-   Tabelas
-   ---------------------------------------------------------------- */
-.table-wrap {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--gray-100);
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--text-sm);
-  white-space: nowrap;
-}
-
-.data-table thead tr {
-  background: var(--gray-050);
-  border-bottom: 1px solid var(--gray-200);
-}
-
-.data-table th {
-  padding: 11px var(--space-4);
-  text-align: left;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--gray-500);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.data-table td {
-  padding: 13px var(--space-4);
-  color: var(--gray-700);
-  border-bottom: 1px solid var(--gray-100);
-}
-
-.data-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.data-table tbody tr {
-  transition: background var(--duration-fast) ease;
-}
-
-.data-table tbody tr:hover {
-  background: var(--blue-050);
-}
-
-.col-right  { text-align: right; }
-.col-center { text-align: center; }
-
-.loading-cell {
-  text-align: center;
-  color: var(--gray-400);
-  padding: var(--space-8) !important;
-  font-style: italic;
-}
-
-.empty-cell {
-  text-align: center;
-  color: var(--gray-400);
-  padding: var(--space-8) !important;
-}
-
-/* ----------------------------------------------------------------
-   Badges de status
-   ---------------------------------------------------------------- */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: var(--radius-full);
-  font-size: var(--text-xs);
-  font-weight: 600;
-}
-
-.badge--ativa     { background: #D1FAE5; color: #065F46; }
-.badge--aprovada  { background: #DBEAFE; color: #1E40AF; }
-.badge--recusada  { background: #FEE2E2; color: #991B1B; }
-.badge--expirada  { background: #F3F4F6; color: var(--gray-500); }
-
-/* ----------------------------------------------------------------
-   Botões
-   ---------------------------------------------------------------- */
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: 9px var(--space-5);
-  background: linear-gradient(135deg, var(--blue-600), var(--blue-500));
-  color: var(--white);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  border: none;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  box-shadow: var(--shadow-blue);
-  transition: all var(--duration-fast) ease;
-  white-space: nowrap;
-}
-.btn-primary:hover {
-  background: linear-gradient(135deg, var(--blue-700), var(--blue-600));
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-blue-lg);
-}
-.btn-primary svg { width: 16px; height: 16px; }
-
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: 9px var(--space-5);
-  background: var(--white);
-  color: var(--blue-600);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  border: 1.5px solid var(--blue-200);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--duration-fast) ease;
-  white-space: nowrap;
-}
-.btn-secondary:hover {
-  background: var(--blue-050);
-  border-color: var(--blue-400);
-}
-.btn-secondary svg { width: 16px; height: 16px; }
-
-.btn-ghost {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: 9px var(--space-4);
-  background: transparent;
-  color: var(--gray-600);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  border: 1.5px solid var(--gray-200);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--duration-fast) ease;
-  white-space: nowrap;
-}
-.btn-ghost:hover {
-  background: var(--gray-100);
-  color: var(--gray-800);
-}
-
-.btn-sm {
-  padding: 6px var(--space-4);
-  font-size: var(--text-xs);
-}
-.btn-sm svg { width: 14px; height: 14px; }
-
-.btn-icon {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: 1.5px solid var(--gray-200);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  color: var(--gray-500);
-  transition: all var(--duration-fast) ease;
-}
-.btn-icon:hover { background: var(--gray-100); color: var(--gray-800); }
-.btn-icon svg   { width: 16px; height: 16px; }
-
-.btn-action {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: 5px 10px;
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  font-weight: 500;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: all var(--duration-fast) ease;
-}
-.btn-action--view {
-  background: var(--gray-100);
-  color: var(--gray-700);
-  border-color: var(--gray-200);
-}
-.btn-action--view:hover { background: var(--gray-200); }
-
-.btn-action--edit {
-  background: var(--blue-050);
-  color: var(--blue-600);
-  border-color: var(--blue-200);
-}
-.btn-action--edit:hover { background: var(--blue-100); }
-
-.btn-action--pdf {
-  background: #F0FDF4;
-  color: #16A34A;
-  border-color: #BBF7D0;
-}
-.btn-action--pdf:hover { background: #DCFCE7; }
-
-.btn-action--delete {
-  background: #FFF5F5;
-  color: #E53E3E;
-  border-color: #FED7D7;
-}
-.btn-action--delete:hover { background: #FED7D7; }
-
-.btn-action svg { width: 12px; height: 12px; }
-
-/* ----------------------------------------------------------------
-   Filtros
-   ---------------------------------------------------------------- */
-.filter-bar {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--space-3);
-  margin-bottom: var(--space-5);
-  flex-wrap: wrap;
-}
-
-.filter-search {
-  position: relative;
-  flex: 1;
-  min-width: 200px;
-}
-
-.filter-search-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  color: var(--gray-400);
-  pointer-events: none;
-}
-
-.filter-input {
-  width: 100%;
-  height: 40px;
-  padding: 0 var(--space-4) 0 36px;
-  border: 1.5px solid var(--gray-200);
-  border-radius: var(--radius-md);
-  background: var(--white);
-  font-size: var(--text-sm);
-  color: var(--gray-800);
-  outline: none;
-  transition: border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
-}
-.filter-input:focus {
-  border-color: var(--blue-400);
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
-}
-
-/* ----------------------------------------------------------------
-   Modal
-   ---------------------------------------------------------------- */
-.modal-backdrop[hidden] { display: none !important; }
-
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  backdrop-filter: blur(4px);
-  z-index: var(--z-modal);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-5);
-  animation: fade-in 0.2s ease;
-}
-
-@keyframes fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-.modal {
-  background: var(--white);
-  border-radius: var(--radius-xl);
-  width: 100%;
-  max-width: 520px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: var(--shadow-xl);
-  animation: modal-in 0.25s var(--ease-out) both;
-}
-
-@keyframes modal-in {
-  from { opacity: 0; transform: scale(0.95) translateY(-10px); }
-  to   { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-6) var(--space-6) var(--space-4);
-  border-bottom: 1px solid var(--gray-100);
-}
-
-.modal-title {
-  font-family: var(--font-display);
-  font-size: var(--text-lg);
-  font-weight: 700;
-  color: var(--gray-900);
-}
-
-.modal-close {
-  width: 32px;
-  height: 32px;
-  background: var(--gray-100);
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  color: var(--gray-500);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all var(--duration-fast) ease;
-}
-.modal-close:hover { background: var(--gray-200); color: var(--gray-800); }
-.modal-close svg   { width: 16px; height: 16px; }
-
-.modal-body {
-  padding: var(--space-6);
-}
-
-.modal-footer {
-  padding: var(--space-4) var(--space-6) var(--space-6);
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-3);
-}
-
-/* ----------------------------------------------------------------
-   Toast
-   ---------------------------------------------------------------- */
-.toast-container {
-  position: fixed;
-  bottom: var(--space-6);
-  right: var(--space-6);
-  z-index: var(--z-toast);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  pointer-events: none;
-}
-
-.toast {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-4) var(--space-5);
-  border-radius: var(--radius-lg);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  min-width: 280px;
-  max-width: 380px;
-  box-shadow: var(--shadow-lg);
-  pointer-events: all;
-  opacity: 0;
-  transform: translateX(20px);
-  transition: all 0.3s var(--ease-out);
-}
-
-.toast--show {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-.toast--success { background: #ECFDF5; border: 1px solid #A7F3D0; color: #065F46; }
-.toast--error   { background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; }
-.toast--warning { background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; }
-
-.toast-icon { width: 18px; height: 18px; flex-shrink: 0; }
-.toast-msg  { flex: 1; }
-.toast-close {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: inherit;
-  opacity: 0.6;
-  font-size: 18px;
-  line-height: 1;
-  padding: 0;
-  transition: opacity var(--duration-fast) ease;
-  flex-shrink: 0;
-}
-.toast-close:hover { opacity: 1; }
-
-/* ----------------------------------------------------------------
-   Sidebar overlay mobile
-   ---------------------------------------------------------------- */
-.sidebar-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  z-index: calc(var(--z-raised) - 1);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--duration-base) ease;
-}
-
-/* ----------------------------------------------------------------
-   Responsividade
-   ---------------------------------------------------------------- */
-@media (max-width: 1100px) {
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
-}
-
-@media (max-width: 768px) {
-  .sidebar {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    transform: translateX(100%);
-    z-index: var(--z-overlay);
+// ============================================================
+// carta-anuencia.js — Módulo "Carta de Anuência" (Promissórias)
+// Editor tipo Mini Word, com preenchimento automático dos dados
+// do cliente, histórico de versões e exportação em PDF/DOCX.
+// Papelaria Futura
+// ============================================================
+
+import {
+  collection, doc, addDoc, getDoc, getDocs, setDoc,
+  updateDoc, query, where, orderBy, limit,
+  serverTimestamp, Timestamp
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { db } from "./firebase-config.js";
+import { formatarMoeda } from "./database.js";
+import { temCargo } from "./auth.js";
+
+const COL_CLIENTES   = "prom_clientes";
+const COL_COMPRAS    = "prom_compras";
+const COL_PAGAMENTOS = "prom_pagamentos";
+const COL_CARTAS     = "prom_cartas_anuencia";
+
+let _usuarioAtual = null;
+let _dadosUsuario = null;
+
+// Estado da carta atualmente aberta no editor
+let _cartaAtual = {
+  id: null,
+  clienteId: null,
+  status: "rascunho",
+  autoSaveTimer: null,
+  sujo: false // há alterações não salvas desde o último save
+};
+
+export function iniciarCartaAnuencia(usuario, dadosUsuario) {
+  _usuarioAtual = usuario;
+  _dadosUsuario = dadosUsuario;
+  window.abrirCartaAnuencia = abrirCartaAnuencia;
+}
+
+function escHtml(str) {
+  if (!str) return "";
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function formatarDataLocal(ts) {
+  if (!ts) return "—";
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  if (isNaN(d)) return "—";
+  return d.toLocaleDateString("pt-BR");
+}
+
+function formatarDataExtenso(d = new Date()) {
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+}
+
+// ── Busca dados do cliente + totais financeiros ─────────────
+async function _buscarDadosCliente(clienteId) {
+  const [clienteSnap, comprasSnap, pagamentosSnap] = await Promise.all([
+    getDoc(doc(db, COL_CLIENTES, clienteId)),
+    getDocs(query(collection(db, COL_COMPRAS), where("clienteId", "==", clienteId))),
+    getDocs(query(collection(db, COL_PAGAMENTOS), where("clienteId", "==", clienteId)))
+  ]);
+
+  if (!clienteSnap.exists()) throw new Error("Cliente não encontrado.");
+  const cliente = { id: clienteSnap.id, ...clienteSnap.data() };
+
+  let totalComprado = 0;
+  comprasSnap.forEach(d => { totalComprado += d.data().valor || 0; });
+
+  let totalPago = 0;
+  let ultimaDataPagamento = null;
+  pagamentosSnap.forEach(d => {
+    const p = d.data();
+    totalPago += p.valor || 0;
+    const dt = p.dataPagamento?.toDate?.() || (p.dataPagamento ? new Date(p.dataPagamento) : null);
+    if (dt && (!ultimaDataPagamento || dt > ultimaDataPagamento)) ultimaDataPagamento = dt;
+  });
+
+  const saldo = Math.max(0, Math.round((totalComprado - totalPago) * 100) / 100);
+
+  return { cliente, totalComprado, totalPago, saldo, ultimaDataPagamento };
+}
+
+function _enderecoCompleto(c) {
+  const partes = [
+    c.endereco,
+    c.numero ? `nº ${c.numero}` : "",
+    c.complemento,
+    c.bairro,
+    (c.cidade || c.estado) ? `${c.cidade || ""}${c.cidade && c.estado ? "/" : ""}${c.estado || ""}` : "",
+    c.cep ? `CEP ${c.cep}` : ""
+  ].filter(Boolean);
+  return partes.join(", ") || "não informado";
+}
+
+// ── Modelo oficial da Carta de Anuência (preenchido automaticamente) ──
+// Lista de variáveis editáveis pelo painel lateral (chave, rótulo, tipo de campo)
+const CA_VARIAVEIS = [
+  { key: "nomeCliente",      label: "Nome do Cliente" },
+  { key: "documento",        label: "CPF/CNPJ" },
+  { key: "endereco",         label: "Endereço" },
+  { key: "numeroContrato",   label: "Número do Contrato" },
+  { key: "numeroNotaFiscal", label: "Nº Nota Fiscal" },
+  { key: "valorDivida",      label: "Valor da Dívida" },
+  { key: "valorPago",        label: "Valor Quitado" },
+  { key: "dataQuitacao",     label: "Data da Quitação" },
+  { key: "cidade",           label: "Cidade" },
+  { key: "dataAtual",        label: "Data Atual" },
+  { key: "nomeEmpresa",      label: "Nome da Empresa" }
+];
+
+function _gerarModeloHtml({ cliente, totalComprado, totalPago, saldo, ultimaDataPagamento }, responsavelNome) {
+  const numeroContrato = `PROM-${cliente.id.slice(-6).toUpperCase()}`;
+  const dataQuitacao = saldo <= 0 ? formatarDataExtenso(ultimaDataPagamento || new Date()) : "dd/mm/aaaa";
+  const docTipo = cliente.tipo === "juridica" ? "CNPJ" : "CPF";
+  const cidadeEmpresa = "Luziânia/GO";
+  const hoje = formatarDataExtenso();
+  const v = (key, valor) => `<span class="ca-var" data-var="${key}">${escHtml(valor)}</span>`;
+
+  return `
+<p style="text-align:center;font-weight:bold;font-size:16px;letter-spacing:.02em;margin-bottom:24px">CARTA DE ANUÊNCIA</p>
+
+<p>Declaramos, para os devidos fins de direito, que o(a) Sr.(a) <strong>${v("nomeCliente", cliente.nome || "")}</strong>, inscrito(a) no ${docTipo} nº <strong>${v("documento", cliente.documento || "não informado")}</strong>, residente e domiciliado(a) em ${v("endereco", _enderecoCompleto(cliente))}, realizou a quitação integral do débito referente ao contrato nº <strong>${v("numeroContrato", numeroContrato)}</strong>, referente à nota fiscal nº <strong>${v("numeroNotaFiscal", "")}</strong>, no valor original de <strong>${v("valorDivida", formatarMoeda(totalComprado))}</strong>, tendo sido efetivamente pago o montante de <strong>${v("valorPago", formatarMoeda(totalPago))}</strong>, em data de <strong>${v("dataQuitacao", dataQuitacao)}</strong>.</p>
+
+<p>Diante da quitação ora comprovada, inexiste, por parte desta empresa, qualquer impedimento, restrição ou óbice ao cancelamento de eventual protesto, negativação ou restrição cadastral existente em nome do(a) referido(a) cliente perante os órgãos de proteção ao crédito (SPC/SERASA) ou cartórios competentes, relacionados exclusivamente ao débito ora tratado.</p>
+
+<p>Por ser esta a expressão da verdade, firmamos a presente <strong>Carta de Anuência</strong>, para que produza os efeitos legais e seja apresentada perante quem de direito.</p>
+
+<p style="margin-top:32px">${v("cidade", cidadeEmpresa)}, ${v("dataAtual", hoje)}.</p>
+
+<p style="margin-top:56px;text-align:center">_______________________________________________</p>
+<p style="text-align:center"><strong>${v("nomeEmpresa", "LIVRARIA PAPELARIA FUTURA LTDA")}</strong></p>
+<p style="text-align:center">CNPJ: 01.064.836/0001-12</p>
+
+`.trim();
+}
+
+// ── Abrir o editor para um cliente (cria rascunho novo, ou abre o mais recente) ──
+export async function abrirCartaAnuencia(clienteId) {
+  if (!clienteId) return;
+  if (!temCargo(_dadosUsuario, "admin")) {
+    window.mostrarToast?.("Acesso restrito a administradores.", "error");
+    return;
   }
 
-  .sidebar--open {
-    transform: translateX(0);
-  }
+  window.mostrarToast?.("Carregando dados do cliente...", "info");
 
-  .sidebar-close {
-    display: flex;
-  }
+  try {
+    const dados = await _buscarDadosCliente(clienteId);
 
-  .sidebar-overlay {
-    display: block;
-  }
+    // Verifica se já existe alguma carta (rascunho ou finalizada) para este cliente —
+    // se existir, reabre a mais recente pra continuar editando e manter o histórico
+    // de versões junto. Antes isso só buscava "rascunho", então reabrir uma carta que
+    // já tinha sido finalizada criava um documento novo do zero e perdia o histórico.
+    const existentes = await getDocs(query(
+      collection(db, COL_CARTAS),
+      where("clienteId", "==", clienteId)
+    ));
 
-  .overlay--visible {
-    opacity: 1;
-    pointer-events: all;
-  }
+    let cartaId = null;
+    let statusCarta = "rascunho";
+    let conteudoHtml = null;
+    let cabecalhoHtml = "";
+    let rodapeHtml = "";
 
-  .topbar-menu {
-    display: flex;
-  }
+    if (!existentes.empty) {
+      const docExistente = existentes.docs.sort((a, b) => {
+        const da = a.data().atualizadoEm?.toDate?.() || new Date(0);
+        const dbb = b.data().atualizadoEm?.toDate?.() || new Date(0);
+        return dbb - da;
+      })[0];
+      cartaId = docExistente.id;
+      statusCarta = docExistente.data().status || "rascunho";
+      conteudoHtml = docExistente.data().conteudoHtml;
+      cabecalhoHtml = docExistente.data().cabecalhoHtml || "";
+      rodapeHtml = docExistente.data().rodapeHtml || "";
+    } else {
+      conteudoHtml = _gerarModeloHtml(dados, _dadosUsuario?.nome);
+      const ref = await addDoc(collection(db, COL_CARTAS), {
+        clienteId,
+        clienteNome: dados.cliente.nome || "",
+        conteudoHtml,
+        cabecalhoHtml: "",
+        rodapeHtml: "",
+        status: "rascunho",
+        criadoPor: _usuarioAtual?.uid || null,
+        criadoPorNome: _dadosUsuario?.nome || _usuarioAtual?.email || "—",
+        criadoEm: serverTimestamp(),
+        atualizadoPor: _usuarioAtual?.uid || null,
+        atualizadoPorNome: _dadosUsuario?.nome || _usuarioAtual?.email || "—",
+        atualizadoEm: serverTimestamp(),
+        downloads: []
+      });
+      cartaId = ref.id;
+    }
 
-  .content-area {
-    padding: var(--space-4) var(--space-4);
-  }
-
-  .topbar {
-    padding: 0 var(--space-4);
-  }
-
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-3);
-  }
-
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .toast-container {
-    bottom: var(--space-4);
-    right: var(--space-4);
-    left: var(--space-4);
-  }
-
-  .toast {
-    min-width: auto;
-    max-width: 100%;
+    _cartaAtual = { id: cartaId, clienteId, status: statusCarta, autoSaveTimer: null, sujo: false };
+    _montarEditor(dados, conteudoHtml, cabecalhoHtml, rodapeHtml);
+  } catch (err) {
+    console.error("Erro ao gerar carta de anuência:", err);
+    window.mostrarToast?.("Erro ao gerar a carta de anuência.", "error");
   }
 }
 
-@media (max-width: 480px) {
-  .stats-grid { grid-template-columns: 1fr; }
-  .filter-bar { flex-direction: column; align-items: stretch; }
-  .page-header-actions { width: 100%; }
-  .page-header-actions .btn-primary,
-  .page-header-actions .btn-secondary,
-  .page-header-actions .btn-ghost { width: 100%; justify-content: center; }
+// ── Monta a interface do editor (overlay fullscreen) ────────
+function _montarEditor(dadosCliente, conteudoHtml, cabecalhoHtml = "", rodapeHtml = "") {
+  let overlay = document.getElementById("cartaAnuenciaOverlay");
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "cartaAnuenciaOverlay";
+    document.body.appendChild(overlay);
+  }
+
+  overlay.innerHTML = `
+    <div class="ca-topbar">
+      <button id="caBtnFechar" title="Fechar editor">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/></svg>
+        Voltar
+      </button>
+      <div class="ca-titulo">
+        <strong>Carta de Anuência — ${escHtml(dadosCliente.cliente.nome || "")}</strong>
+        <span id="caAutoSaveMsg" class="ca-autosave-msg">Todas as alterações salvas</span>
+      </div>
+      <span id="caStatusPill" class="ca-status-pill ca-status-pill--rascunho">Rascunho</span>
+      <button id="caBtnVariaveis" title="Preencher variáveis do documento">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828zM5 4a2 2 0 00-2 2v9a2 2 0 002 2h9a2 2 0 002-2v-4a1 1 0 10-2 0v4H5V6h4a1 1 0 100-2H5z" clip-rule="evenodd"/></svg>
+        Variáveis
+      </button>
+      <button id="caBtnVersoes" title="Histórico de versões">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+        Versões
+      </button>
+      <button id="caBtnAssinatura" title="Inserir assinatura/carimbo">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm5 7l-2.5 2.5L5 12l3-3 2 2 4-4 1.5 1.5L10 13l-1-2z"/></svg>
+        Assinatura
+      </button>
+      <button id="caBtnResetar" title="Resetar documento para o modelo padrão">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+        Resetar
+      </button>
+      <button id="caBtnImprimir" title="Imprimir">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 4v3H4a2 2 0 00-2 2v3a2 2 0 002 2h1v2a1 1 0 001 1h8a1 1 0 001-1v-2h1a2 2 0 002-2V9a2 2 0 00-2-2h-1V4a1 1 0 00-1-1H6a1 1 0 00-1 1zm2 0h6v3H7V4zm-1 9v-1h8v1H6zm8-4a1 1 0 11-2 0 1 1 0 012 0z" clip-rule="evenodd"/></svg>
+        Imprimir
+      </button>
+      <button id="caBtnPdf" title="Baixar em PDF">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM9 3a1 1 0 012 0v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3z" clip-rule="evenodd"/></svg>
+        PDF
+      </button>
+      <button id="caBtnDocx" title="Baixar em DOCX (Word)">
+        <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM9 3a1 1 0 012 0v8.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V3z" clip-rule="evenodd"/></svg>
+        DOCX
+      </button>
+      <button id="caBtnSalvarRascunho">Salvar Rascunho</button>
+      <button id="caBtnFinalizar" class="ca-btn-primary">Salvar Versão Final</button>
+    </div>
+
+    <div class="ca-toolbar">
+      <div class="ca-group">
+        <select id="caFonteSelect" title="Fonte">
+          <option value="'Times New Roman',serif" selected>Times New Roman</option>
+          <option value="Arial,sans-serif">Arial</option>
+          <option value="'Courier New',monospace">Courier New</option>
+          <option value="Georgia,serif">Georgia</option>
+          <option value="Calibri,sans-serif">Calibri</option>
+        </select>
+        <select id="caTamanhoSelect" title="Tamanho da fonte">
+          <option value="1">10</option>
+          <option value="2">12</option>
+          <option value="3" selected>14</option>
+          <option value="4">16</option>
+          <option value="5">18</option>
+          <option value="6">24</option>
+          <option value="7">32</option>
+        </select>
+      </div>
+      <div class="ca-group">
+        <button class="ca-tool" data-cmd="bold" title="Negrito"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a1 1 0 00-1 1v12a1 1 0 001 1h5.5a4 4 0 002.7-6.95A3.5 3.5 0 0010.5 3H5zm2 2h3.5a1.5 1.5 0 010 3H7V5zm0 5.5h3.5a2 2 0 010 4H7v-4z"/></svg></button>
+        <button class="ca-tool" data-cmd="italic" title="Itálico"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M8 3a1 1 0 100 2h1.5l-3 10H5a1 1 0 100 2h6a1 1 0 100-2h-1.5l3-10H14a1 1 0 100-2H8z"/></svg></button>
+        <button class="ca-tool" data-cmd="underline" title="Sublinhado"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a1 1 0 011 1v6a4 4 0 008 0V4a1 1 0 112 0v6a6 6 0 01-12 0V4a1 1 0 011-1zM4 16a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z"/></svg></button>
+      </div>
+      <div class="ca-group">
+        <button class="ca-tool" data-cmd="justifyLeft" title="Alinhar à esquerda"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2 4a1 1 0 011-1h14a1 1 0 110 2H3a1 1 0 01-1-1zm0 4a1 1 0 011-1h10a1 1 0 110 2H3a1 1 0 01-1-1zm0 4a1 1 0 011-1h14a1 1 0 110 2H3a1 1 0 01-1-1zm0 4a1 1 0 011-1h10a1 1 0 110 2H3a1 1 0 01-1-1z" clip-rule="evenodd"/></svg></button>
+        <button class="ca-tool" data-cmd="justifyCenter" title="Centralizar"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2 4a1 1 0 011-1h14a1 1 0 110 2H3a1 1 0 01-1-1zm3 4a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm-3 4a1 1 0 011-1h14a1 1 0 110 2H3a1 1 0 01-1-1zm3 4a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd"/></svg></button>
+        <button class="ca-tool" data-cmd="justifyRight" title="Alinhar à direita"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2 4a1 1 0 011-1h14a1 1 0 110 2H3a1 1 0 01-1-1zm6 4a1 1 0 011-1h8a1 1 0 110 2H9a1 1 0 01-1-1zm-6 4a1 1 0 011-1h14a1 1 0 110 2H3a1 1 0 01-1-1zm6 4a1 1 0 011-1h8a1 1 0 110 2H9a1 1 0 01-1-1z" clip-rule="evenodd"/></svg></button>
+        <button class="ca-tool" data-cmd="justifyFull" title="Justificado"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2 4a1 1 0 011-1h14a1 1 0 110 2H3a1 1 0 01-1-1zm0 4a1 1 0 011-1h14a1 1 0 110 2H3a1 1 0 01-1-1zm0 4a1 1 0 011-1h14a1 1 0 110 2H3a1 1 0 01-1-1zm0 4a1 1 0 011-1h14a1 1 0 110 2H3a1 1 0 01-1-1z" clip-rule="evenodd"/></svg></button>
+      </div>
+      <div class="ca-group">
+        <button class="ca-tool" data-cmd="insertUnorderedList" title="Lista com marcadores"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 5a1 1 0 100 2 1 1 0 000-2zm4 .5a1 1 0 011-1h8a1 1 0 110 2H9a1 1 0 01-1-1zM4 9a1 1 0 100 2 1 1 0 000-2zm4 .5a1 1 0 011-1h8a1 1 0 110 2H9a1 1 0 01-1-1zM4 13a1 1 0 100 2 1 1 0 000-2zm4 .5a1 1 0 011-1h8a1 1 0 110 2H9a1 1 0 01-1-1z"/></svg></button>
+        <button class="ca-tool" data-cmd="insertOrderedList" title="Lista numerada"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 3h1v2H3V4h-.5v-.5H3V3zm0 5.5h1.3L3 9.9v.6h1.7v-.6H4l1.3-1.4V8H3v.5zM3 13h.7l-.7.9v.6h1.7v-2H3v.5zM8 4.5a1 1 0 011-1h8a1 1 0 110 2H9a1 1 0 01-1-1zm0 5a1 1 0 011-1h8a1 1 0 110 2H9a1 1 0 01-1-1zm0 5a1 1 0 011-1h8a1 1 0 110 2H9a1 1 0 01-1-1z"/></svg></button>
+      </div>
+      <div class="ca-group">
+        <select id="caEspacamentoSelect" title="Espaçamento entre linhas">
+          <option value="1">1,0</option>
+          <option value="1.15" selected>1,15</option>
+          <option value="1.5">1,5</option>
+          <option value="2">2,0</option>
+        </select>
+      </div>
+      <div class="ca-group">
+        <button class="ca-tool" id="caBtnInserirLogo" title="Inserir logo da empresa"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l3.5-4.5 2.5 3L13.5 9 16 15z" clip-rule="evenodd"/></svg></button>
+        <button class="ca-tool" id="caBtnInserirImagem" title="Inserir imagem"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm0 2h12v6.5l-3-3-4 4-2-2L4 13.5V5zm2 2a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" clip-rule="evenodd"/></svg></button>
+      </div>
+      <input type="file" id="caInputImagem" accept="image/*" style="display:none" />
+      <input type="file" id="caInputAssinatura" accept="image/*" style="display:none" />
+    </div>
+
+    <div class="ca-editor-wrap">
+      <div class="ca-editor-scroll">
+        <div class="ca-pagina">
+          <div class="ca-cabecalho" id="caCabecalho" contenteditable="true" placeholder="Cabeçalho (opcional)"></div>
+          <div class="ca-corpo" id="caCorpo" contenteditable="true"></div>
+          <div class="ca-rodape" id="caRodape" contenteditable="true"></div>
+        </div>
+        <div class="ca-pagecount" id="caPageCount">~1 página</div>
+      </div>
+
+      <aside class="ca-painel-variaveis" id="caPainelVariaveis" hidden>
+        <div class="ca-painel-variaveis-header">
+          <strong>Variáveis do documento</strong>
+          <button id="caBtnFecharVariaveis" title="Fechar">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+          </button>
+        </div>
+        <p class="ca-painel-variaveis-dica">Altere o valor abaixo e o documento é atualizado automaticamente em todos os lugares onde essa variável aparece.</p>
+        <div id="caAvisoDocAntigo" class="ca-aviso-doc-antigo" hidden>
+          <p>Este documento foi criado antes do sistema de variáveis existir, então o texto é só texto puro — os campos abaixo não vão atualizar nada nele.</p>
+          <button id="caBtnRegenerarVariaveis" type="button" class="ca-btn-primary">Recriar variáveis neste documento</button>
+        </div>
+        <div class="ca-painel-variaveis-lista">
+          ${CA_VARIAVEIS.map(v => v.key === "dataQuitacao" ? `
+            <div class="ca-var-campo">
+              <label for="caVar_dataQuitacao">${v.label}</label>
+              <div class="ca-data-mask-wrap">
+                <input type="text" id="caVar_dataQuitacao" data-var-key="dataQuitacao" placeholder="dd/mm/aaaa" maxlength="10" inputmode="numeric" autocomplete="off" />
+                <button type="button" id="caBtnCalDataQuitacao" class="ca-data-mask-btn-cal" title="Escolher no calendário">
+                  <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm10 7H4v7h12V9z" clip-rule="evenodd"/></svg>
+                </button>
+                <input type="date" id="caVar_dataQuitacao_nativo" class="ca-data-mask-nativo" tabindex="-1" autocomplete="off" />
+              </div>
+            </div>` : `
+            <div class="ca-var-campo">
+              <label for="caVar_${v.key}">${v.label}</label>
+              <input type="text" id="caVar_${v.key}" data-var-key="${v.key}" autocomplete="off" />
+            </div>`).join("")}
+        </div>
+      </aside>
+    </div>
+  `;
+
+  document.getElementById("caCorpo").innerHTML = conteudoHtml || "";
+  document.getElementById("caCabecalho").innerHTML = cabecalhoHtml || "";
+  document.getElementById("caRodape").innerHTML = rodapeHtml || "";
+  overlay.hidden = false;
+  document.body.style.overflow = "hidden";
+
+  _ligarEventosEditor(dadosCliente);
+  _atualizarStatusPill();
+  _atualizarContagemPaginas();
 }
 
+// ── Eventos da barra de ferramentas e do editor ─────────────
+function _ligarEventosEditor(dadosCliente) {
+  const overlay = document.getElementById("cartaAnuenciaOverlay");
 
-/* ----------------------------------------------------------------
-   Dashboard "Últimas Cotações" — desktop: alinha botões de ação
-   à direita
-   ---------------------------------------------------------------- */
-#tabelaUltimas .td-actions-col { display: table-cell; }
-#tabelaUltimas .td-actions-col .td-actions-wrap {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-2);
+  document.getElementById("caBtnFechar").onclick = () => _fecharEditor();
+
+  // Comandos de formatação (execCommand ainda é o jeito mais simples/compatível
+  // de implementar um editor rich-text sem dependências externas)
+  overlay.querySelectorAll(".ca-tool[data-cmd]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.getElementById("caCorpo").focus();
+      document.execCommand(btn.dataset.cmd, false, null);
+      _marcarSujo();
+      _atualizarEstadoBotoes();
+    });
+  });
+
+  document.getElementById("caFonteSelect").addEventListener("change", (e) => {
+    document.getElementById("caCorpo").focus();
+    document.execCommand("fontName", false, e.target.value);
+    _marcarSujo();
+  });
+
+  document.getElementById("caTamanhoSelect").addEventListener("change", (e) => {
+    document.getElementById("caCorpo").focus();
+    document.execCommand("fontSize", false, e.target.value);
+    _marcarSujo();
+  });
+
+  document.getElementById("caEspacamentoSelect").addEventListener("change", (e) => {
+    document.getElementById("caCorpo").style.lineHeight = e.target.value;
+    _marcarSujo();
+  });
+
+  // Inserir logo da empresa (já existente em img/logo.png)
+  document.getElementById("caBtnInserirLogo").addEventListener("click", () => {
+    document.getElementById("caCorpo").focus();
+    const origem = window.location.origin;
+    document.execCommand("insertHTML", false, `<img src="${origem}/img/logo.png" style="width:70px;height:70px;display:inline-block;vertical-align:middle" />`);
+    _marcarSujo();
+  });
+
+  // Inserir imagem qualquer (upload local, embutida em base64)
+  document.getElementById("caBtnInserirImagem").addEventListener("click", () => document.getElementById("caInputImagem").click());
+  document.getElementById("caInputImagem").addEventListener("change", (e) => _inserirImagemArquivo(e.target.files[0]));
+
+  // Assinatura / carimbo
+  document.getElementById("caBtnAssinatura").addEventListener("click", () => {
+    window.mostrarToast?.("Selecione a imagem da assinatura ou carimbo.", "info");
+    document.getElementById("caInputAssinatura").click();
+  });
+  document.getElementById("caInputAssinatura").addEventListener("change", (e) => _inserirImagemArquivo(e.target.files[0], 220));
+
+  // Resetar documento para o modelo padrão (com confirmação)
+  document.getElementById("caBtnResetar").addEventListener("click", () => _confirmarResetarDocumento(dadosCliente));
+
+  // Marcar como "sujo" (não salvo) em qualquer edição + sincronizar edição
+  // direta no documento com o painel de variáveis (funciona nos dois sentidos)
+  ["caCorpo", "caCabecalho", "caRodape"].forEach(id => {
+    const host = document.getElementById(id);
+    host.addEventListener("input", () => {
+      _marcarSujo();
+      _atualizarContagemPaginas();
+      _sincronizarEdicaoDiretaDeVariavel(host);
+    });
+  });
+  document.getElementById("caCorpo").addEventListener("keyup", _atualizarEstadoBotoes);
+  document.getElementById("caCorpo").addEventListener("mouseup", _atualizarEstadoBotoes);
+
+  // Versões
+  document.getElementById("caBtnVersoes").addEventListener("click", () => _abrirHistoricoVersoes());
+
+  // Painel de variáveis
+  document.getElementById("caBtnVariaveis").addEventListener("click", () => _abrirPainelVariaveis());
+  document.getElementById("caBtnFecharVariaveis").addEventListener("click", () => _fecharPainelVariaveis());
+  document.getElementById("caBtnRegenerarVariaveis").addEventListener("click", () => _regenerarVariaveisDocumentoAntigo(dadosCliente));
+  CA_VARIAVEIS.forEach(v => {
+    if (v.key === "dataQuitacao") return; // tratado à parte, com máscara dd/mm/aaaa
+    document.getElementById(`caVar_${v.key}`)?.addEventListener("input", (e) => {
+      document.querySelectorAll(`.ca-corpo [data-var="${v.key}"], .ca-cabecalho [data-var="${v.key}"], .ca-rodape [data-var="${v.key}"]`)
+        .forEach(el => { el.textContent = e.target.value; });
+      _marcarSujo();
+      _atualizarContagemPaginas();
+    });
+  });
+  _ligarMascaraDataQuitacao();
+
+  // Impressão / exportação
+  document.getElementById("caBtnImprimir").addEventListener("click", () => _imprimirCarta());
+  document.getElementById("caBtnPdf").addEventListener("click", () => _imprimirCarta(true));
+  document.getElementById("caBtnDocx").addEventListener("click", () => _exportarDocx(dadosCliente));
+
+  // Salvar
+  document.getElementById("caBtnSalvarRascunho").addEventListener("click", () => _salvarCarta("rascunho", true));
+  document.getElementById("caBtnFinalizar").addEventListener("click", () => _salvarCarta("finalizada", true));
+
+  // Auto-save a cada 25s, só se houver alterações pendentes
+  if (_cartaAtual.autoSaveTimer) clearInterval(_cartaAtual.autoSaveTimer);
+  _cartaAtual.autoSaveTimer = setInterval(() => {
+    if (_cartaAtual.sujo) _salvarCarta(_cartaAtual.status, false);
+  }, 25000);
 }
 
-/* Página cotações — desktop: td de ações lado a lado (igual Dashboard) */
-#tabelaCotacoes .td-actions-col {
-  width: 1%;
-  white-space: nowrap;
-}
-#tabelaCotacoes .td-actions-col .td-actions-wrap--cotacoes {
-  display: flex;
-  justify-content: flex-end;
-  gap: 5px;
-  flex-wrap: nowrap;
-}
-#tabelaCotacoes .td-actions-col .td-actions-wrap--cotacoes .btn-action {
-  flex-shrink: 0;
-  white-space: nowrap;
+function _marcarSujo() {
+  _cartaAtual.sujo = true;
+  const msg = document.getElementById("caAutoSaveMsg");
+  if (msg) msg.textContent = "Alterações não salvas...";
 }
 
-/* Página cotações — coluna Cliente: largura limitada e nome truncado
-   com reticências, para o badge de Status não ficar colado nos
-   botões de Ações */
-#tabelaCotacoes .td-cliente-row {
-  max-width: 220px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-#tabelaCotacoes .td-cliente-row strong {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-#tabelaCotacoes .td-status-actions-row {
-  padding-right: var(--space-6);
+function _atualizarEstadoBotoes() {
+  document.querySelectorAll(".ca-tool[data-cmd]").forEach(btn => {
+    try {
+      btn.classList.toggle("is-ativo", document.queryCommandState(btn.dataset.cmd));
+    } catch { /* alguns comandos não suportam queryCommandState */ }
+  });
 }
 
-/* Botão olho — ocultar/mostrar valores */
-#btnToggleValores.is-ativo {
-  background: var(--blue-050);
-  border-color: var(--blue-200);
-  color: var(--blue-500);
+function _atualizarStatusPill() {
+  const pill = document.getElementById("caStatusPill");
+  if (!pill) return;
+  const finalizada = _cartaAtual.status === "finalizada";
+  pill.textContent = finalizada ? "Finalizada" : "Rascunho";
+  pill.className = `ca-status-pill ${finalizada ? "ca-status-pill--finalizada" : "ca-status-pill--rascunho"}`;
 }
 
-/* Quando o body tem .valores-ocultos, todo elemento .valor-protegido
-   tem seu texto trocado visualmente por bolinhas, sem alterar o DOM
-   (o valor real continua lá, só fica escondido por CSS) */
-body.valores-ocultos .valor-protegido {
-  color: transparent;
-  position: relative;
-  display: inline-block;
-  min-width: 70px;
+// Estimativa simples de número de páginas com base na altura do conteúdo
+function _atualizarContagemPaginas() {
+  const corpo = document.getElementById("caCorpo");
+  const contador = document.getElementById("caPageCount");
+  if (!corpo || !contador) return;
+  const alturaUtilPorPagina = 1000; // aproximação da área útil de uma página A4 em px
+  const paginas = Math.max(1, Math.ceil(corpo.scrollHeight / alturaUtilPorPagina));
+  contador.textContent = `~${paginas} página${paginas > 1 ? "s" : ""}`;
 }
-body.valores-ocultos .valor-protegido::after {
-  content: "••••••";
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  color: var(--gray-400);
-  letter-spacing: 1px;
+
+function _inserirImagemArquivo(file, maxLargura = 320) {
+  if (!file || !file.type.startsWith("image/")) {
+    window.mostrarToast?.("Selecione um arquivo de imagem válido.", "error");
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    document.getElementById("caCorpo").focus();
+    document.execCommand("insertHTML", false, `<img src="${reader.result}" style="max-width:${maxLargura}px;display:block;margin:8px 0" />`);
+    _marcarSujo();
+  };
+  reader.readAsDataURL(file);
 }
-body.valores-ocultos .col-right .valor-protegido::after,
-body.valores-ocultos .td-valor-col .valor-protegido::after {
-  justify-content: flex-end;
+
+// ── Salvar (rascunho ou versão final) ───────────────────────
+async function _salvarCarta(novoStatus, mostrarFeedback) {
+  if (!_cartaAtual.id) return;
+  const conteudoHtml = document.getElementById("caCorpo").innerHTML;
+  const cabecalhoHtml = document.getElementById("caCabecalho").innerHTML;
+  const rodapeHtml = document.getElementById("caRodape").innerHTML;
+
+  const btnRascunho = document.getElementById("caBtnSalvarRascunho");
+  const btnFinal = document.getElementById("caBtnFinalizar");
+  if (mostrarFeedback) { btnRascunho.disabled = true; btnFinal.disabled = true; }
+
+  try {
+    // Guarda a versão anterior no histórico antes de sobrescrever
+    const antesSnap = await getDoc(doc(db, COL_CARTAS, _cartaAtual.id));
+    if (antesSnap.exists()) {
+      const antes = antesSnap.data();
+      if (antes.conteudoHtml && antes.conteudoHtml !== conteudoHtml) {
+        await addDoc(collection(db, COL_CARTAS, _cartaAtual.id, "versoes"), {
+          conteudoHtml: antes.conteudoHtml,
+          status: antes.status || "rascunho",
+          usuarioNome: antes.atualizadoPorNome || antes.criadoPorNome || "—",
+          data: antes.atualizadoEm || serverTimestamp()
+        });
+      }
+    }
+
+    await updateDoc(doc(db, COL_CARTAS, _cartaAtual.id), {
+      conteudoHtml, cabecalhoHtml, rodapeHtml,
+      status: novoStatus,
+      atualizadoPor: _usuarioAtual?.uid || null,
+      atualizadoPorNome: _dadosUsuario?.nome || _usuarioAtual?.email || "—",
+      atualizadoEm: serverTimestamp()
+    });
+
+    _cartaAtual.status = novoStatus;
+    _cartaAtual.sujo = false;
+    _atualizarStatusPill();
+    const msg = document.getElementById("caAutoSaveMsg");
+    if (msg) msg.textContent = `Salvo às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+
+    if (mostrarFeedback) {
+      window.mostrarToast?.(novoStatus === "finalizada" ? "Versão final salva!" : "Rascunho salvo!", "success");
+    }
+  } catch (err) {
+    console.error("Erro ao salvar carta:", err);
+    if (mostrarFeedback) window.mostrarToast?.("Erro ao salvar a carta.", "error");
+  } finally {
+    if (mostrarFeedback) { btnRascunho.disabled = false; btnFinal.disabled = false; }
+  }
+}
+
+// Quando o usuário edita uma variável DIRETO no texto do documento (em vez de usar
+// o painel lateral), sincroniza esse valor de volta pro campo do painel e propaga
+// pras outras cópias da mesma variável (cabeçalho/corpo/rodapé). Pra "Data da
+// Quitação" especificamente, aplica a mesma máscara dd/mm/aaaa em tempo real.
+function _sincronizarEdicaoDiretaDeVariavel(host) {
+  const sel = window.getSelection();
+  if (!sel || !sel.anchorNode) return;
+  const node = sel.anchorNode.nodeType === 3 ? sel.anchorNode.parentElement : sel.anchorNode;
+  const span = node?.closest?.("[data-var]");
+  if (!span || !host.contains(span)) return;
+  const key = span.dataset.var;
+
+  if (key === "dataQuitacao") {
+    let digitos = (span.textContent || "").replace(/\D/g, "").slice(0, 8);
+    digitos = _validarDigitosDataCA(digitos);
+    const formatado = _formatarDigitosDataCA(digitos);
+
+    if (span.textContent !== formatado) {
+      span.textContent = formatado;
+      // Reposiciona o cursor no final do texto, já que reescrever o conteúdo
+      // da span move o cursor pro início
+      const range = document.createRange();
+      range.selectNodeContents(span);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+
+    const texto = document.getElementById("caVar_dataQuitacao");
+    const nativo = document.getElementById("caVar_dataQuitacao_nativo");
+    if (texto) texto.value = formatado;
+    if (nativo) nativo.value = digitos.length === 8 ? `${digitos.slice(4, 8)}-${digitos.slice(2, 4)}-${digitos.slice(0, 2)}` : "";
+
+    document.querySelectorAll(`.ca-corpo [data-var="dataQuitacao"], .ca-cabecalho [data-var="dataQuitacao"], .ca-rodape [data-var="dataQuitacao"]`)
+      .forEach(el => { if (el !== span) el.textContent = formatado; });
+    return;
+  }
+
+  // Demais variáveis: só propaga o texto digitado pro campo do painel e pras outras cópias
+  const valor = span.textContent || "";
+  const input = document.getElementById(`caVar_${key}`);
+  if (input) input.value = valor;
+  document.querySelectorAll(`.ca-corpo [data-var="${key}"], .ca-cabecalho [data-var="${key}"], .ca-rodape [data-var="${key}"]`)
+    .forEach(el => { if (el !== span) el.textContent = valor; });
+}
+
+// ── Máscara de data pro campo "Data da Quitação" (digitar dd/mm/aaaa OU escolher no calendário) ──
+function _formatarDigitosDataCA(digitos) {
+  let out = digitos.slice(0, 2);
+  if (digitos.length >= 2) out += "/";
+  out += digitos.slice(2, 4);
+  if (digitos.length >= 4) out += "/";
+  out += digitos.slice(4, 8);
+  return out;
+}
+
+function _validarDigitosDataCA(digitos) {
+  let raw = digitos;
+  if (raw.length >= 2) {
+    let dia = parseInt(raw.slice(0, 2), 10);
+    if (dia === 0) dia = 1;
+    if (dia > 31) dia = 31;
+    raw = String(dia).padStart(2, "0") + raw.slice(2);
+  }
+  if (raw.length >= 4) {
+    let mes = parseInt(raw.slice(2, 4), 10);
+    if (mes === 0) mes = 1;
+    if (mes > 12) mes = 12;
+    raw = raw.slice(0, 2) + String(mes).padStart(2, "0") + raw.slice(4);
+  }
+  if (raw.length >= 4) {
+    const dia = parseInt(raw.slice(0, 2), 10);
+    const mes = parseInt(raw.slice(2, 4), 10);
+    const ano = raw.length >= 8 ? parseInt(raw.slice(4, 8), 10) : new Date().getFullYear();
+    const diasNoMes = new Date(ano, mes, 0).getDate();
+    if (dia > diasNoMes) raw = String(diasNoMes).padStart(2, "0") + raw.slice(2);
+  }
+  return raw;
+}
+
+function _atualizarSpanDataQuitacao(texto) {
+  document.querySelectorAll(`.ca-corpo [data-var="dataQuitacao"], .ca-cabecalho [data-var="dataQuitacao"], .ca-rodape [data-var="dataQuitacao"]`)
+    .forEach(el => { el.textContent = texto; });
+  _marcarSujo();
+  _atualizarContagemPaginas();
+}
+
+function _ligarMascaraDataQuitacao() {
+  const texto = document.getElementById("caVar_dataQuitacao");
+  const nativo = document.getElementById("caVar_dataQuitacao_nativo");
+  const btnCal = document.getElementById("caBtnCalDataQuitacao");
+  if (!texto || !nativo || !btnCal) return;
+
+  texto.addEventListener("input", () => {
+    let digitos = texto.value.replace(/\D/g, "").slice(0, 8);
+    digitos = _validarDigitosDataCA(digitos);
+    texto.value = _formatarDigitosDataCA(digitos);
+    if (digitos.length === 8) {
+      const dia = digitos.slice(0, 2), mes = digitos.slice(2, 4), ano = digitos.slice(4, 8);
+      nativo.value = `${ano}-${mes}-${dia}`;
+    } else {
+      nativo.value = "";
+    }
+    _atualizarSpanDataQuitacao(texto.value || "dd/mm/aaaa");
+  });
+
+  nativo.addEventListener("change", () => {
+    if (!nativo.value) return;
+    const [ano, mes, dia] = nativo.value.split("-");
+    texto.value = `${dia}/${mes}/${ano}`;
+    _atualizarSpanDataQuitacao(texto.value);
+  });
+
+  btnCal.addEventListener("click", () => {
+    if (typeof nativo.showPicker === "function") nativo.showPicker();
+    else nativo.click();
+  });
+}
+
+function _abrirPainelVariaveis() {
+  const painel = document.getElementById("caPainelVariaveis");
+  if (!painel) return;
+
+  const temVariaveis = document.querySelectorAll('.ca-corpo [data-var], .ca-cabecalho [data-var], .ca-rodape [data-var]').length > 0;
+  const aviso = document.getElementById("caAvisoDocAntigo");
+
+  if (!temVariaveis) {
+    // Documento antigo, salvo antes do sistema de variáveis existir: não há spans
+    // pra atualizar, então os campos abaixo não fariam nada. Mostra o aviso/ação.
+    if (aviso) aviso.hidden = false;
+    painel.querySelectorAll(".ca-var-campo").forEach(el => el.style.display = "none");
+  } else {
+    if (aviso) aviso.hidden = true;
+    painel.querySelectorAll(".ca-var-campo").forEach(el => el.style.display = "");
+    // Preenche cada campo com o valor atual encontrado no documento
+    CA_VARIAVEIS.forEach(v => {
+      const spanAtual = document.querySelector(`.ca-corpo [data-var="${v.key}"], .ca-cabecalho [data-var="${v.key}"], .ca-rodape [data-var="${v.key}"]`);
+      const input = document.getElementById(`caVar_${v.key}`);
+      if (input) input.value = spanAtual?.textContent || "";
+    });
+  }
+  painel.hidden = false;
+}
+
+// Regenera o corpo do documento a partir do modelo atual (com os spans de variável),
+// usado quando a carta foi criada antes do sistema de variáveis existir.
+function _regenerarVariaveisDocumentoAntigo(dadosCliente) {
+  const ok = window.confirm("Isso vai substituir o texto atual do documento pelo modelo padrão preenchido automaticamente, permitindo editar as variáveis em tempo real. Qualquer edição manual feita no corpo do texto será perdida. Deseja continuar?");
+  if (!ok) return;
+  document.getElementById("caCorpo").innerHTML = _gerarModeloHtml(dadosCliente, _dadosUsuario?.nome);
+  _marcarSujo();
+  _atualizarContagemPaginas();
+  window.mostrarToast?.("Modelo regenerado. Agora as variáveis já atualizam em tempo real.", "success");
+  _abrirPainelVariaveis();
+}
+
+function _fecharPainelVariaveis() {
+  const painel = document.getElementById("caPainelVariaveis");
+  if (painel) painel.hidden = true;
+}
+
+// ── Resetar documento para o modelo padrão (com confirmação) ────────
+function _confirmarResetarDocumento(dadosCliente) {
+  const body = `<div class="delete-warning">
+    <strong>⚠️ Atenção!</strong> Isso vai apagar TODO o conteúdo atual do documento
+    (texto, imagens, cabeçalho e rodapé) e substituir pelo modelo padrão, preenchido
+    automaticamente com os dados do cliente. Essa ação não pode ser desfeita — a versão
+    atual (não salva) será perdida. Se você já salvou versões antes, elas continuam
+    disponíveis no Histórico de Versões.
+  </div>`;
+  const footer = `
+    <button class="btn-ghost" id="caBtnCancelarReset">Cancelar</button>
+    <button class="btn-danger" id="caBtnConfirmarReset">Resetar Documento</button>`;
+  window.abrirModal?.("Resetar Documento", body, footer);
+  document.getElementById("caBtnCancelarReset")?.addEventListener("click", () => window.fecharModal?.());
+  document.getElementById("caBtnConfirmarReset")?.addEventListener("click", () => _resetarDocumento(dadosCliente));
+}
+
+function _resetarDocumento(dadosCliente) {
+  document.getElementById("caCorpo").innerHTML = _gerarModeloHtml(dadosCliente, _dadosUsuario?.nome);
+  document.getElementById("caCabecalho").innerHTML = "";
+  document.getElementById("caRodape").innerHTML = "";
+  _marcarSujo();
+  _atualizarContagemPaginas();
+  window.fecharModal?.();
+  window.mostrarToast?.("Documento resetado para o modelo padrão. Salve para confirmar.", "success");
+}
+
+// ── Histórico de versões ────────────────────────────────────
+async function _abrirHistoricoVersoes() {
+  if (!_cartaAtual.id) {
+    window.mostrarToast?.("Salve a carta pelo menos uma vez antes de ver o histórico de versões.", "error");
+    return;
+  }
+
+  // Se tiver alteração pendente, salva agora (silencioso) pra já registrar a versão
+  // na hora, sem precisar esperar o auto-save ou sair do editor.
+  if (_cartaAtual.sujo) {
+    await _salvarCarta(_cartaAtual.status, false);
+  }
+  const body = `<div class="loading-cell" style="padding:24px 0">Carregando versões...</div>`;
+  const footer = `<button class="btn-ghost" onclick="window.fecharModal()">Fechar</button>`;
+  window.abrirModal?.("Histórico de Versões", body, footer);
+
+  try {
+    const snap = await getDocs(query(
+      collection(db, COL_CARTAS, _cartaAtual.id, "versoes"),
+      orderBy("data", "desc"),
+      limit(15)
+    ));
+    const versoes = [];
+    snap.forEach(d => versoes.push({ id: d.id, ...d.data() }));
+
+    const html = versoes.length === 0
+      ? `<p style="font-size:var(--text-sm);color:var(--gray-500);padding:8px 0">Nenhuma versão anterior salva ainda. Toda vez que você salvar alterações, a versão anterior fica guardada aqui.</p>`
+      : `<ul class="ca-versoes-lista">
+          ${versoes.map(v => `
+            <li>
+              <div class="ca-versao-info">
+                <strong>${formatarDataLocal(v.data)} às ${(v.data?.toDate?.() || new Date()).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</strong>
+                <span>Por ${escHtml(v.usuarioNome || "—")} · ${v.status === "finalizada" ? "Finalizada" : "Rascunho"}</span>
+              </div>
+              <div class="ca-versao-acoes">
+                <button class="btn-ghost" data-versao-id="${v.id}" id="btnComparar_${v.id}">Comparar</button>
+                <button class="btn-secondary" data-versao-id="${v.id}" id="btnRestaurar_${v.id}">Restaurar</button>
+              </div>
+            </li>`).join("")}
+        </ul>`;
+
+    const modalEl = document.getElementById("modalBody");
+    if (modalEl) {
+      modalEl.innerHTML = `<div class="form-usuario">${html}</div>`;
+      versoes.forEach(v => {
+        document.getElementById(`btnRestaurar_${v.id}`)?.addEventListener("click", () => _restaurarVersao(v));
+        document.getElementById(`btnComparar_${v.id}`)?.addEventListener("click", () => _abrirComparacaoVersao(v));
+      });
+    }
+  } catch (err) {
+    console.error("Erro ao carregar versões:", err);
+    const modalEl = document.getElementById("modalBody");
+    if (modalEl) modalEl.innerHTML = `<p style="color:var(--color-danger)">Erro ao carregar histórico de versões.</p>`;
+  }
+}
+
+// ── Comparação lado a lado (estilo diff do GitHub) entre uma versão antiga e o texto atual ──
+function _extrairTextoParaDiff(html) {
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html || "";
+  // Insere quebra de linha entre blocos (parágrafos, divs) pra não grudar o texto todo numa linha só
+  tmp.querySelectorAll("p, div, br, li").forEach(el => el.insertAdjacentText("beforebegin", "\n"));
+  return (tmp.textContent || "").replace(/\n{2,}/g, "\n").split("\n").map(l => l.trim()).filter(Boolean);
+}
+
+// Diff palavra-a-palavra usando LCS (maior subsequência comum), como um diff de texto simples
+function _diffPalavras(a, b) {
+  const wa = a.split(/(\s+)/).filter(t => t !== "");
+  const wb = b.split(/(\s+)/).filter(t => t !== "");
+  const n = wa.length, m = wb.length;
+  const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i][j] = wa[i] === wb[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  let i = 0, j = 0;
+  const ops = [];
+  while (i < n && j < m) {
+    if (wa[i] === wb[j]) { ops.push({ tipo: "igual", texto: wa[i] }); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) { ops.push({ tipo: "del", texto: wa[i] }); i++; }
+    else { ops.push({ tipo: "add", texto: wb[j] }); j++; }
+  }
+  while (i < n) { ops.push({ tipo: "del", texto: wa[i] }); i++; }
+  while (j < m) { ops.push({ tipo: "add", texto: wb[j] }); j++; }
+  return ops;
+}
+
+function _abrirComparacaoVersao(versao) {
+  const linhasAntigas = _extrairTextoParaDiff(versao.conteudoHtml);
+  const linhasAtuais = _extrairTextoParaDiff(document.getElementById("caCorpo").innerHTML);
+
+  // Alinha linha a linha usando LCS também nas linhas (pra não misturar parágrafos diferentes)
+  const n = linhasAntigas.length, m = linhasAtuais.length;
+  const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i][j] = linhasAntigas[i] === linhasAtuais[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+  }
+  let i = 0, j = 0;
+  // Monta uma sequência de operações em ordem: "igual" (linha idêntica) ou blocos
+  // consecutivos de "removida"/"adicionada" (linhas que saíram/entraram naquele trecho).
+  const passos = [];
+  while (i < n && j < m) {
+    if (linhasAntigas[i] === linhasAtuais[j]) {
+      passos.push({ tipo: "igual", esq: linhasAntigas[i], dir: linhasAtuais[j] });
+      i++; j++;
+    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+      passos.push({ tipo: "removida", texto: linhasAntigas[i] });
+      i++;
+    } else {
+      passos.push({ tipo: "adicionada", texto: linhasAtuais[j] });
+      j++;
+    }
+  }
+  while (i < n) { passos.push({ tipo: "removida", texto: linhasAntigas[i] }); i++; }
+  while (j < m) { passos.push({ tipo: "adicionada", texto: linhasAtuais[j] }); j++; }
+
+  // Agrupa blocos consecutivos de removidas + adicionadas: quando um trecho de linhas
+  // saiu e outro entrou no mesmo lugar, tratamos como "linhas editadas" e fazemos o
+  // diff palavra-a-palavra entre elas, em vez de marcar a linha inteira como trocada.
+  const linhasEsq = [], linhasDir = [];
+  let k = 0;
+  while (k < passos.length) {
+    const p = passos[k];
+    if (p.tipo === "igual") {
+      linhasEsq.push({ tipo: "igual", html: escHtml(p.esq) });
+      linhasDir.push({ tipo: "igual", html: escHtml(p.dir) });
+      k++;
+      continue;
+    }
+    // Coleta o bloco de removidas seguido do bloco de adicionadas (nessa ordem)
+    const removidas = [];
+    while (k < passos.length && passos[k].tipo === "removida") { removidas.push(passos[k].texto); k++; }
+    const adicionadas = [];
+    while (k < passos.length && passos[k].tipo === "adicionada") { adicionadas.push(passos[k].texto); k++; }
+
+    const pares = Math.min(removidas.length, adicionadas.length);
+    for (let p2 = 0; p2 < pares; p2++) {
+      const ops = _diffPalavras(removidas[p2], adicionadas[p2]);
+      const htmlEsq = ops.filter(o => o.tipo !== "add")
+        .map(o => o.tipo === "del" ? `<del>${escHtml(o.texto)}</del>` : escHtml(o.texto)).join("");
+      const htmlDir = ops.filter(o => o.tipo !== "del")
+        .map(o => o.tipo === "add" ? `<ins>${escHtml(o.texto)}</ins>` : escHtml(o.texto)).join("");
+      linhasEsq.push({ tipo: "editada", html: htmlEsq });
+      linhasDir.push({ tipo: "editada", html: htmlDir });
+    }
+    // Linhas removidas/adicionadas que sobraram sem par viram remoção/adição pura
+    for (let p2 = pares; p2 < removidas.length; p2++) {
+      linhasEsq.push({ tipo: "removida", html: `<del>${escHtml(removidas[p2])}</del>` });
+    }
+    for (let p2 = pares; p2 < adicionadas.length; p2++) {
+      linhasDir.push({ tipo: "adicionada", html: `<ins>${escHtml(adicionadas[p2])}</ins>` });
+    }
+  }
+
+  const renderLado = (linhas) => linhas.map(l =>
+    `<p class="ca-diff-linha ca-diff-linha--${l.tipo}">${l.html}</p>`
+  ).join("") || `<p class="ca-diff-linha" style="color:var(--gray-400)">(vazio)</p>`;
+
+  const body = `
+    <div class="ca-diff-wrap">
+      <div class="ca-diff-coluna">
+        <div class="ca-diff-coluna-titulo">Versão de ${formatarDataLocal(versao.data)}</div>
+        <div class="ca-diff-conteudo">${renderLado(linhasEsq)}</div>
+      </div>
+      <div class="ca-diff-coluna">
+        <div class="ca-diff-coluna-titulo">Versão Atual</div>
+        <div class="ca-diff-conteudo">${renderLado(linhasDir)}</div>
+      </div>
+    </div>`;
+  const footer = `
+    <button class="btn-ghost" onclick="window.fecharModal()">Fechar</button>
+    <button class="btn-primary" id="btnRestaurarDaComparacao">Restaurar esta versão</button>`;
+
+  window.abrirModal?.(`Comparar Versões`, body, footer, { tamanho: "lg" });
+  document.getElementById("btnRestaurarDaComparacao")?.addEventListener("click", () => _restaurarVersao(versao));
+}
+
+function _restaurarVersao(versao) {
+  document.getElementById("caCorpo").innerHTML = versao.conteudoHtml || "";
+  _marcarSujo();
+  _atualizarContagemPaginas();
+  window.fecharModal?.();
+  window.mostrarToast?.("Versão restaurada. Salve para confirmar.", "success");
+}
+
+// ── Registrar log de download (PDF/DOCX) ────────────────────
+async function _registrarDownload(tipo) {
+  if (!_cartaAtual.id) return;
+  try {
+    await updateDoc(doc(db, COL_CARTAS, _cartaAtual.id), {
+      [`ultimoDownload${tipo}`]: {
+        por: _dadosUsuario?.nome || _usuarioAtual?.email || "—",
+        em: Timestamp.now()
+      }
+    });
+  } catch (err) {
+    console.error("Erro ao registrar log de download:", err);
+  }
+}
+
+// ── Impressão / PDF ──────────────────────────────────────────
+function _imprimirCarta(comoDownloadPdf = false) {
+  const cabecalho = document.getElementById("caCabecalho").innerHTML;
+  const corpo = document.getElementById("caCorpo").innerHTML;
+  const rodape = document.getElementById("caRodape").innerHTML;
+  const lineHeight = document.getElementById("caCorpo").style.lineHeight || "1.15";
+
+  const win = window.open("", "_blank");
+  win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+    <title>Carta de Anuência</title>
+    <style>
+      @page { size: A4; margin: 22mm 20mm; }
+      body{font-family:"Times New Roman",Georgia,serif;font-size:14px;line-height:${lineHeight};color:#1a1a1a;margin:0;padding:0}
+      .cab{font-size:11px;color:#666;margin-bottom:18px;padding-bottom:8px;border-bottom:1px solid #eee}
+      .rod{font-size:11px;color:#666;margin-top:24px;padding-top:8px;border-top:1px solid #eee}
+      img{max-width:100%}
+      p{margin:0 0 10px}
+    </style></head><body>
+    ${cabecalho ? `<div class="cab">${cabecalho}</div>` : ""}
+    ${corpo}
+    ${rodape ? `<div class="rod">${rodape}</div>` : ""}
+    <script>window.onload=()=>{window.print();}<\/script>
+    </body></html>`);
+  win.document.close();
+
+  if (comoDownloadPdf) _registrarDownload("PDF");
+}
+
+// ── Exportação em .doc (compatível com Microsoft Word) ──────
+// Gera um arquivo HTML com o namespace do Word, que o Word abre e
+// converte normalmente — é a forma padrão de exportar "DOCX" sem
+// precisar de bibliotecas externas no navegador.
+function _exportarDocx(dadosCliente) {
+  const cabecalho = document.getElementById("caCabecalho").innerHTML;
+  const corpo = document.getElementById("caCorpo").innerHTML;
+  const rodape = document.getElementById("caRodape").innerHTML;
+
+  const htmlDoc = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+    <head><meta charset="utf-8"><title>Carta de Anuência</title>
+    <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+    <style>
+      @page{size:21cm 29.7cm;margin:2.2cm 2cm}
+      body{font-family:"Times New Roman",serif;font-size:14pt;line-height:1.4;color:#1a1a1a}
+      p{margin:0 0 10pt}
+      img{max-width:400px}
+    </style></head>
+    <body>
+      ${cabecalho ? `<div style="font-size:9pt;color:#666;margin-bottom:14pt">${cabecalho}</div>` : ""}
+      ${corpo}
+      ${rodape ? `<div style="font-size:9pt;color:#666;margin-top:18pt">${rodape}</div>` : ""}
+    </body></html>`;
+
+  const blob = new Blob(['\ufeff', htmlDoc], { type: "application/msword" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  const nomeArq = (dadosCliente?.cliente?.nome || "cliente").replace(/[^\w]+/g, "_");
+  link.download = `Carta_Anuencia_${nomeArq}.doc`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  _registrarDownload("DOCX");
+  window.mostrarToast?.("Arquivo .doc gerado! Ele abre normalmente no Microsoft Word.", "success");
+}
+
+// ── Fechar editor ────────────────────────────────────────────
+function _fecharEditor() {
+  if (_cartaAtual.sujo) {
+    const confirmar = window.confirm("Há alterações não salvas. Deseja salvar como rascunho antes de sair?");
+    if (confirmar) { _salvarCarta("rascunho", false); }
+  }
+  if (_cartaAtual.autoSaveTimer) clearInterval(_cartaAtual.autoSaveTimer);
+  const overlay = document.getElementById("cartaAnuenciaOverlay");
+  if (overlay) overlay.hidden = true;
+  document.body.style.overflow = "";
+  _cartaAtual = { id: null, clienteId: null, status: "rascunho", autoSaveTimer: null, sujo: false };
 }
