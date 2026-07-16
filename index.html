@@ -79,6 +79,12 @@
         </a>
       </li>
       <li>
+        <a href="#" class="nav-item" data-page="entrega">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M8 16a2 2 0 11-4 0 2 2 0 014 0zM18 16a2 2 0 11-4 0 2 2 0 014 0z"/><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM12 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0114.95 16H15a1 1 0 001-1v-2h1.5a1 1 0 00.83-.445l1.5-2.25A1 1 0 0020 9.75V8a1 1 0 00-1-1h-7z"/></svg>
+          Entrega
+        </a>
+      </li>
+      <li>
         <a href="#" class="nav-item" data-page="comissao">
           <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V8z" clip-rule="evenodd"/></svg>
           Comissão
@@ -424,29 +430,6 @@
         </div>
       </div>
 
-      <!-- Entrega -->
-      <div class="card">
-        <h3 class="card-section-title">Entrega</h3>
-        <div class="form-grid">
-          <div class="field">
-            <label class="field-label" for="cotEntregaCliente">Nome do Cliente</label>
-            <input class="field-input field-input--plain" type="text" id="cotEntregaCliente" placeholder="Quem vai receber a entrega" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label class="field-label" for="cotEntregaLocal">Local</label>
-            <input class="field-input field-input--plain" type="text" id="cotEntregaLocal" placeholder="Endereço ou ponto de entrega" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label class="field-label" for="cotEntregaSaida">Hora de Saída</label>
-            <input class="field-input field-input--plain" type="time" id="cotEntregaSaida" autocomplete="off" />
-          </div>
-          <div class="field">
-            <label class="field-label" for="cotEntregaVolta">Hora de Volta</label>
-            <input class="field-input field-input--plain" type="time" id="cotEntregaVolta" autocomplete="off" />
-          </div>
-        </div>
-      </div>
-
       <!-- Tabela de produtos (mini Excel) -->
       <div class="card">
         <div class="card-header">
@@ -735,6 +718,59 @@
 
         </div>
 
+      </div>
+
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- PÁGINA: ENTREGA                                           -->
+    <!-- ======================================================== -->
+    <section id="page-entrega" class="page" aria-label="Entrega" hidden>
+
+      <!-- Mobile page header -->
+      <div class="mobile-page-header">
+        <h2>Entrega</h2>
+      </div>
+
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">Entrega</h2>
+          <p class="page-subtitle">Controle de saídas e entregas realizadas</p>
+        </div>
+        <button class="btn-primary" id="btnNovaEntrega">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+          Nova Entrega
+        </button>
+      </div>
+
+      <!-- Filtros -->
+      <div class="filter-bar">
+        <div class="filter-search">
+          <svg class="filter-search-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+          <input type="text" class="filter-input" id="filtroBuscaEntrega" placeholder="Buscar por cliente ou local..." autocomplete="off" />
+        </div>
+        <button class="btn-secondary" id="btnBuscarEntrega">Buscar</button>
+        <button class="btn-ghost" id="btnLimparBuscaEntrega">Limpar</button>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table class="data-table" id="tabelaEntrega">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Local</th>
+                <th>Data</th>
+                <th class="col-center">Saída</th>
+                <th class="col-center">Volta</th>
+                <th class="col-center td-actions-col">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyEntrega">
+              <tr><td colspan="6" class="loading-cell">Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </section>
@@ -1942,6 +1978,7 @@
   import { iniciarAdmin }                from "./js/admin.js";
   import { iniciarComissao }             from "./js/comissao.js";
   import { iniciarCaixa }                from "./js/caixa.js";
+  import { iniciarEntrega }              from "./js/entrega.js";
   import { iniciarProdutos }             from "./js/produtos.js";
   import { iniciarServicos }             from "./js/servicos.js";
   import { iniciarPromissoria }          from "./js/promissoria.js";
@@ -1986,6 +2023,7 @@
     iniciarAdmin(usuario, dadosUsuario);
     iniciarComissao(usuario, dadosUsuario);
     iniciarCaixa(usuario, dadosUsuario);
+    iniciarEntrega(usuario, dadosUsuario);
     if (isAdmin) iniciarProdutos(usuario, dadosUsuario);
     if (isAdmin) iniciarServicos(usuario, dadosUsuario);
     if (isAdmin) iniciarPromissoria(usuario, dadosUsuario);
@@ -2011,6 +2049,7 @@
       "cotacoes":      "Cotações",
       "nova-cotacao":  "Nova Cotação",
       "caixa":         "Caixa",
+      "entrega":       "Entrega",
       "comissao":      "Comissão",
       "estoque":       "Produtos / Estoque",
       "servicos":      "Serviços Personalizados",
