@@ -424,6 +424,29 @@
         </div>
       </div>
 
+      <!-- Entrega -->
+      <div class="card">
+        <h3 class="card-section-title">Entrega</h3>
+        <div class="form-grid">
+          <div class="field">
+            <label class="field-label" for="cotEntregaCliente">Nome do Cliente</label>
+            <input class="field-input field-input--plain" type="text" id="cotEntregaCliente" placeholder="Quem vai receber a entrega" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label class="field-label" for="cotEntregaLocal">Local</label>
+            <input class="field-input field-input--plain" type="text" id="cotEntregaLocal" placeholder="Endereço ou ponto de entrega" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label class="field-label" for="cotEntregaSaida">Hora de Saída</label>
+            <input class="field-input field-input--plain" type="time" id="cotEntregaSaida" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label class="field-label" for="cotEntregaVolta">Hora de Volta</label>
+            <input class="field-input field-input--plain" type="time" id="cotEntregaVolta" autocomplete="off" />
+          </div>
+        </div>
+      </div>
+
       <!-- Tabela de produtos (mini Excel) -->
       <div class="card">
         <div class="card-header">
@@ -1452,36 +1475,67 @@
       </div>
 
       <!-- Menu de seções da Administração -->
-      <div class="admin-menu">
-        <button class="admin-menu-item admin-menu-item--ativo" data-admin-panel="usuarios">
-          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
-          Usuários do Sistema
+      <div class="admin-menu admin-menu--cards">
+        <button class="admin-menu-item admin-menu-item--ativo admin-menu-item--blue" data-admin-panel="usuarios">
+          <span class="admin-menu-item__icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+          </span>
+          <span class="admin-menu-item__title">Usuários do Sistema</span>
+          <span class="admin-menu-item__desc">Gerencie os usuários e as permissões de acesso ao sistema.</span>
+          <span class="admin-menu-item__link">Acessar <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H3a1 1 0 110-2h9.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg></span>
         </button>
-        <button class="admin-menu-item" data-admin-panel="senha">
-          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
-          Senha Cotação
+        <button class="admin-menu-item admin-menu-item--indigo" data-admin-panel="senha">
+          <span class="admin-menu-item__icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
+          </span>
+          <span class="admin-menu-item__title">Senha Cotação</span>
+          <span class="admin-menu-item__desc">Altere e gerencie a senha utilizada para cotações.</span>
+          <span class="admin-menu-item__link">Acessar <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H3a1 1 0 110-2h9.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg></span>
         </button>
-        <button class="admin-menu-item" data-admin-panel="historico">
-          <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
-          Histórico de Alterações
+        <button class="admin-menu-item admin-menu-item--green" data-admin-panel="historico">
+          <span class="admin-menu-item__icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+          </span>
+          <span class="admin-menu-item__title">Histórico de Alterações</span>
+          <span class="admin-menu-item__desc">Visualize o histórico de alterações realizadas no sistema.</span>
+          <span class="admin-menu-item__link">Acessar <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H3a1 1 0 110-2h9.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg></span>
         </button>
-        <button class="admin-menu-item" data-admin-panel="vendas">
-          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/></svg>
-          Vendas Realizadas
+        <button class="admin-menu-item admin-menu-item--purple" data-admin-panel="vendas">
+          <span class="admin-menu-item__icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/></svg>
+          </span>
+          <span class="admin-menu-item__title">Vendas Realizadas</span>
+          <span class="admin-menu-item__desc">Consulte todas as vendas realizadas no sistema.</span>
+          <span class="admin-menu-item__link">Acessar <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H3a1 1 0 110-2h9.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg></span>
         </button>
-        <button class="admin-menu-item" data-admin-panel="dashboardVendas">
-          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1H3a1 1 0 01-1-1v-6zM8 7a1 1 0 011-1h2a1 1 0 011 1v10a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 3a1 1 0 011-1h2a1 1 0 011 1v14a1 1 0 01-1 1h-2a1 1 0 01-1-1V3z"/></svg>
-          Dashboard de Vendas
+        <button class="admin-menu-item admin-menu-item--amber" data-admin-panel="dashboardVendas">
+          <span class="admin-menu-item__icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1H3a1 1 0 01-1-1v-6zM8 7a1 1 0 011-1h2a1 1 0 011 1v10a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 3a1 1 0 011-1h2a1 1 0 011 1v14a1 1 0 01-1 1h-2a1 1 0 01-1-1V3z"/></svg>
+          </span>
+          <span class="admin-menu-item__title">Dashboard de Vendas</span>
+          <span class="admin-menu-item__desc">Acompanhe os principais indicadores e métricas de vendas.</span>
+          <span class="admin-menu-item__link">Acessar <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H3a1 1 0 110-2h9.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg></span>
         </button>
-        <button class="admin-menu-item" data-admin-panel="comissaoCriador">
-          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"/></svg>
-          Comissão por Cotação Ganhada
+        <button class="admin-menu-item admin-menu-item--pink" data-admin-panel="comissaoCriador">
+          <span class="admin-menu-item__icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"/></svg>
+          </span>
+          <span class="admin-menu-item__title">Comissão por Cotação Ganhada</span>
+          <span class="admin-menu-item__desc">Veja as comissões geradas por cotações ganhas.</span>
+          <span class="admin-menu-item__link">Acessar <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H3a1 1 0 110-2h9.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg></span>
         </button>
-        <button class="admin-menu-item" data-admin-panel="backup">
-          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v1H2V6z"/><path fill-rule="evenodd" d="M2 9h16v5a2 2 0 01-2 2H4a2 2 0 01-2-2V9zm8 1a1 1 0 011 1v2.586l.793-.793a1 1 0 111.414 1.414l-2.5 2.5a1 1 0 01-1.414 0l-2.5-2.5a1 1 0 111.414-1.414l.793.793V11a1 1 0 011-1z" clip-rule="evenodd"/></svg>
-          Backup
+        <button class="admin-menu-item admin-menu-item--cyan" data-admin-panel="backup">
+          <span class="admin-menu-item__icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v1H2V6z"/><path fill-rule="evenodd" d="M2 9h16v5a2 2 0 01-2 2H4a2 2 0 01-2-2V9zm8 1a1 1 0 011 1v2.586l.793-.793a1 1 0 111.414 1.414l-2.5 2.5a1 1 0 01-1.414 0l-2.5-2.5a1 1 0 111.414-1.414l.793.793V11a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+          </span>
+          <span class="admin-menu-item__title">Backup</span>
+          <span class="admin-menu-item__desc">Realize backup dos dados do sistema e restaure quando necessário.</span>
+          <span class="admin-menu-item__link">Acessar <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H3a1 1 0 110-2h9.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg></span>
         </button>
       </div>
+
+      <!-- Título da seção ativa (aparece acima do painel, papel do antigo menu em pills) -->
+      <h3 class="admin-panel-atual-titulo" id="adminPanelAtualTitulo">Usuários do Sistema</h3>
 
       <!-- Painel: Dashboard de Vendas -->
       <div class="admin-panel" id="adminPanelDashboardVendas">
