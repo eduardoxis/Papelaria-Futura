@@ -27,6 +27,9 @@ export function iniciarEntrega(usuario, dadosUsuario) {
 
   document.getElementById("btnNovaEntrega")?.addEventListener("click", abrirModalNovaEntrega);
 
+  document.getElementById("tabEntregaLista")?.addEventListener("click", () => trocarAbaEntrega("lista"));
+  document.getElementById("tabEntregaDashboard")?.addEventListener("click", () => trocarAbaEntrega("dashboard"));
+
   document.getElementById("filtroBuscaEntrega")?.addEventListener("input", (e) => {
     _termoBusca = e.target.value;
     renderizarTabelaEntrega();
@@ -54,6 +57,117 @@ async function carregarListaEntregas() {
     _entregasCache = [];
   }
   renderizarTabelaEntrega();
+  renderizarIndicadoresEntrega();
+  renderizarDashboardEntrega();
+}
+
+function trocarAbaEntrega(aba) {
+  document.getElementById("tabEntregaLista")?.classList.toggle("prom-tab--active", aba === "lista");
+  document.getElementById("tabEntregaDashboard")?.classList.toggle("prom-tab--active", aba === "dashboard");
+  document.getElementById("tabEntregaLista")?.setAttribute("aria-selected", String(aba === "lista"));
+  document.getElementById("tabEntregaDashboard")?.setAttribute("aria-selected", String(aba === "dashboard"));
+  document.getElementById("entregaListaPanel").hidden = aba !== "lista";
+  document.getElementById("entregaDashboardPanel").hidden = aba !== "dashboard";
+  if (aba === "dashboard") renderizarDashboardEntrega();
+}
+
+// ----------------------------------------------------------------
+// Indicadores (cards do topo)
+// ----------------------------------------------------------------
+function minutosEntre(saida, volta) {
+  if (!saida || !volta) return null;
+  const [hS, mS] = saida.split(":").map(Number);
+  const [hV, mV] = volta.split(":").map(Number);
+  if ([hS, mS, hV, mV].some(Number.isNaN)) return null;
+  const diff = (hV * 60 + mV) - (hS * 60 + mS);
+  return diff > 0 ? diff : null;
+}
+
+function renderizarIndicadoresEntrega() {
+  const hoje = hojeISO();
+  const inicioSemana = new Date();
+  inicioSemana.setDate(inicioSemana.getDate() - 6);
+  const inicioSemanaISO = isoDeData(inicioSemana);
+
+  const total = _entregasCache.length;
+  const hojeQtd = _entregasCache.filter(en => en.data === hoje).length;
+  const semanaQtd = _entregasCache.filter(en => en.data >= inicioSemanaISO && en.data <= hoje).length;
+
+  const duracoes = _entregasCache.map(en => minutosEntre(en.horaSaida, en.horaVolta)).filter(v => v !== null);
+  const mediaMin = duracoes.length ? Math.round(duracoes.reduce((s, v) => s + v, 0) / duracoes.length) : null;
+  const tempoMedioTxto = mediaMin === null ? "—" : `${Math.floor(mediaMin / 60)}h ${String(mediaMin % 60).padStart(2, "0")}min`;
+
+  const elTotal = document.getElementById("entIndTotal");
+  const elHoje = document.getElementById("entIndHoje");
+  const elSemana = document.getElementById("entIndSemana");
+  const elTempo = document.getElementById("entIndTempoMedio");
+  if (elTotal) elTotal.textContent = total;
+  if (elHoje) elHoje.textContent = hojeQtd;
+  if (elSemana) elSemana.textContent = semanaQtd;
+  if (elTempo) elTempo.textContent = tempoMedioTxto;
+}
+
+// ----------------------------------------------------------------
+// Dashboard (gráfico + ranking de clientes)
+// ----------------------------------------------------------------
+let _chartEntregasDias = null;
+
+function renderizarDashboardEntrega() {
+  const canvas = document.getElementById("chartEntregasDias");
+  if (canvas && window.Chart) {
+    const dias = [];
+    const contagem = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const iso = isoDeData(d);
+      dias.push(`${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`);
+      contagem.push(_entregasCache.filter(en => en.data === iso).length);
+    }
+
+    if (_chartEntregasDias) _chartEntregasDias.destroy();
+    _chartEntregasDias = new window.Chart(canvas, {
+      type: "bar",
+      data: {
+        labels: dias,
+        datasets: [{
+          label: "Entregas",
+          data: contagem,
+          backgroundColor: "#0038B8",
+          borderRadius: 4,
+          maxBarThickness: 28
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+      }
+    });
+  }
+
+  const tbody = document.getElementById("tbodyRankingClientesEntrega");
+  if (!tbody) return;
+
+  const porCliente = {};
+  _entregasCache.forEach(en => {
+    const nome = en.cliente || "—";
+    porCliente[nome] = (porCliente[nome] || 0) + 1;
+  });
+  const ranking = Object.entries(porCliente).sort((a, b) => b[1] - a[1]).slice(0, 10);
+
+  if (ranking.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="2" class="empty-cell">Nenhuma entrega cadastrada.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = ranking.map(([nome, qtd]) => `
+    <tr>
+      <td><strong>${escHtml(nome)}</strong></td>
+      <td class="col-right">${qtd}</td>
+    </tr>
+  `).join("");
 }
 
 function fmtDataBR(data) {
@@ -114,6 +228,10 @@ function onTabelaClick(e) {
 // ----------------------------------------------------------------
 function hojeISO() {
   const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function isoDeData(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
