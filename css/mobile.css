@@ -47,6 +47,11 @@
     display: none;
   }
 
+  #page-dashboard {
+    background: var(--gray-050);
+    position: relative;
+  }
+
   /* ----------------------------------------------------------------
      MOBILE HERO — cabeçalho azul da dashboard
      ---------------------------------------------------------------- */
@@ -56,7 +61,9 @@
     background: linear-gradient(160deg, var(--blue-950) 0%, var(--blue-800) 50%, var(--blue-600) 100%);
     padding: 48px var(--space-5) var(--space-8);
     overflow: hidden;
+    isolation: isolate;
     margin-bottom: var(--space-5);
+    z-index: 0;
   }
 
   /* Padrão de ícones no fundo */
@@ -170,6 +177,9 @@
     gap: var(--space-3);
     padding: 0 var(--space-4);
     margin-bottom: var(--space-5);
+    position: relative;
+    z-index: 1;
+    background: var(--gray-050);
   }
 
   .stat-card {
@@ -178,6 +188,9 @@
     gap: var(--space-3);
     align-items: flex-start;
     flex-direction: row;
+    background: var(--white);
+    position: relative;
+    z-index: 1;
   }
 
   .stat-card__icon {
