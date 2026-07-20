@@ -9,7 +9,8 @@
 .mobile-hero,
 .mobile-bottom-nav,
 .mobile-page-header,
-.mobile-hamburger-btn {
+.mobile-hamburger-btn,
+.btn-expandir-tabela {
   display: none;
 }
 
@@ -369,6 +370,54 @@
   /* Formulário nova cotação */
   .form-grid {
     grid-template-columns: 1fr !important;
+  }
+
+  /* ----------------------------------------------------------------
+     "Ver Deitada" — botão só aparece no mobile
+     ---------------------------------------------------------------- */
+  .btn-expandir-tabela {
+    display: inline-flex !important;
+    white-space: nowrap;
+  }
+
+  .tabela-fullscreen-ativa {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: var(--z-overlay, 400);
+    background: var(--white);
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch;
+    padding: 60px 12px 24px !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+
+  .tabela-fullscreen-ativa table {
+    min-width: max-content;
+  }
+
+  .btn-fechar-tabela-fullscreen {
+    position: fixed;
+    top: calc(var(--space-3) + env(safe-area-inset-top, 0px));
+    right: var(--space-3);
+    z-index: calc(var(--z-overlay, 400) + 1);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    background: var(--gray-900);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius-full, 999px);
+    font-weight: 700;
+    font-size: var(--text-sm);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  }
+
+  .btn-fechar-tabela-fullscreen svg {
+    width: 16px;
+    height: 16px;
   }
 
   /* Excel table responsivo */
