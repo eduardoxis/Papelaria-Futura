@@ -16,6 +16,50 @@ let _dadosUsuario = null;
 let _contadorLinhas = 0;
 let _modoSomenteLeitura = false;
 let _funcionarioCotacaoAtual = null; // nome de quem realmente criou/editou a cotação carregada
+let _tipoPessoaAtual = "pf"; // "pf" (CPF) ou "pj" (CNPJ) — controla a máscara do campo cotCnpj
+
+// Aplica a máscara de CPF ou CNPJ de acordo com o tipo informado.
+function aplicarMascaraDocumento(valorBruto, tipo) {
+  if (tipo === "pj") {
+    let v = valorBruto.replace(/\D/g,"").substring(0,14);
+    if (v.length > 12) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})$/,"$1.$2.$3/$4-$5");
+    else if (v.length > 8) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4})$/,"$1.$2.$3/$4");
+    else if (v.length > 5) v = v.replace(/^(\d{2})(\d{3})(\d{0,3})$/,"$1.$2.$3");
+    else if (v.length > 2) v = v.replace(/^(\d{2})(\d{0,3})$/,"$1.$2");
+    return v;
+  }
+  let v = valorBruto.replace(/\D/g,"").substring(0,11);
+  if (v.length > 9) v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2})$/,"$1.$2.$3-$4");
+  else if (v.length > 6) v = v.replace(/^(\d{3})(\d{3})(\d{0,3})$/,"$1.$2.$3");
+  else if (v.length > 3) v = v.replace(/^(\d{3})(\d{0,3})$/,"$1.$2");
+  return v;
+}
+
+// Alterna o tipo de pessoa selecionado, atualizando botões, label,
+// placeholder do campo e reformatando o valor já digitado.
+function definirTipoPessoa(tipo) {
+  _tipoPessoaAtual = tipo;
+
+  const btnPf = document.getElementById("btnTipoPessoaFisica");
+  const btnPj = document.getElementById("btnTipoPessoaJuridica");
+  btnPf?.classList.toggle("is-active", tipo === "pf");
+  btnPj?.classList.toggle("is-active", tipo === "pj");
+
+  const label = document.getElementById("labelCotCnpj");
+  const input = document.getElementById("cotCnpj");
+  if (label) label.textContent = tipo === "pj" ? "CNPJ" : "CPF";
+  if (input) {
+    input.placeholder = tipo === "pj" ? "00.000.000/0001-00" : "000.000.000-00";
+    input.value = aplicarMascaraDocumento(input.value, tipo);
+  }
+}
+
+// Detecta pf/pj a partir da quantidade de dígitos de um documento já
+// salvo (11 = CPF, 14 = CNPJ) — usado ao abrir uma cotação existente.
+function detectarTipoPessoaPorDocumento(documento) {
+  const digitos = (documento || "").replace(/\D/g,"");
+  return digitos.length > 11 ? "pj" : "pf";
+}
 
 // Paginação da lista de cotações
 const COTACOES_POR_PAGINA = 30;
@@ -36,14 +80,13 @@ export function iniciarCotacao(usuario, dadosUsuario) {
     if (e.detail.page === "nova-cotacao") prepararNovaCotacao();
   });
 
-  // Máscara CNPJ
+  // Toggle Pessoa Física / Pessoa Jurídica
+  document.getElementById("btnTipoPessoaFisica")?.addEventListener("click", () => definirTipoPessoa("pf"));
+  document.getElementById("btnTipoPessoaJuridica")?.addEventListener("click", () => definirTipoPessoa("pj"));
+
+  // Máscara CPF / CNPJ, conforme o tipo selecionado
   document.getElementById("cotCnpj")?.addEventListener("input", (e) => {
-    let v = e.target.value.replace(/\D/g,"").substring(0,14);
-    if (v.length > 12) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})$/,"$1.$2.$3/$4-$5");
-    else if (v.length > 8) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4})$/,"$1.$2.$3/$4");
-    else if (v.length > 5) v = v.replace(/^(\d{2})(\d{3})(\d{0,3})$/,"$1.$2.$3");
-    else if (v.length > 2) v = v.replace(/^(\d{2})(\d{0,3})$/,"$1.$2");
-    e.target.value = v;
+    e.target.value = aplicarMascaraDocumento(e.target.value, _tipoPessoaAtual);
   });
 
   // Máscara + validação de Telefone/WhatsApp
@@ -380,6 +423,7 @@ function prepararNovaCotacao() {
   ["cotCliente","cotCnpj","cotObs"].forEach(id => {
     document.getElementById(id).value = "";
   });
+  definirTipoPessoa("pf");
   document.getElementById("cotStatus").value = "ativa";
   definirValidadePadrao();
 
@@ -660,11 +704,14 @@ async function abrirCotacaoSomenteLeitura(id) {
     if (el) el.disabled = true;
   });
   document.getElementById("cotCliente").value  = c.cliente     || "";
+  definirTipoPessoa(detectarTipoPessoaPorDocumento(c.cnpj));
   document.getElementById("cotCnpj").value     = c.cnpj        || "";
   document.getElementById("cotTelefone").value = c.telefone    || "";
   document.getElementById("cotValidade").value = c.validade    || "";
   document.getElementById("cotObs").value      = c.observacoes || "";
   document.getElementById("cotStatus").value   = c.status      || "ativa";
+  document.getElementById("btnTipoPessoaFisica").disabled  = true;
+  document.getElementById("btnTipoPessoaJuridica").disabled = true;
 
   document.getElementById("btnSalvarCotacao")?.setAttribute("hidden", "true");
   document.getElementById("btnAdicionarLinha")?.setAttribute("hidden", "true");
@@ -691,6 +738,8 @@ function restaurarModoEdicao() {
     const el = document.getElementById(campoId);
     if (el) el.disabled = false;
   });
+  document.getElementById("btnTipoPessoaFisica").disabled  = false;
+  document.getElementById("btnTipoPessoaJuridica").disabled = false;
   document.getElementById("btnSalvarCotacao")?.removeAttribute("hidden");
   document.getElementById("btnAdicionarLinha")?.removeAttribute("hidden");
 }
@@ -714,6 +763,7 @@ async function editarCotacaoById(id) {
   document.getElementById("cotacaoEditandoId").value       = id;
   document.getElementById("titleFormCotacao").textContent  = "Editar Cotação";
   document.getElementById("cotCliente").value  = c.cliente    || "";
+  definirTipoPessoa(detectarTipoPessoaPorDocumento(c.cnpj));
   document.getElementById("cotCnpj").value     = c.cnpj       || "";
   document.getElementById("cotTelefone").value = c.telefone   || "";
   document.getElementById("cotValidade").value = c.validade   || "";
