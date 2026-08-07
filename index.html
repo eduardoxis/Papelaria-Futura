@@ -402,8 +402,15 @@
             <input class="field-input field-input--plain" type="text" id="cotCliente" placeholder="Nome do cliente ou empresa" required autocomplete="off" />
           </div>
           <div class="field">
-            <label class="field-label" for="cotCnpj">CNPJ / CPF</label>
-            <input class="field-input field-input--plain" type="text" id="cotCnpj" placeholder="00.000.000/0001-00" autocomplete="off" />
+            <label class="field-label">Tipo de Cliente</label>
+            <div class="tipo-pessoa-toggle" id="tipoPessoaToggle" role="group" aria-label="Tipo de cliente">
+              <button type="button" class="tipo-pessoa-btn is-active" id="btnTipoPessoaFisica" data-tipo="pf">Pessoa Física</button>
+              <button type="button" class="tipo-pessoa-btn" id="btnTipoPessoaJuridica" data-tipo="pj">Pessoa Jurídica</button>
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="cotCnpj" id="labelCotCnpj">CPF</label>
+            <input class="field-input field-input--plain" type="text" id="cotCnpj" placeholder="000.000.000-00" autocomplete="off" />
           </div>
           <div class="field">
             <label class="field-label" for="cotTelefone">Telefone / WhatsApp</label>
