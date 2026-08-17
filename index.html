@@ -918,6 +918,11 @@
               <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
               Adicionar Linha
             </button>
+            <button class="btn-secondary" id="btnImportarComissao" hidden title="Importar de arquivo .xlsx, .csv ou .json">
+              <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm6-12a1 1 0 011 1v5.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 111.414-1.414L8 11.586V6a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+              Importar
+            </button>
+            <input type="file" id="inputImportarComissao" accept=".csv,.xlsx,.xls,.json" style="display:none" autocomplete="off" />
             <button class="btn-secondary" id="btnDesfazerComissao" hidden disabled title="Desfazer última exclusão (Ctrl+Z)">
               <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 3.293a1 1 0 010 1.414L7.414 7H13a6 6 0 110 12H8a1 1 0 110-2h5a4 4 0 100-8H7.414l2.293 2.293a1 1 0 11-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
               Desfazer
@@ -926,6 +931,11 @@
               <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
               Salvar
             </button>
+            <label class="comissao-autosave-toggle" id="wrapAutoSalvarComissao" hidden title="Salva automaticamente as alterações a cada 20s">
+              <input type="checkbox" id="chkAutoSalvarComissao" autocomplete="off" />
+              <span>Auto-salvar</span>
+              <span class="comissao-autosave-status" id="statusAutoSalvarComissao"></span>
+            </label>
           </div>
         </div>
 
