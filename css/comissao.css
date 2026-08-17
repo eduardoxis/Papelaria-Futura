@@ -403,3 +403,40 @@
     width: 100%;
   }
 }
+
+/* ----------------------------------------------------------------
+   Auto-salvar (toggle)
+   ---------------------------------------------------------------- */
+.comissao-autosave-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm, 13px);
+  color: var(--gray-600, #64748B);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.comissao-autosave-toggle input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: var(--primary, #2563EB);
+}
+
+.comissao-autosave-status {
+  font-size: 11px;
+  color: var(--gray-400, #94A3B8);
+  min-width: 70px;
+}
+
+.comissao-autosave-status--salvando { color: #F59E0B; }
+.comissao-autosave-status--salvo    { color: #10B981; }
+.comissao-autosave-status--erro     { color: #E54957; }
+
+@media (max-width: 640px) {
+  .comissao-autosave-toggle span:not(.comissao-autosave-status) {
+    display: none;
+  }
+}
