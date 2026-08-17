@@ -20,6 +20,10 @@ let _registrosTodos   = [];
 let _modoEdicao       = false;
 let _contadorLinhas   = 0;
 let _undoStack        = [];
+let _autoSalvarAtivo  = false;
+let _autoSalvarDirty  = false;
+let _autoSalvarTimer  = null;
+const AUTOSAVE_INTERVALO_MS = 20000;
 const _fotosPorLinha  = new WeakMap(); // tr -> array de dataURLs (base64)
 
 export function iniciarComissao(usuario, dadosUsuario) {
@@ -45,6 +49,23 @@ export function iniciarComissao(usuario, dadosUsuario) {
     if (e.key === "Enter") { e.preventDefault(); adicionarLinhaVazia(); }
   });
   document.getElementById("btnSalvarComissao")?.addEventListener("click", salvarTodosRegistros);
+  document.getElementById("chkAutoSalvarComissao")?.addEventListener("change", (e) => {
+    _autoSalvarAtivo = e.target.checked;
+    localStorage.setItem("comissao_autosave", _autoSalvarAtivo ? "1" : "0");
+    if (_autoSalvarAtivo) iniciarAutoSalvar(); else pararAutoSalvar();
+  });
+  // Marca alterações pendentes ao editar qualquer célula da tabela
+  document.getElementById("tbodyComissao")?.addEventListener("input", () => {
+    if (_modoEdicao) marcarAutoSalvarPendente();
+  });
+  document.getElementById("btnImportarComissao")?.addEventListener("click", () => {
+    document.getElementById("inputImportarComissao").click();
+  });
+  document.getElementById("inputImportarComissao")?.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) importarArquivoComissao(file);
+    e.target.value = "";
+  });
   document.getElementById("btnDesfazerComissao")?.addEventListener("click", desfazerUltimaAcao);
   document.getElementById("btnAplicarFiltro")?.addEventListener("click", aplicarFiltro);
   document.getElementById("btnLimparFiltro")?.addEventListener("click", limparFiltro);
@@ -75,6 +96,7 @@ function mostrarPainelLista() {
   _contadorLinhas = 0;
   _modoEdicao     = false;
   _undoStack      = [];
+  pararAutoSalvar();
   carregarListaComissoes();
 }
 
@@ -101,6 +123,17 @@ function mostrarPainelDetalhe(comissao, modoEdicao = false) {
 
   // Mostrar/ocultar controles de edição
   document.getElementById("btnAdicionarLinhaComissao").hidden = !modoEdicao;
+  document.getElementById("btnImportarComissao").hidden       = !modoEdicao;
+  const wrapAuto = document.getElementById("wrapAutoSalvarComissao");
+  if (wrapAuto) wrapAuto.hidden = !modoEdicao;
+  pararAutoSalvar();
+  if (modoEdicao) {
+    const chkAuto = document.getElementById("chkAutoSalvarComissao");
+    _autoSalvarAtivo = localStorage.getItem("comissao_autosave") === "1";
+    if (chkAuto) chkAuto.checked = _autoSalvarAtivo;
+    definirStatusAutoSalvar("");
+    if (_autoSalvarAtivo) iniciarAutoSalvar();
+  }
   document.getElementById("btnSalvarComissao").hidden         = !modoEdicao;
   document.getElementById("btnDesfazerComissao").hidden       = !modoEdicao;
   const wrapQtd = document.getElementById("wrapQtdLinhasComissao");
@@ -306,6 +339,7 @@ function adicionarLinhaVazia() {
   if (!qtd || qtd < 1) qtd = 1;
   for (let i = 0; i < qtd; i++) adicionarLinha({});
   document.getElementById("tbodyComissao").lastElementChild?.querySelector("input")?.focus();
+  marcarAutoSalvarPendente();
 }
 
 function adicionarLinha(dados = {}) {
@@ -456,6 +490,7 @@ function removerLinhaLocal(tr, registrarUndo) {
   renumerarLinhas();
   atualizarTotalGeral();
   atualizarContagem();
+  marcarAutoSalvarPendente();
   if (!document.querySelector("#tbodyComissao tr[data-linha]")) adicionarLinhaVazia();
 }
 
@@ -647,7 +682,7 @@ function visualizarFotos(fotos) {
 // ================================================================
 // SALVAR
 // ================================================================
-async function salvarTodosRegistros() {
+async function salvarTodosRegistros(silencioso = false) {
   if (!_comissaoAtual || !_modoEdicao) return;
 
   const linhas = document.querySelectorAll("#tbodyComissao tr[data-linha]");
@@ -657,10 +692,15 @@ async function salvarTodosRegistros() {
     const cliente = tr.querySelector('[data-campo="cliente"]')?.value.trim();
     if (!cliente) erroVal = `Linha ${i + 1}: o campo Cliente é obrigatório.`;
   });
-  if (erroVal) { window.mostrarToast?.(erroVal, "error"); return; }
+  if (erroVal) {
+    if (!silencioso) window.mostrarToast?.(erroVal, "error");
+    else definirStatusAutoSalvar("erro", "Erro: cliente vazio");
+    return;
+  }
 
   const btn = document.getElementById("btnSalvarComissao");
-  btn.disabled = true; btn.textContent = "Salvando...";
+  if (!silencioso) { btn.disabled = true; btn.textContent = "Salvando..."; }
+  else definirStatusAutoSalvar("salvando");
 
   const promises = [];
   linhas.forEach((tr, i) => {
@@ -680,14 +720,60 @@ async function salvarTodosRegistros() {
     else erros++;
   });
 
-  btn.disabled = false; btn.textContent = "Salvar";
-
-  if (erros === 0) {
-    window.mostrarToast?.("Planilha salva com sucesso!", "success");
-    carregarRegistros(_comissaoAtual.id);
+  if (!silencioso) {
+    btn.disabled = false; btn.textContent = "Salvar";
+    if (erros === 0) {
+      window.mostrarToast?.("Planilha salva com sucesso!", "success");
+      carregarRegistros(_comissaoAtual.id);
+    } else {
+      window.mostrarToast?.(`${erros} registro(s) com erro.`, "error");
+    }
   } else {
-    window.mostrarToast?.(`${erros} registro(s) com erro.`, "error");
+    if (erros === 0) {
+      _autoSalvarDirty = false;
+      definirStatusAutoSalvar("salvo");
+    } else {
+      definirStatusAutoSalvar("erro", `${erros} erro(s)`);
+    }
   }
+}
+
+// ================================================================
+// AUTO-SALVAR
+// ================================================================
+function iniciarAutoSalvar() {
+  pararAutoSalvar();
+  _autoSalvarTimer = setInterval(() => {
+    if (_autoSalvarAtivo && _autoSalvarDirty && _modoEdicao && _comissaoAtual) {
+      salvarTodosRegistros(true);
+    }
+  }, AUTOSAVE_INTERVALO_MS);
+}
+
+function pararAutoSalvar() {
+  if (_autoSalvarTimer) { clearInterval(_autoSalvarTimer); _autoSalvarTimer = null; }
+}
+
+function marcarAutoSalvarPendente() {
+  _autoSalvarDirty = true;
+  if (_autoSalvarAtivo) definirStatusAutoSalvar("pendente");
+}
+
+function definirStatusAutoSalvar(estado, mensagem = "") {
+  const el = document.getElementById("statusAutoSalvarComissao");
+  if (!el) return;
+  el.className = "comissao-autosave-status";
+  const textos = {
+    "":         "",
+    pendente:   "alterações não salvas",
+    salvando:   "salvando…",
+    salvo:      "salvo ✓",
+    erro:       mensagem || "erro ao salvar"
+  };
+  if (estado === "salvando") el.classList.add("comissao-autosave-status--salvando");
+  if (estado === "salvo")    el.classList.add("comissao-autosave-status--salvo");
+  if (estado === "erro")     el.classList.add("comissao-autosave-status--erro");
+  el.textContent = textos[estado] ?? "";
 }
 
 function coletarDadosLinha(tr, ordem) {
@@ -1024,6 +1110,126 @@ function confirmarExcluirPlanilha(id, titulo) {
 // ================================================================
 // TOTAIS E UTILS
 // ================================================================
+// ================================================================
+// IMPORTAÇÃO — .xlsx / .csv / .json
+// ================================================================
+async function importarArquivoComissao(file) {
+  if (!_modoEdicao) return;
+
+  const ext = file.name.split(".").pop().toLowerCase();
+  let linhas = [];
+
+  try {
+    if (ext === "json") {
+      const texto = await file.text();
+      const json  = JSON.parse(texto);
+      const itens = Array.isArray(json) ? json : (Array.isArray(json?.registros) ? json.registros : null);
+      if (!itens) throw new Error("formato-json-invalido");
+      linhas = itens.map(item => ({
+        cliente:   String(item.cliente ?? item.Cliente ?? "").trim(),
+        descricao: String(item.descricao ?? item.Descrição ?? item.Descricao ?? "").trim(),
+        qtdFolhas: item.qtdFolhas ?? item["Qtd Folhas"] ?? item.folhas ?? "",
+        valor:     parsearMoeda(item.valor ?? item.Valor ?? 0),
+        data:      normalizarDataImport(item.data ?? item.Data),
+        categoria: normalizarCategoria(item.categoria ?? item.Categoria)
+      }));
+    } else {
+      let linhasRaw = [];
+      if (ext === "xlsx" || ext === "xls") {
+        if (!window.XLSX) {
+          window.mostrarToast?.("Biblioteca XLSX ainda carregando, tente novamente.", "error");
+          return;
+        }
+        const buffer = await file.arrayBuffer();
+        const wb     = window.XLSX.read(buffer, { type: "array", cellDates: true });
+        const ws     = wb.Sheets[wb.SheetNames[0]];
+        const dados  = window.XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+        linhasRaw    = dados.map(row => row.map(cel => {
+          if (cel instanceof Date) {
+            return `${cel.getFullYear()}-${String(cel.getMonth()+1).padStart(2,"0")}-${String(cel.getDate()).padStart(2,"0")}`;
+          }
+          return String(cel ?? "").trim();
+        }));
+      } else {
+        const texto = await file.text();
+        const sep   = texto.split("\n")[0].includes(";") ? ";" : ",";
+        linhasRaw   = texto
+          .split(/\r?\n/)
+          .filter(l => l.trim())
+          .map(l => l.split(sep).map(v => v.trim().replace(/^"|"$/g, "")));
+      }
+
+      if (linhasRaw.length < 2) {
+        window.mostrarToast?.("Arquivo vazio ou inválido.", "error");
+        return;
+      }
+
+      const cabecalho = linhasRaw[0].map(c => String(c).toUpperCase().replace(/\s+/g, " ").trim());
+      const col = (...nomes) => {
+        for (const n of nomes) {
+          const idx = cabecalho.findIndex(c => c.includes(n));
+          if (idx !== -1) return idx;
+        }
+        return -1;
+      };
+
+      const iCliente   = col("CLIENTE", "NOME");
+      const iDescricao = col("DESCRIÇÃO", "DESCRICAO", "DESC");
+      const iFolhas    = col("FOLHAS", "QTD");
+      const iValor     = col("VALOR");
+      const iData      = col("DATA");
+      const iCategoria = col("CATEGORIA", "FORMA", "PAGAMENTO");
+
+      if (iCliente === -1) {
+        window.mostrarToast?.("Coluna Cliente não encontrada. Verifique o arquivo.", "error");
+        return;
+      }
+
+      linhas = linhasRaw.slice(1)
+        .filter(c => String(c[iCliente] || "").trim())
+        .map(c => ({
+          cliente:   String(c[iCliente] || "").trim(),
+          descricao: iDescricao !== -1 ? String(c[iDescricao] || "").trim() : "",
+          qtdFolhas: iFolhas !== -1 ? (c[iFolhas] || "") : "",
+          valor:     iValor !== -1 ? parsearMoeda(c[iValor]) : 0,
+          data:      iData !== -1 ? normalizarDataImport(c[iData]) : "",
+          categoria: iCategoria !== -1 ? normalizarCategoria(c[iCategoria]) : ""
+        }));
+    }
+  } catch (err) {
+    console.error("Erro ao importar arquivo:", err);
+    window.mostrarToast?.("Erro ao ler o arquivo. Verifique o formato.", "error");
+    return;
+  }
+
+  if (!linhas.length) {
+    window.mostrarToast?.("Nenhum registro válido encontrado no arquivo.", "error");
+    return;
+  }
+
+  linhas.forEach(dados => adicionarLinha(dados));
+  atualizarTotalGeral();
+  marcarAutoSalvarPendente();
+  window.mostrarToast?.(`${linhas.length} linha(s) importada(s). Confira e clique em Salvar.`, "success");
+}
+
+function normalizarDataImport(valor) {
+  if (!valor) return "";
+  const str = String(valor).trim();
+  // já em YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  // DD/MM/YYYY
+  const m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+  return "";
+}
+
+function normalizarCategoria(valor) {
+  const str = String(valor || "").trim();
+  const encontrada = CATEGORIAS.find(c => c.toLowerCase() === str.toLowerCase());
+  return encontrada || "";
+}
+
 function atualizarTotalGeral() {
   let total = 0;
   document.querySelectorAll("#tbodyComissao [data-campo='valor']").forEach(inp => {
