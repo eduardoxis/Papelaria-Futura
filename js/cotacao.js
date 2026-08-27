@@ -9,7 +9,6 @@ import {
 } from "./database.js";
 import { badgeStatus, escHtml } from "./index.js";
 import { gerarPDF } from "./pdf.js";
-import { exigirSenhaCotacao } from "./senhaCotacao.js";
 
 let _usuario      = null;
 let _dadosUsuario = null;
@@ -143,16 +142,16 @@ export function iniciarCotacao(usuario, dadosUsuario) {
     if (!btn) return;
     const { action, id, cliente } = btn.dataset;
     if (action === "abrir")   abrirCotacaoSomenteLeitura(id);
-    if (action === "editar")  exigirSenhaCotacao(() => editarCotacaoById(id), "Editar Cotação");
+    if (action === "editar")  editarCotacaoById(id);
     if (action === "pdf")     gerarPDFById(id);
-    if (action === "excluir") exigirSenhaCotacao(() => excluirCotacaoById(id, cliente), "Excluir Cotação");
+    if (action === "excluir") excluirCotacaoById(id, cliente);
     if (action === "lembrete") abrirLembreteCotacao(id);
   });
 
   // Expor globais para o index.js usar via window.*
   window.abrirCotacaoSomenteLeitura = abrirCotacaoSomenteLeitura;
-  window.editarCotacaoById  = (id)          => exigirSenhaCotacao(() => editarCotacaoById(id), "Editar Cotação");
-  window.excluirCotacaoById = (id, cliente) => exigirSenhaCotacao(() => excluirCotacaoById(id, cliente), "Excluir Cotação");
+  window.editarCotacaoById  = editarCotacaoById;
+  window.excluirCotacaoById = excluirCotacaoById;
   window.gerarPDFById       = gerarPDFById;
 
   definirValidadePadrao();
