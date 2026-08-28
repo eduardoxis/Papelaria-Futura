@@ -104,6 +104,10 @@ export function iniciarCotacao(usuario, dadosUsuario) {
 
   // Botões do formulário
   document.getElementById("btnAdicionarLinha")?.addEventListener("click", adicionarLinha);
+  document.getElementById("btnImportarJsonItens")?.addEventListener("click", () => {
+    document.getElementById("inputImportarJsonItens")?.click();
+  });
+  document.getElementById("inputImportarJsonItens")?.addEventListener("change", importarItensJson);
   document.getElementById("btnSalvarCotacao")?.addEventListener("click", salvarCotacao);
   document.getElementById("btnGerarPDF")?.addEventListener("click", () => gerarPDFDaTela());
   document.getElementById("btnBuscarCotacoes")?.addEventListener("click", () => {
@@ -529,6 +533,86 @@ function adicionarLinha(dados = {}) {
 
   tbody.appendChild(tr);
   return tr;
+}
+
+// ================================================================
+// IMPORTAR ITENS VIA JSON
+// ================================================================
+// Formatos aceitos:
+//   1) Lista simples de nomes:      ["Caneta azul", "Caderno 10 matérias"]
+//   2) Lista de objetos:            [{ "descricao": "Caneta azul", "marca": "BIC",
+//                                      "unidade": "UND", "quantidade": 10, "valorUnitario": 2.5 }]
+//      Aceita variações de nome de campo: descricao/produto/nome/item,
+//      marca, unidade/un, quantidade/qtd/qtde, valorUnitario/valor/preco/valorunit.
+function _normalizarItemImportado(entrada) {
+  if (typeof entrada === "string") {
+    const descricao = entrada.trim();
+    return descricao ? { descricao } : null;
+  }
+  if (!entrada || typeof entrada !== "object") return null;
+
+  const pegar = (chaves) => {
+    for (const chave of chaves) {
+      const encontrada = Object.keys(entrada).find(k => k.toLowerCase() === chave);
+      if (encontrada && entrada[encontrada] !== undefined && entrada[encontrada] !== null && entrada[encontrada] !== "") {
+        return entrada[encontrada];
+      }
+    }
+    return "";
+  };
+
+  const descricao = String(pegar(["descricao", "descrição", "produto", "nome", "item"])).trim();
+  if (!descricao) return null;
+
+  const qtdBruta = pegar(["quantidade", "qtd", "qtde", "quant"]);
+  const valorBruto = pegar(["valorunitario", "valor", "preco", "preço", "valorunit"]);
+
+  return {
+    descricao,
+    marca: String(pegar(["marca"])).trim(),
+    unidade: String(pegar(["unidade", "un", "und"])).trim(),
+    quantidade: qtdBruta !== "" ? parsearNumero(qtdBruta) : "",
+    valorUnitario: valorBruto !== "" ? parsearMoeda(valorBruto) : ""
+  };
+}
+
+async function importarItensJson(evento) {
+  const input = evento.target;
+  const arquivo = input.files?.[0];
+  if (!arquivo) return;
+
+  try {
+    const texto = await arquivo.text();
+    const dados = JSON.parse(texto);
+    const listaBruta = Array.isArray(dados) ? dados : (Array.isArray(dados?.itens) ? dados.itens : null);
+
+    if (!listaBruta) {
+      alert("JSON inválido: esperado uma lista de produtos (array). Ex.: [\"Produto A\", \"Produto B\"] ou [{ \"descricao\": \"Produto A\" }].");
+      return;
+    }
+
+    const itensValidos = listaBruta.map(_normalizarItemImportado).filter(Boolean);
+    if (itensValidos.length === 0) {
+      alert("Nenhum item válido encontrado no arquivo JSON.");
+      return;
+    }
+
+    // Remove linhas em branco (sem descrição) já presentes na tabela,
+    // para não deixar linhas vazias misturadas com as importadas.
+    document.querySelectorAll("#tbodyItens tr[data-linha]").forEach(tr => {
+      const descricao = tr.querySelector('[data-campo="descricao"]')?.value.trim();
+      if (!descricao) tr.remove();
+    });
+
+    itensValidos.forEach(item => adicionarLinha(item));
+    renumerarLinhas();
+    atualizarTotalGeral();
+  } catch (erro) {
+    console.error("Erro ao importar JSON de itens:", erro);
+    alert("Não foi possível ler o arquivo JSON. Verifique se o formato está correto.");
+  } finally {
+    input.value = ""; // permite importar o mesmo arquivo novamente
+  }
 }
 
 function mostrarVazio() {
