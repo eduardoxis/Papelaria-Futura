@@ -490,16 +490,16 @@ function adicionarLinha(dados = {}) {
   tr.innerHTML = `
     <td class="col-item"><span class="item-num">${n}</span></td>
     <td class="col-desc">
-      <input class="excel-input" type="text" placeholder="Descrição do produto" ${dis}
-        data-campo="descricao" value="${escHtml(dados.descricao || "")}" autocomplete="off" />
+      <input class="excel-input" type="text" placeholder="Descrição do produto" style="text-transform:uppercase" ${dis}
+        data-campo="descricao" value="${escHtml((dados.descricao || "").toUpperCase())}" autocomplete="off" />
     </td>
     <td class="col-marca">
-      <input class="excel-input" type="text" placeholder="Marca" ${dis}
-        data-campo="marca" value="${escHtml(dados.marca || "")}" autocomplete="off" />
+      <input class="excel-input" type="text" placeholder="Marca" style="text-transform:uppercase" ${dis}
+        data-campo="marca" value="${escHtml((dados.marca || "").toUpperCase())}" autocomplete="off" />
     </td>
     <td class="col-unidade">
-      <input class="excel-input excel-input--center" type="text" list="listaUnidadesMedida" placeholder="UND" ${dis}
-        data-campo="unidade" value="${escHtml(dados.unidade || "")}" autocomplete="off" />
+      <input class="excel-input excel-input--center" type="text" list="listaUnidadesMedida" placeholder="UN" style="text-transform:uppercase" ${dis}
+        data-campo="unidade" value="${escHtml((dados.unidade || "").toUpperCase())}" autocomplete="off" />
     </td>
     <td class="col-qtd">
       <input class="excel-input excel-input--center" type="number" ${dis}
@@ -526,6 +526,16 @@ function adicionarLinha(dados = {}) {
   const inputQtd  = tr.querySelector('[data-campo="quantidade"]');
   const inputUnit = tr.querySelector('[data-campo="valorUnitario"]');
   const cellTotal = tr.querySelector('[data-campo="valorTotal"]');
+
+  // Força maiúsculas de verdade (o valor salvo, não só a exibição) nos
+  // campos de texto livre: descrição, marca e unidade de medida.
+  tr.querySelectorAll('[data-campo="descricao"], [data-campo="marca"], [data-campo="unidade"]').forEach(campo => {
+    campo.addEventListener("input", () => {
+      const posicaoCursor = campo.selectionStart;
+      campo.value = campo.value.toUpperCase();
+      campo.setSelectionRange(posicaoCursor, posicaoCursor);
+    });
+  });
 
   function recalcularLinha() {
     const qtd   = parsearNumero(inputQtd.value);
@@ -593,9 +603,9 @@ function _normalizarItemImportado(entrada) {
   const valorBruto = pegar(["valorunitario", "valor", "preco", "preço", "valorunit"]);
 
   return {
-    descricao,
-    marca: String(pegar(["marca"])).trim(),
-    unidade: String(pegar(["unidade", "un", "und"])).trim(),
+    descricao: descricao.toUpperCase(),
+    marca: String(pegar(["marca"])).trim().toUpperCase(),
+    unidade: String(pegar(["unidade", "un", "und"])).trim().toUpperCase(),
     quantidade: qtdBruta !== "" ? parsearNumero(qtdBruta) : "",
     valorUnitario: valorBruto !== "" ? parsearMoeda(valorBruto) : ""
   };
