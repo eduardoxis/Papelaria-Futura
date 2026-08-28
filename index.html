@@ -458,6 +458,28 @@
               <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
               Adicionar Item
             </button>
+            <button class="btn-secondary btn-sm" id="btnAbrirAdicionarLote" type="button" title="Adicionar várias linhas de uma vez">
+              <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 6a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 6a1 1 0 011-1h8a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>
+              Adicionar em Lote
+            </button>
+          </div>
+        </div>
+
+        <div id="boxAdicionarLote" hidden style="position:relative;margin:0 0 12px;padding:12px 14px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;color:#374151;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;">
+            <strong>Adicionar várias linhas de uma vez</strong>
+            <button type="button" class="btn-icon" id="btnFecharAdicionarLote" aria-label="Fechar" style="width:28px;height:28px;">✕</button>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;">
+            <div class="field" style="margin:0;">
+              <label class="field-label" for="inputQtdLinhasLote">Quantidade exata de linhas</label>
+              <input class="field-input field-input--plain" type="number" id="inputQtdLinhasLote" min="1" max="200" step="1" placeholder="Ex.: 20" style="width:140px" autocomplete="off" />
+            </div>
+            <button type="button" class="btn-primary btn-sm" id="btnAdicionarQtdLote">Adicionar Linhas</button>
+            <span style="color:#9CA3AF;">ou</span>
+            <button type="button" class="btn-secondary btn-sm" id="btnAdicionar12Meses" title="Adiciona 12 linhas, uma para cada mês do ano, já preenchidas na Descrição">
+              Adicionar 1 Linha por Mês (12)
+            </button>
           </div>
         </div>
 
