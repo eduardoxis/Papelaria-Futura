@@ -470,25 +470,27 @@
             </div>
           </div>
           <p style="margin:0 0 8px;">Copie o texto abaixo e mande para a IA junto com a sua lista de produtos. Ela vai devolver o JSON pronto para importar aqui.</p>
-          <textarea id="textoAjudaFormatoJson" readonly rows="14" style="width:100%;font-family:monospace;font-size:12px;padding:8px;border:1px solid #E5E7EB;border-radius:6px;background:#fff;resize:vertical;">Preciso que você gere um JSON no formato abaixo, para eu importar em um sistema de cotações. Responda APENAS com o JSON, sem markdown, sem crases, sem texto antes ou depois.
+          <textarea id="textoAjudaFormatoJson" readonly rows="20" style="width:100%;font-family:monospace;font-size:12px;padding:8px;border:1px solid #E5E7EB;border-radius:6px;background:#fff;resize:vertical;">Preciso que você gere um arquivo JSON (extensão .json) no formato abaixo, a partir da minha lista de produtos, para eu importar em um sistema de cotações.
 
 Formato esperado (array de objetos):
 [
   {
-    "descricao": "nome do produto",
-    "marca": "marca do produto (opcional)",
-    "unidade": "unidade de medida, ex: UND, CX, PCT, KG, RESMA (opcional)",
+    "descricao": "NOME DO PRODUTO",
+    "marca": "MARCA DO PRODUTO (OPCIONAL)",
+    "unidade": "UNIDADE DE MEDIDA, EX: UN, CX, PCT, KG, RESMA (OPCIONAL)",
     "quantidade": 1,
     "valorUnitario": 0.00
   }
 ]
 
 Regras:
+- As chaves do JSON ("descricao", "marca", "unidade", "quantidade", "valorUnitario") continuam em minúsculo, exatamente como estão acima — isso é o nome do campo, não muda.
+- Já os VALORES de texto ("descricao", "marca", "unidade") devem estar TODOS EM LETRA MAIÚSCULA, sem nenhuma exceção. Ex.: "PAPEL A4", não "Papel A4" nem "papel a4".
 - "descricao" é obrigatório. Os demais campos são opcionais.
 - "quantidade" e "valorUnitario" devem ser números (sem aspas), nunca texto.
 - Se eu não informar marca, unidade, quantidade ou valorUnitario de algum item, apenas omita esse campo nesse item — não invente valor.
 - Não adicione nenhum produto que eu não tenha listado.
-- Retorne só o array JSON, nada mais.
+- Entregue o resultado como um ARQUIVO .json para eu baixar (não cole o JSON como texto no meio da resposta).
 
 Minha lista de produtos:
 (cole aqui a lista de produtos, um por linha, com as informações que tiver de cada um)</textarea>
@@ -496,7 +498,7 @@ Minha lista de produtos:
 
         <div class="excel-wrap" id="excelWrapItens">
           <datalist id="listaUnidadesMedida">
-            <option value="UND"></option>
+            <option value="UN"></option>
             <option value="PCT"></option>
             <option value="CX"></option>
             <option value="RESMA"></option>
