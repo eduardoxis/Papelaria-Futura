@@ -450,12 +450,48 @@
               <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm6.293-2.293a1 1 0 001.414 0l4-4a1 1 0 00-1.414-1.414L11 11.586V3a1 1 0 10-2 0v8.586L6.707 9.293a1 1 0 00-1.414 1.414l4 4z" clip-rule="evenodd"/></svg>
               Importar JSON
             </button>
+            <button class="btn-icon" id="btnAjudaFormatoJson" type="button" title="Ver instruções de formato para pedir o JSON a uma IA" style="width:32px;height:32px;border-radius:999px;border:1px solid #D1D5DB;color:#6B7280;">
+              <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M18 10A8 8 0 11 2 10a8 8 0 0116 0zM8.94 6.94a1.5 1.5 0 112.12 2.12c-.5.5-.94.94-.94 1.69v.25a.75.75 0 001.5 0v-.1c.06-.2.29-.44.65-.8a3 3 0 10-4.83-3.51.75.75 0 101.28.77 1.5 1.5 0 01.22-.42zM10 14a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd"/></svg>
+            </button>
             <input type="file" id="inputImportarJsonItens" accept="application/json,.json" hidden />
             <button class="btn-primary btn-sm" id="btnAdicionarLinha">
               <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
               Adicionar Item
             </button>
           </div>
+        </div>
+
+        <div id="boxAjudaFormatoJson" hidden style="position:relative;margin:0 0 12px;padding:12px 14px;background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;color:#374151;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
+            <strong>Instruções para pedir o JSON a uma IA</strong>
+            <div style="display:flex;gap:6px;">
+              <button type="button" class="btn-secondary btn-sm" id="btnCopiarAjudaFormatoJson">Copiar texto</button>
+              <button type="button" class="btn-icon" id="btnFecharAjudaFormatoJson" aria-label="Fechar" style="width:28px;height:28px;">✕</button>
+            </div>
+          </div>
+          <p style="margin:0 0 8px;">Copie o texto abaixo e mande para a IA junto com a sua lista de produtos. Ela vai devolver o JSON pronto para importar aqui.</p>
+          <textarea id="textoAjudaFormatoJson" readonly rows="14" style="width:100%;font-family:monospace;font-size:12px;padding:8px;border:1px solid #E5E7EB;border-radius:6px;background:#fff;resize:vertical;">Preciso que você gere um JSON no formato abaixo, para eu importar em um sistema de cotações. Responda APENAS com o JSON, sem markdown, sem crases, sem texto antes ou depois.
+
+Formato esperado (array de objetos):
+[
+  {
+    "descricao": "nome do produto",
+    "marca": "marca do produto (opcional)",
+    "unidade": "unidade de medida, ex: UND, CX, PCT, KG, RESMA (opcional)",
+    "quantidade": 1,
+    "valorUnitario": 0.00
+  }
+]
+
+Regras:
+- "descricao" é obrigatório. Os demais campos são opcionais.
+- "quantidade" e "valorUnitario" devem ser números (sem aspas), nunca texto.
+- Se eu não informar marca, unidade, quantidade ou valorUnitario de algum item, apenas omita esse campo nesse item — não invente valor.
+- Não adicione nenhum produto que eu não tenha listado.
+- Retorne só o array JSON, nada mais.
+
+Minha lista de produtos:
+(cole aqui a lista de produtos, um por linha, com as informações que tiver de cada um)</textarea>
         </div>
 
         <div class="excel-wrap" id="excelWrapItens">
