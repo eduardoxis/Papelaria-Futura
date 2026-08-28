@@ -155,14 +155,7 @@ export function iniciarCotacao(usuario, dadosUsuario) {
     if (input) input.value = "";
     atualizarTotalGeral();
   });
-  document.getElementById("btnAdicionar12Meses")?.addEventListener("click", () => {
-    const meses = [
-      "JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
-      "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"
-    ];
-    meses.forEach(mes => adicionarLinha({ descricao: mes }));
-    atualizarTotalGeral();
-  });
+
   document.getElementById("btnSalvarCotacao")?.addEventListener("click", salvarCotacao);
   document.getElementById("btnGerarPDF")?.addEventListener("click", () => gerarPDFDaTela());
   document.getElementById("btnBuscarCotacoes")?.addEventListener("click", () => {
