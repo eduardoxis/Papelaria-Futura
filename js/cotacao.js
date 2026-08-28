@@ -133,6 +133,36 @@ export function iniciarCotacao(usuario, dadosUsuario) {
       setTimeout(() => { btn.textContent = original; }, 1500);
     }
   });
+
+  // Adicionar várias linhas de uma vez (quantidade exata ou 1 por mês)
+  document.getElementById("btnAbrirAdicionarLote")?.addEventListener("click", () => {
+    const box = document.getElementById("boxAdicionarLote");
+    if (box) box.hidden = !box.hidden;
+  });
+  document.getElementById("btnFecharAdicionarLote")?.addEventListener("click", () => {
+    const box = document.getElementById("boxAdicionarLote");
+    if (box) box.hidden = true;
+  });
+  document.getElementById("btnAdicionarQtdLote")?.addEventListener("click", () => {
+    const input = document.getElementById("inputQtdLinhasLote");
+    const qtd = parseInt(input?.value, 10);
+    if (!qtd || qtd < 1) {
+      alert("Informe uma quantidade válida de linhas (número maior que 0).");
+      return;
+    }
+    const limite = Math.min(qtd, 200);
+    for (let i = 0; i < limite; i++) adicionarLinha();
+    if (input) input.value = "";
+    atualizarTotalGeral();
+  });
+  document.getElementById("btnAdicionar12Meses")?.addEventListener("click", () => {
+    const meses = [
+      "JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
+      "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"
+    ];
+    meses.forEach(mes => adicionarLinha({ descricao: mes }));
+    atualizarTotalGeral();
+  });
   document.getElementById("btnSalvarCotacao")?.addEventListener("click", salvarCotacao);
   document.getElementById("btnGerarPDF")?.addEventListener("click", () => gerarPDFDaTela());
   document.getElementById("btnBuscarCotacoes")?.addEventListener("click", () => {
