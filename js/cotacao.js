@@ -108,6 +108,31 @@ export function iniciarCotacao(usuario, dadosUsuario) {
     document.getElementById("inputImportarJsonItens")?.click();
   });
   document.getElementById("inputImportarJsonItens")?.addEventListener("change", importarItensJson);
+
+  document.getElementById("btnAjudaFormatoJson")?.addEventListener("click", () => {
+    const box = document.getElementById("boxAjudaFormatoJson");
+    if (box) box.hidden = !box.hidden;
+  });
+  document.getElementById("btnFecharAjudaFormatoJson")?.addEventListener("click", () => {
+    const box = document.getElementById("boxAjudaFormatoJson");
+    if (box) box.hidden = true;
+  });
+  document.getElementById("btnCopiarAjudaFormatoJson")?.addEventListener("click", async () => {
+    const texto = document.getElementById("textoAjudaFormatoJson")?.value || "";
+    const btn = document.getElementById("btnCopiarAjudaFormatoJson");
+    try {
+      await navigator.clipboard.writeText(texto);
+    } catch {
+      const area = document.getElementById("textoAjudaFormatoJson");
+      area.select();
+      document.execCommand("copy");
+    }
+    if (btn) {
+      const original = btn.textContent;
+      btn.textContent = "Copiado!";
+      setTimeout(() => { btn.textContent = original; }, 1500);
+    }
+  });
   document.getElementById("btnSalvarCotacao")?.addEventListener("click", salvarCotacao);
   document.getElementById("btnGerarPDF")?.addEventListener("click", () => gerarPDFDaTela());
   document.getElementById("btnBuscarCotacoes")?.addEventListener("click", () => {
