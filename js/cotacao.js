@@ -103,7 +103,10 @@ export function iniciarCotacao(usuario, dadosUsuario) {
   });
 
   // Botões do formulário
-  document.getElementById("btnAdicionarLinha")?.addEventListener("click", adicionarLinha);
+  document.getElementById("btnAdicionarLinha")?.addEventListener("click", () => {
+    adicionarLinha();
+    renumerarLinhas();
+  });
   document.getElementById("btnImportarJsonItens")?.addEventListener("click", () => {
     document.getElementById("inputImportarJsonItens")?.click();
   });
@@ -152,6 +155,7 @@ export function iniciarCotacao(usuario, dadosUsuario) {
     }
     const limite = Math.min(qtd, 200);
     for (let i = 0; i < limite; i++) adicionarLinha();
+    renumerarLinhas();
     if (input) input.value = "";
     atualizarTotalGeral();
   });
