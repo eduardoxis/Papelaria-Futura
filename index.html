@@ -72,7 +72,7 @@
           Nova Cotação
         </a>
       </li>
-      <li>
+      <li class="nav-item-admin" hidden>
         <a href="#" class="nav-item" data-page="caixa">
           <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M3 3a1 1 0 000 2v10a2 2 0 002 2h10a2 2 0 002-2V5a1 1 0 100-2H3zm3 4a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm0 3a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h2a1 1 0 100-2H7z"/></svg>
           Caixa
@@ -108,7 +108,7 @@
           Administração
         </a>
       </li>
-      <li>
+      <li class="nav-item-admin" hidden>
         <a href="#" class="nav-item" data-page="modelos-anuencia">
           <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 000 2h.01a1 1 0 100-2H6zm3 0a1 1 0 100 2h5a1 1 0 100-2H9zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H6zm3 0a1 1 0 100 2h5a1 1 0 100-2H9z" clip-rule="evenodd"/></svg>
           Modelos de Carta de Anuência
@@ -2189,19 +2189,19 @@ Minha lista de produtos:
     // Inicializar módulos
     iniciarDashboard(usuario, dadosUsuario);
     iniciarCotacao(usuario, dadosUsuario);
-    iniciarAdmin(usuario, dadosUsuario);
+    if (isAdmin) iniciarAdmin(usuario, dadosUsuario);
     iniciarComissao(usuario, dadosUsuario);
-    iniciarCaixa(usuario, dadosUsuario);
+    if (isAdmin) iniciarCaixa(usuario, dadosUsuario);
     iniciarEntrega(usuario, dadosUsuario);
     if (isAdmin) iniciarProdutos(usuario, dadosUsuario);
     if (isAdmin) iniciarServicos(usuario, dadosUsuario);
     if (isAdmin) iniciarPromissoria(usuario, dadosUsuario);
     if (isAdmin) iniciarCartaAnuencia(usuario, dadosUsuario);
-    iniciarAnuenciaModelos(usuario, dadosUsuario);
+    if (isAdmin) iniciarAnuenciaModelos(usuario, dadosUsuario);
     iniciarNotificacoes();
 
     // Navegação
-    configurarNavegacao();
+    configurarNavegacao(isAdmin);
 
     // Logout
     document.getElementById("btnLogout").addEventListener("click", logoutUsuario);
@@ -2210,7 +2210,7 @@ Minha lista de produtos:
   // ----------------------------------------------------------------
   // Sistema de navegação SPA
   // ----------------------------------------------------------------
-  function configurarNavegacao() {
+  function configurarNavegacao(isAdmin) {
     const paginas = document.querySelectorAll(".page");
     const navItems = document.querySelectorAll("[data-page]");
     const titles = {
@@ -2227,7 +2227,13 @@ Minha lista de produtos:
       "modelos-anuencia": "Modelos de Carta de Anuência"
     };
 
+    const paginasPermitidasUsuario = new Set(["dashboard", "cotacoes", "nova-cotacao", "entrega", "comissao"]);
+
     function navegar(pageId) {
+      if (!isAdmin && !paginasPermitidasUsuario.has(pageId)) {
+        window.mostrarToast?.("Você não tem permissão para acessar esta área.", "error");
+        pageId = "dashboard";
+      }
       paginas.forEach(p => {
         p.hidden = true;
         p.classList.remove("page--active");

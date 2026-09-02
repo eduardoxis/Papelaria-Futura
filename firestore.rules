@@ -6,15 +6,19 @@ service cloud.firestore {
     }
     function ehAdmin() {
       return estaAutenticado() &&
-        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.role == "admin";
+        (get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.role == "admin" ||
+         (get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.roles is list &&
+          get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.roles.hasAny(["admin"])));
     }
     function ehDono(uid) {
       return estaAutenticado() && request.auth.uid == uid;
     }
     match /usuarios/{uid} {
       allow read: if estaAutenticado();
-      allow create: if estaAutenticado() && request.auth.uid == uid;
-      allow update: if ehDono(uid) || ehAdmin();
+      allow create: if estaAutenticado() && request.auth.uid == uid &&
+        request.resource.data.roles == ["user"];
+      allow update: if ehAdmin() ||
+        (ehDono(uid) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["roles", "role"]));
       allow delete: if ehAdmin();
     }
     match /cotacoes/{cotacaoId} {
@@ -33,7 +37,7 @@ service cloud.firestore {
     match /comissoes/{comissaoId} {
       allow read:   if estaAutenticado();
       allow create: if estaAutenticado();
-      allow update: if estaAutenticado();
+      allow update: if ehAdmin();
       allow delete: if estaAutenticado();
       match /registros/{registroId} {
         allow read:   if estaAutenticado();
@@ -67,15 +71,13 @@ service cloud.firestore {
     }
     // ── Caixa (PDV) — vendas ────────────────────────────────────
     match /pf_vendas/{vendaId} {
-      allow read:   if estaAutenticado();
-      allow create: if estaAutenticado() &&
+      allow read:   if ehAdmin();
+      allow create: if ehAdmin() &&
         request.resource.data.operadorUid == request.auth.uid;
       allow update, delete: if ehAdmin();
     }
     match /pf_caixa_sessoes/{sessaoId} {
-      allow read:   if estaAutenticado();
-      allow create: if estaAutenticado();
-      allow update: if estaAutenticado();
+      allow read, create, update: if ehAdmin();
       allow delete: if ehAdmin();
     }
     // ── Entrega — controle de saídas/entregas, liberado pra qualquer
