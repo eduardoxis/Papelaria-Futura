@@ -35,6 +35,7 @@ function diasDesde(ts) {
 // ── Coleta as 3 categorias de notificação ───────────────────────
 async function calcularNotificacoes() {
   const notificacoes = [];
+  const usuarioEhAdmin = temCargo(_dadosUsuario, "admin");
 
   // 1) Somente os próximos follow-ups vencidos. A consulta é limitada e
   // ordenada no banco; não baixa mais todas as cotações ativas.
@@ -45,7 +46,7 @@ async function calcularNotificacoes() {
       orderBy("proximoLembreteEm", "asc"),
       limit(20)
     ];
-    if (!temCargo(_dadosUsuario, "admin")) {
+    if (!usuarioEhAdmin) {
       filtros.unshift(where("criadoPor", "==", _usuario?.uid || ""));
     }
     const cotSnap = await getDocs(query(collection(db, COL_COTACOES), ...filtros));
@@ -68,8 +69,10 @@ async function calcularNotificacoes() {
     console.error("Notificações — erro ao checar cotações:", err);
   }
 
-  // 2) Estoque baixo
-  try {
+  // 2) Estoque baixo e promissórias são informações administrativas.
+  // Usuários comuns não possuem acesso a essas coleções e, portanto,
+  // não devem disparar leituras que o Firestore corretamente bloquearia.
+  if (usuarioEhAdmin) try {
     const prodSnap = await getDocs(collection(db, COL_PRODUTOS));
     prodSnap.forEach(d => {
       const p = d.data();
@@ -91,7 +94,7 @@ async function calcularNotificacoes() {
   }
 
   // 3) Clientes de Promissórias em atraso
-  try {
+  if (usuarioEhAdmin) try {
     const [cliSnap, compSnap, pagSnap] = await Promise.all([
       getDocs(collection(db, COL_PROM_CLI)),
       getDocs(collection(db, COL_PROM_COMP)),

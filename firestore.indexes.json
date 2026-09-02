@@ -13,6 +13,22 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "criadoPor", "order": "ASCENDING" },
+        { "fieldPath": "dataCriacao", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "cotacoes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "criadoPor", "order": "ASCENDING" },
+        { "fieldPath": "valorTotal", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "cotacoes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "criadoPor", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "proximoLembreteEm", "order": "ASCENDING" }
       ]
