@@ -25,6 +25,10 @@ let _autoSalvarDirty  = false;
 let _autoSalvarTimer  = null;
 const AUTOSAVE_INTERVALO_MS = 20000;
 const _fotosPorLinha  = new WeakMap(); // tr -> array de dataURLs (base64)
+let _linhasAlteradas = new Set();
+let _linhasSelecionadas = new Set();
+let _ultimaLinhaSelecionada = null;
+let _salvamentoEmAndamento = false;
 
 // ================================================================
 // AUTOCOMPLETAR DESCRIÇÃO (sugestão "fantasma" — completa com Tab)
@@ -95,6 +99,11 @@ export function iniciarComissao(usuario, dadosUsuario) {
     if (e.key === "Enter") { e.preventDefault(); adicionarLinhaVazia(); }
   });
   document.getElementById("btnSalvarComissao")?.addEventListener("click", salvarTodosRegistros);
+  document.getElementById("btnSelecionarIntervaloComissao")?.addEventListener("click", abrirSelecaoIntervalo);
+  document.getElementById("btnExcluirSelecionadasComissao")?.addEventListener("click", confirmarExcluirSelecionadas);
+  document.getElementById("chkSelecionarTodasComissao")?.addEventListener("change", (e) => {
+    selecionarTodasAsLinhas(e.target.checked);
+  });
   document.getElementById("chkAutoSalvarComissao")?.addEventListener("change", (e) => {
     _autoSalvarAtivo = e.target.checked;
     localStorage.setItem("comissao_autosave", _autoSalvarAtivo ? "1" : "0");
@@ -102,7 +111,10 @@ export function iniciarComissao(usuario, dadosUsuario) {
   });
   // Marca alterações pendentes ao editar qualquer célula da tabela
   document.getElementById("tbodyComissao")?.addEventListener("input", (e) => {
-    if (_modoEdicao) marcarAutoSalvarPendente();
+    if (_modoEdicao) {
+      marcarLinhaAlterada(e.target.closest("tr[data-linha]"));
+      marcarAutoSalvarPendente();
+    }
 
     // Autocompletar descrição: só sugere quando o usuário está digitando
     // (não ao apagar), pra não "grudar" a sugestão de novo no backspace.
@@ -110,6 +122,13 @@ export function iniciarComissao(usuario, dadosUsuario) {
     if (alvo?.dataset?.campo === "descricao" && (!e.inputType || e.inputType.startsWith("insert"))) {
       _sugerirDescricao(alvo);
     }
+  });
+  document.getElementById("tbodyComissao")?.addEventListener("change", (e) => {
+    if (e.target.matches(".comissao-row-select")) {
+      alternarSelecaoLinha(e.target.closest("tr[data-linha]"), e.target.checked, e.shiftKey);
+      return;
+    }
+    if (_modoEdicao) marcarLinhaAlterada(e.target.closest("tr[data-linha]"));
   });
 
   // Apagar (Esc) rejeita a sugestão em aberto, mantendo só o que foi digitado.
@@ -164,6 +183,8 @@ function mostrarPainelLista() {
   _contadorLinhas = 0;
   _modoEdicao     = false;
   _undoStack      = [];
+  _linhasAlteradas.clear();
+  limparSelecaoLinhas();
   pararAutoSalvar();
   carregarListaComissoes();
 }
@@ -173,6 +194,8 @@ function mostrarPainelDetalhe(comissao, modoEdicao = false) {
   _modoEdicao     = modoEdicao;
   _contadorLinhas = 0;
   _undoStack      = [];
+  _linhasAlteradas.clear();
+  limparSelecaoLinhas();
 
   document.getElementById("comissaoListaPanel").hidden   = true;
   document.getElementById("comissaoDetalhePanel").hidden = false;
@@ -204,6 +227,10 @@ function mostrarPainelDetalhe(comissao, modoEdicao = false) {
   }
   document.getElementById("btnSalvarComissao").hidden         = !modoEdicao;
   document.getElementById("btnDesfazerComissao").hidden       = !modoEdicao;
+  document.getElementById("btnSelecionarIntervaloComissao").hidden = !modoEdicao;
+  document.getElementById("btnExcluirSelecionadasComissao").hidden = !modoEdicao;
+  const thSelecao = document.getElementById("chkSelecionarTodasComissao")?.closest("th");
+  if (thSelecao) thSelecao.hidden = !modoEdicao;
   const wrapQtd = document.getElementById("wrapQtdLinhasComissao");
   if (wrapQtd) wrapQtd.style.display = modoEdicao ? "flex" : "none";
   const inpQtd = document.getElementById("qtdLinhasComissao");
@@ -367,8 +394,9 @@ async function abrirPlanilha(id, modoEdicao) {
 // ================================================================
 async function carregarRegistros(comissaoId) {
   const tbody = document.getElementById("tbodyComissao");
-  tbody.innerHTML = `<tr><td colspan="8" class="loading-cell">Carregando...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="9" class="loading-cell">Carregando...</td></tr>`;
   _contadorLinhas = 0;
+  limparSelecaoLinhas();
 
   const timeoutPromise = new Promise(resolve =>
     setTimeout(() => resolve({ sucesso: false, erro: "tempo-esgotado" }), 12000)
@@ -377,7 +405,7 @@ async function carregarRegistros(comissaoId) {
 
   if (!resultado.sucesso) {
     const msg = resultado.erro === "tempo-esgotado" ? "A conexão demorou demais para responder." : "Erro ao carregar registros.";
-    tbody.innerHTML = `<tr><td colspan="8" class="empty-cell">${msg} <button class="btn-secondary" id="btnRetryRegistros" style="margin-left:8px">Tentar novamente</button></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="empty-cell">${msg} <button class="btn-secondary" id="btnRetryRegistros" style="margin-left:8px">Tentar novamente</button></td></tr>`;
     document.getElementById("btnRetryRegistros")?.addEventListener("click", () => carregarRegistros(comissaoId));
     return;
   }
@@ -388,7 +416,7 @@ async function carregarRegistros(comissaoId) {
   if (_registrosTodos.length === 0 && _modoEdicao) {
     adicionarLinhaVazia();
   } else if (_registrosTodos.length === 0) {
-    tbody.innerHTML = `<tr class="excel-empty-row"><td colspan="8" class="excel-empty"><div class="excel-empty-icon">📋</div>Nenhum registro cadastrado.</td></tr>`;
+    tbody.innerHTML = `<tr class="excel-empty-row"><td colspan="9" class="excel-empty"><div class="excel-empty-icon">📋</div>Nenhum registro cadastrado.</td></tr>`;
   } else {
     _registrosTodos.forEach(r => adicionarLinha(r));
   }
@@ -429,6 +457,7 @@ function adicionarLinha(dados = {}) {
   if (_modoEdicao) {
     // MODO EDIÇÃO: inputs editáveis
     tr.innerHTML = `
+      <td class="col-selecao"><input class="comissao-row-select" type="checkbox" aria-label="Selecionar linha ${n}" /></td>
       <td class="col-item"><span class="item-num">${n}</span></td>
       <td class="col-com-cliente">
         <input class="excel-input" type="text" placeholder="Cliente *"
@@ -492,6 +521,7 @@ function adicionarLinha(dados = {}) {
     // MODO LEITURA: células estáticas
     const dataFmt = dados.data ? new Date(dados.data + "T00:00:00").toLocaleDateString("pt-BR") : "—";
     tr.innerHTML = `
+      <td class="col-selecao"></td>
       <td class="col-item"><span class="item-num">${n}</span></td>
       <td class="col-com-cliente" style="padding:0 var(--space-3)"><strong>${escHtml(dados.cliente || "—")}</strong></td>
       <td class="col-com-desc"   style="padding:0 var(--space-3)">${escHtml(dados.descricao || "—")}</td>
@@ -514,13 +544,126 @@ function adicionarLinha(dados = {}) {
   }
 
   tbody.appendChild(tr);
+  if (_modoEdicao && !dados.id) marcarLinhaAlterada(tr);
   renumerarLinhas();
   atualizarContagem();
+  atualizarEstadoSelecao();
 }
 
 // ================================================================
 // EXCLUSÃO DE LINHA (com confirmação) + DESFAZER (undo)
 // ================================================================
+function marcarLinhaAlterada(tr) {
+  if (tr) _linhasAlteradas.add(tr);
+}
+
+function limparSelecaoLinhas() {
+  _linhasSelecionadas.clear();
+  _ultimaLinhaSelecionada = null;
+  document.querySelectorAll("#tbodyComissao tr[data-linha]").forEach(tr => {
+    tr.classList.remove("comissao-linha-selecionada");
+    const check = tr.querySelector(".comissao-row-select");
+    if (check) check.checked = false;
+  });
+  atualizarEstadoSelecao();
+}
+
+function aplicarSelecao(tr, selecionada) {
+  if (!tr) return;
+  if (selecionada) _linhasSelecionadas.add(tr); else _linhasSelecionadas.delete(tr);
+  tr.classList.toggle("comissao-linha-selecionada", selecionada);
+  const check = tr.querySelector(".comissao-row-select");
+  if (check) check.checked = selecionada;
+}
+
+function alternarSelecaoLinha(tr, selecionada, selecionarIntervalo = false) {
+  const linhas = Array.from(document.querySelectorAll("#tbodyComissao tr[data-linha]"));
+  if (selecionarIntervalo && _ultimaLinhaSelecionada && linhas.includes(_ultimaLinhaSelecionada)) {
+    const inicio = linhas.indexOf(_ultimaLinhaSelecionada);
+    const fim = linhas.indexOf(tr);
+    linhas.slice(Math.min(inicio, fim), Math.max(inicio, fim) + 1).forEach(linha => aplicarSelecao(linha, selecionada));
+  } else {
+    aplicarSelecao(tr, selecionada);
+  }
+  _ultimaLinhaSelecionada = tr;
+  atualizarEstadoSelecao();
+}
+
+function selecionarTodasAsLinhas(selecionada) {
+  document.querySelectorAll("#tbodyComissao tr[data-linha]").forEach(tr => aplicarSelecao(tr, selecionada));
+  _ultimaLinhaSelecionada = null;
+  atualizarEstadoSelecao();
+}
+
+function atualizarEstadoSelecao() {
+  const linhas = Array.from(document.querySelectorAll("#tbodyComissao tr[data-linha]"));
+  const qtd = _linhasSelecionadas.size;
+  const btn = document.getElementById("btnExcluirSelecionadasComissao");
+  if (btn) {
+    btn.disabled = qtd === 0;
+    btn.textContent = qtd ? `Excluir selecionadas (${qtd})` : "Excluir selecionadas";
+  }
+  const todas = document.getElementById("chkSelecionarTodasComissao");
+  if (todas) {
+    todas.checked = linhas.length > 0 && qtd === linhas.length;
+    todas.indeterminate = qtd > 0 && qtd < linhas.length;
+  }
+}
+
+function abrirSelecaoIntervalo() {
+  const total = document.querySelectorAll("#tbodyComissao tr[data-linha]").length;
+  if (!total) return;
+  window.abrirModal?.(
+    "Selecionar intervalo de linhas",
+    `<p class="page-subtitle">Informe a primeira e a última linha visível que deseja selecionar.</p>
+     <div style="display:flex;gap:12px;margin-top:12px">
+       <div class="field" style="flex:1"><label class="field-label" for="inicioIntervaloComissao">Da linha</label><input id="inicioIntervaloComissao" class="field-input--plain" type="number" min="1" max="${total}" value="1" /></div>
+       <div class="field" style="flex:1"><label class="field-label" for="fimIntervaloComissao">Até a linha</label><input id="fimIntervaloComissao" class="field-input--plain" type="number" min="1" max="${total}" value="${total}" /></div>
+     </div>`,
+    `<button class="btn-ghost" onclick="window.fecharModal()">Cancelar</button><button class="btn-primary" id="btnConfirmarIntervaloComissao">Selecionar</button>`
+  );
+  document.getElementById("btnConfirmarIntervaloComissao")?.addEventListener("click", () => {
+    const inicio = Number(document.getElementById("inicioIntervaloComissao")?.value);
+    const fim = Number(document.getElementById("fimIntervaloComissao")?.value);
+    if (!Number.isInteger(inicio) || !Number.isInteger(fim) || inicio < 1 || fim < 1 || inicio > total || fim > total) {
+      window.mostrarToast?.("Informe um intervalo válido.", "error");
+      return;
+    }
+    const linhas = Array.from(document.querySelectorAll("#tbodyComissao tr[data-linha]"));
+    linhas.slice(Math.min(inicio, fim) - 1, Math.max(inicio, fim)).forEach(tr => aplicarSelecao(tr, true));
+    atualizarEstadoSelecao();
+    window.fecharModal?.();
+  });
+}
+
+function confirmarExcluirSelecionadas() {
+  const linhas = Array.from(_linhasSelecionadas);
+  if (!linhas.length) return;
+  window.abrirModal?.(
+    "Excluir linhas selecionadas",
+    `<p>Deseja excluir <strong>${linhas.length} linha(s)</strong>? As linhas já salvas serão removidas da planilha. Você poderá desfazer uma exclusão por vez com Ctrl+Z.</p>`,
+    `<button class="btn-ghost" onclick="window.fecharModal()">Cancelar</button><button class="btn-danger-solid" id="btnConfirmarExcluirSelecionadas">Excluir ${linhas.length} linha(s)</button>`
+  );
+  document.getElementById("btnConfirmarExcluirSelecionadas")?.addEventListener("click", async () => {
+    const btn = document.getElementById("btnConfirmarExcluirSelecionadas");
+    btn.disabled = true; btn.textContent = "Excluindo...";
+    let erros = 0;
+    for (const tr of linhas) {
+      const registroId = tr.dataset.registroId;
+      if (registroId) {
+        const ok = await excluirLinhaSalva(tr, registroId, true, true);
+        if (!ok) erros++;
+      } else {
+        removerLinhaLocal(tr, true, true);
+      }
+    }
+    if (!document.querySelector("#tbodyComissao tr[data-linha]")) adicionarLinhaVazia();
+    limparSelecaoLinhas();
+    window.fecharModal?.();
+    window.mostrarToast?.(erros ? `${linhas.length - erros} linha(s) excluída(s); ${erros} com erro.` : `${linhas.length} linha(s) excluída(s).`, erros ? "error" : "success");
+  });
+}
+
 function confirmarExclusaoLinha(tr) {
   const cliente = tr.querySelector('[data-campo="cliente"]')?.value.trim() || "esta linha";
   window.abrirModal?.(
@@ -543,7 +686,7 @@ function confirmarExclusaoLinha(tr) {
   });
 }
 
-function removerLinhaLocal(tr, registrarUndo) {
+function removerLinhaLocal(tr, registrarUndo, semReposicao = false) {
   const indexAtual = Array.from(tr.parentElement.children).indexOf(tr);
   if (registrarUndo) {
     _undoStack.push({
@@ -555,14 +698,17 @@ function removerLinhaLocal(tr, registrarUndo) {
     atualizarBotaoDesfazer();
   }
   tr.remove();
+  _linhasAlteradas.delete(tr);
+  _linhasSelecionadas.delete(tr);
+  marcarOrdemDasLinhasComoAlterada();
   renumerarLinhas();
   atualizarTotalGeral();
   atualizarContagem();
   marcarAutoSalvarPendente();
-  if (!document.querySelector("#tbodyComissao tr[data-linha]")) adicionarLinhaVazia();
+  if (!semReposicao && !document.querySelector("#tbodyComissao tr[data-linha]")) adicionarLinhaVazia();
 }
 
-async function excluirLinhaSalva(tr, registroId) {
+async function excluirLinhaSalva(tr, registroId, semReposicao = false, silencioso = false) {
   const dadosAntes = coletarDadosLinha(tr);
   const fotosAntes = _fotosPorLinha.get(tr) || [];
   const indexAtual = Array.from(tr.parentElement.children).indexOf(tr);
@@ -570,17 +716,28 @@ async function excluirLinhaSalva(tr, registroId) {
   const res = await excluirRegistroComissao(_comissaoAtual.id, registroId);
   if (res.sucesso) {
     tr.remove();
+    _linhasAlteradas.delete(tr);
+    _linhasSelecionadas.delete(tr);
     _registrosTodos = _registrosTodos.filter(r => r.id !== registroId);
     renumerarLinhas();
     atualizarTotalGeral();
     atualizarContagem();
-    window.mostrarToast?.("Registro excluído.", "success");
+    if (!silencioso) window.mostrarToast?.("Registro excluído.", "success");
     _undoStack.push({ tipo: "salvo", dados: dadosAntes, fotos: fotosAntes, index: indexAtual });
     atualizarBotaoDesfazer();
-    if (!document.querySelector("#tbodyComissao tr[data-linha]")) adicionarLinhaVazia();
+    if (!semReposicao && !document.querySelector("#tbodyComissao tr[data-linha]")) adicionarLinhaVazia();
+    atualizarEstadoSelecao();
+    return true;
   } else {
-    window.mostrarToast?.("Erro ao excluir: " + res.erro, "error");
+    if (!silencioso) window.mostrarToast?.("Erro ao excluir: " + res.erro, "error");
+    return false;
   }
+}
+
+function marcarOrdemDasLinhasComoAlterada() {
+  document.querySelectorAll("#tbodyComissao tr[data-linha]").forEach(tr => {
+    if (tr.dataset.registroId) marcarLinhaAlterada(tr);
+  });
 }
 
 function atualizarBotaoDesfazer() {
@@ -701,6 +858,8 @@ function abrirModalFotos(tr) {
       }
       _fotosPorLinha.set(tr, fotos);
       atualizarBadgeFoto(tr);
+      marcarLinhaAlterada(tr);
+      marcarAutoSalvarPendente();
       reabrirComEstadoAtual();
     });
 
@@ -710,6 +869,8 @@ function abrirModalFotos(tr) {
         fotos.splice(i, 1);
         _fotosPorLinha.set(tr, fotos);
         atualizarBadgeFoto(tr);
+        marcarLinhaAlterada(tr);
+        marcarAutoSalvarPendente();
         reabrirComEstadoAtual();
       });
     });
@@ -751,9 +912,16 @@ function visualizarFotos(fotos) {
 // SALVAR
 // ================================================================
 async function salvarTodosRegistros(silencioso = false) {
-  if (!_comissaoAtual || !_modoEdicao) return;
+  if (!_comissaoAtual || !_modoEdicao || _salvamentoEmAndamento) return;
 
-  const linhas = document.querySelectorAll("#tbodyComissao tr[data-linha]");
+  const todasLinhas = Array.from(document.querySelectorAll("#tbodyComissao tr[data-linha]"));
+  const linhas = todasLinhas.filter(tr => !tr.dataset.registroId || _linhasAlteradas.has(tr));
+  if (!linhas.length) {
+    _autoSalvarDirty = false;
+    if (silencioso) definirStatusAutoSalvar("salvo");
+    else window.mostrarToast?.("Não há alterações para salvar.", "success");
+    return;
+  }
   let erroVal  = null;
   linhas.forEach((tr, i) => {
     if (erroVal) return;
@@ -767,12 +935,13 @@ async function salvarTodosRegistros(silencioso = false) {
   }
 
   const btn = document.getElementById("btnSalvarComissao");
+  _salvamentoEmAndamento = true;
   if (!silencioso) { btn.disabled = true; btn.textContent = "Salvando..."; }
   else definirStatusAutoSalvar("salvando");
 
   const promises = [];
-  linhas.forEach((tr, i) => {
-    const dados      = coletarDadosLinha(tr, i);
+  linhas.forEach((tr) => {
+    const dados      = coletarDadosLinha(tr, todasLinhas.indexOf(tr));
     const registroId = tr.dataset.registroId;
     if (registroId) {
       promises.push(atualizarRegistroComissao(_comissaoAtual.id, registroId, dados).then(res => ({ res, tr, tipo: "update" })));
@@ -784,9 +953,13 @@ async function salvarTodosRegistros(silencioso = false) {
   const resultados = await Promise.all(promises);
   let erros = 0;
   resultados.forEach(({ res, tr, tipo }) => {
-    if (res.sucesso) { if (tipo === "create" && res.id) tr.dataset.registroId = res.id; }
+    if (res.sucesso) {
+      if (tipo === "create" && res.id) tr.dataset.registroId = res.id;
+      _linhasAlteradas.delete(tr);
+    }
     else erros++;
   });
+  _salvamentoEmAndamento = false;
 
   if (!silencioso) {
     btn.disabled = false; btn.textContent = "Salvar";
@@ -892,13 +1065,14 @@ function aplicarFiltro() {
   tbody.innerHTML = "";
 
   if (filtrados.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="empty-cell">Nenhum registro encontrado para o filtro selecionado.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="empty-cell">Nenhum registro encontrado para o filtro selecionado.</td></tr>`;
     atualizarContagem(0);
     document.getElementById("comissaoTotalGeral").textContent = formatarMoeda(0);
     return;
   }
 
   filtrados.forEach(r => adicionarLinha(r));
+  limparSelecaoLinhas();
   atualizarTotalGeral();
   atualizarContagem(filtrados.length);
 }
@@ -913,6 +1087,7 @@ function limparFiltro() {
   tbody.innerHTML = "";
   if (_registrosTodos.length === 0 && _modoEdicao) { adicionarLinhaVazia(); }
   else _registrosTodos.forEach(r => adicionarLinha(r));
+  limparSelecaoLinhas();
   atualizarTotalGeral();
   atualizarContagem();
 }

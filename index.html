@@ -989,6 +989,12 @@ Minha lista de produtos:
               <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.707 3.293a1 1 0 010 1.414L7.414 7H13a6 6 0 110 12H8a1 1 0 110-2h5a4 4 0 100-8H7.414l2.293 2.293a1 1 0 11-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
               Desfazer
             </button>
+            <button class="btn-secondary" id="btnSelecionarIntervaloComissao" hidden title="Selecionar um intervalo de linhas">
+              Selecionar intervalo
+            </button>
+            <button class="btn-danger-solid" id="btnExcluirSelecionadasComissao" hidden disabled title="Excluir as linhas selecionadas">
+              Excluir selecionadas
+            </button>
             <button class="btn-primary" id="btnSalvarComissao" hidden>
               <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
               Salvar
@@ -1038,6 +1044,7 @@ Minha lista de produtos:
             <table class="excel-table">
               <thead>
                 <tr>
+                  <th class="col-selecao"><input type="checkbox" id="chkSelecionarTodasComissao" aria-label="Selecionar todas as linhas" /></th>
                   <th class="col-item">#</th>
                   <th class="col-com-cliente">Cliente</th>
                   <th class="col-com-desc">Descrição</th>
@@ -1049,11 +1056,11 @@ Minha lista de produtos:
                 </tr>
               </thead>
               <tbody id="tbodyComissao">
-                <tr><td colspan="8" class="loading-cell">Carregando...</td></tr>
+                <tr><td colspan="9" class="loading-cell">Carregando...</td></tr>
               </tbody>
               <tfoot>
                 <tr class="total-row">
-                  <td colspan="6" class="total-label">VALOR TOTAL</td>
+                  <td colspan="7" class="total-label">VALOR TOTAL</td>
                   <td colspan="2" class="total-value" id="comissaoTotalGeral">R$ 0,00</td>
                 </tr>
               </tfoot>

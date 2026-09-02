@@ -435,6 +435,10 @@
 .comissao-autosave-status--salvo    { color: #10B981; }
 .comissao-autosave-status--erro     { color: #E54957; }
 
+.col-selecao { width: 38px; text-align: center; }
+.comissao-row-select { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary, #2563EB); }
+.comissao-linha-selecionada { background: #EFF6FF !important; }
+
 @media (max-width: 640px) {
   .comissao-autosave-toggle span:not(.comissao-autosave-status) {
     display: none;
