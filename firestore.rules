@@ -53,14 +53,17 @@ service cloud.firestore {
       allow write: if ehAdmin();
     }
     match /comissoes/{comissaoId} {
-      allow read:   if donoDoDocumento() || ehAdmin();
+      // Toda a equipe pode consultar as planilhas; somente o criador ou
+      // administrador pode alterar ou excluir.
+      allow read:   if estaAutenticado();
       allow create: if estaAutenticado() &&
         request.resource.data.criadoPor == request.auth.uid;
       allow update: if (donoDoDocumento() || ehAdmin()) &&
         request.resource.data.criadoPor == resource.data.criadoPor;
       allow delete: if donoDoDocumento() || ehAdmin();
       match /registros/{registroId} {
-        allow read, create, update, delete: if donoDaComissao(comissaoId) || ehAdmin();
+        allow read: if estaAutenticado();
+        allow create, update, delete: if donoDaComissao(comissaoId) || ehAdmin();
       }
     }
     // ── Produtos / Estoque — leitura liberada p/ o Caixa (PDV),
