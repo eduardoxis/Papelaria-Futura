@@ -5,7 +5,7 @@
 import {
   criarCotacao, atualizarCotacao, listarCotacoes,
   excluirCotacao, buscarCotacao, formatarMoeda, formatarData,
-  buscarConfigLembreteCotacao, marcarLembreteEnviado
+  buscarConfigLembreteCotacao, registrarLembreteCotacao, listarHistoricoLembretes
 } from "./database.js";
 import { badgeStatus, escHtml } from "./index.js";
 import { gerarPDF } from "./pdf.js";
@@ -378,13 +378,16 @@ function diasDesde(timestamp) {
 // a partir do último lembrete enviado — se nunca enviou, conta da criação).
 function precisaLembrete(c) {
   if (c.status !== "ativa" || !c.dataCriacao) return 0;
-  const referencia = c.ultimoLembreteEm || c.dataCriacao;
+  const referencia = c.proximoLembreteEm || c.ultimoLembreteEm || c.dataCriacao;
   const diffDias = diasDesde(referencia);
-  return diffDias !== null && diffDias >= _diasParaLembrete ? diffDias : 0;
+  // Cotações novas usam a data já agendada. As antigas continuam compatíveis
+  // com a regra anterior até receberem o primeiro contato.
+  const limite = c.proximoLembreteEm ? 0 : _diasParaLembrete;
+  return diffDias !== null && diffDias >= limite ? diffDias : 0;
 }
 
 // Monta a mensagem de lembrete com saudação de acordo com o horário atual
-function gerarMensagemLembrete() {
+function gerarMensagemLembrete(etapa) {
   const hora = new Date().getHours();
   let saudacao;
   if (hora >= 5 && hora < 12) saudacao = "Bom dia";
@@ -393,7 +396,22 @@ function gerarMensagemLembrete() {
 
   const nomeAtendente = nomeFuncionarioLogado();
 
-  return `Oi, tudo bem? ${saudacao}! Me chamo ${nomeAtendente}, sou o responsável pelo setor de cotações aqui da Papelaria Futura do Centro, e queria saber se restou alguma dúvida sobre a cotação que te enviamos. Ficamos à disposição para fechar quando for melhor pra você.`;
+  const mensagens = {
+    1: `Oi, tudo bem? ${saudacao}! Me chamo ${nomeAtendente}, sou o responsável pelo setor de cotações aqui da Papelaria Futura do Centro, e queria saber se restou alguma dúvida sobre a cotação que te enviamos. Ficamos à disposição para fechar quando for melhor pra você.`,
+    2: `Oi, tudo bem? ${saudacao}! Aqui é ${nomeAtendente}, da Papelaria Futura do Centro. Estou retomando nossa cotação para saber se você precisa ajustar quantidades, produtos ou condições. Posso ajudar?`,
+    3: `Oi, tudo bem? ${saudacao}! Aqui é ${nomeAtendente}, da Papelaria Futura do Centro. Este é nosso último retorno sobre a cotação. Se precisar retomar ou atualizar qualquer item, estaremos à disposição.`
+  };
+  return mensagens[etapa] || mensagens[1];
+}
+
+function proximaEtapaLembrete(c) {
+  return Math.min(3, Math.max(1, (Number(c.etapaLembrete) || 0) + 1));
+}
+
+function formatarDataHoraLembrete(data) {
+  const d = data?.toDate ? data.toDate() : new Date(data);
+  if (Number.isNaN(d.getTime())) return "Data não disponível";
+  return d.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 }
 
 // Normaliza um número de telefone para o formato usado pelo link do WhatsApp
@@ -410,12 +428,18 @@ async function abrirLembreteCotacao(id) {
     return;
   }
   const c = { id, ...resultado.dados };
-  const mensagem = gerarMensagemLembrete();
+  const etapa = proximaEtapaLembrete(c);
+  const mensagem = gerarMensagemLembrete(etapa);
   const numeroWhats = _telefoneParaWhatsapp(c.telefone);
+  const historicoResultado = await listarHistoricoLembretes(id);
+  const historico = historicoResultado.lembretes || [];
+  const historicoHtml = historico.length
+    ? `<div style="margin-top:18px;border-top:1px solid var(--gray-200);padding-top:12px"><strong style="font-size:13px">Histórico de contatos</strong>${historico.map(h => `<div style="font-size:12px;color:var(--gray-600);padding:8px 0;border-bottom:1px solid var(--gray-100)"><strong>${escHtml(`Etapa ${h.etapa || "—"} · ${h.tipo || "Contato"}`)}</strong><br>${escHtml(h.atendente || "—")} · ${escHtml(formatarDataHoraLembrete(h.enviadoEm))}<br>${escHtml(h.resultado || "enviado")}</div>`).join("")}</div>`
+    : `<p style="font-size:12px;color:var(--gray-500);margin-top:14px">Nenhum contato registrado ainda.</p>`;
 
   const body = `
     <p style="color:var(--gray-500);font-size:13px;margin-bottom:10px">
-      Essa cotação está parada há ${precisaLembrete(c)} dias sem retorno do cliente.
+      ${etapa === 3 ? "Último contato: após confirmar, a cotação será marcada como Sem retorno." : `Follow-up ${etapa} de 3. A próxima etapa será disponibilizada em 3 dias.`}
     </p>
     <label class="field-label">Mensagem sugerida</label>
     <textarea class="field-input--plain field-textarea" id="textoLembreteCotacao" rows="5" style="width:100%">${escHtml(mensagem)}</textarea>
@@ -427,6 +451,14 @@ async function abrirLembreteCotacao(id) {
       <option value="Cliente confirmou (OK)">Cliente confirmou (OK)</option>
       <option value="Sem retorno">Sem retorno</option>
     </select>
+    <label class="field-label" style="margin-top:12px">Resultado</label>
+    <select class="field-input--plain" id="resultadoLembreteCotacao" style="width:100%">
+      <option value="enviado">Mensagem enviada</option>
+      <option value="conversei">Conversei com o cliente</option>
+      <option value="confirmou">Cliente confirmou</option>
+      <option value="sem_retorno">Sem retorno</option>
+    </select>
+    ${historicoHtml}
   `;
 
   const footer = `
@@ -443,10 +475,8 @@ async function abrirLembreteCotacao(id) {
   document.getElementById("btnCopiarLembrete").onclick = () => {
     const texto = document.getElementById("textoLembreteCotacao").value;
     const tipo = document.getElementById("tipoLembreteCotacao")?.value;
-    navigator.clipboard.writeText(texto).then(async () => {
+    navigator.clipboard.writeText(texto).then(() => {
       window.mostrarToast?.("Mensagem copiada!", "success");
-      await marcarLembreteEnviado(id, tipo);
-      carregarListaCotacoes(document.getElementById("filtroBusca")?.value.trim() || "");
     }).catch(() => {
       window.mostrarToast?.("Não foi possível copiar. Selecione o texto manualmente.", "error");
     });
@@ -454,18 +484,24 @@ async function abrirLembreteCotacao(id) {
 
   document.getElementById("btnEnviarWhatsapp")?.addEventListener("click", async () => {
     const texto = document.getElementById("textoLembreteCotacao").value;
-    const tipo = document.getElementById("tipoLembreteCotacao")?.value;
     const url = `https://wa.me/${numeroWhats}?text=${encodeURIComponent(texto)}`;
     window.open(url, "_blank");
-    window.fecharModal();
-    await marcarLembreteEnviado(id, tipo);
-    carregarListaCotacoes(document.getElementById("filtroBusca")?.value.trim() || "");
+    window.mostrarToast?.("WhatsApp aberto. Confirme o contato após enviar a mensagem.", "success");
   });
 
   document.getElementById("btnConfirmarTipoLembrete").onclick = async () => {
     const tipo = document.getElementById("tipoLembreteCotacao")?.value;
-    await marcarLembreteEnviado(id, tipo);
-    window.mostrarToast?.("Lembrete atualizado!", "success");
+    const resultadoContato = document.getElementById("resultadoLembreteCotacao")?.value;
+    const texto = document.getElementById("textoLembreteCotacao")?.value || "";
+    const salvo = await registrarLembreteCotacao(id, {
+      etapa, tipo, mensagem: texto, resultado: resultadoContato,
+      atendente: nomeFuncionarioLogado()
+    });
+    if (!salvo.sucesso) {
+      window.mostrarToast?.("Não foi possível registrar o contato.", "error");
+      return;
+    }
+    window.mostrarToast?.(etapa === 3 ? "Último contato registrado. Cotação marcada como Sem retorno." : "Contato registrado!", "success");
     window.fecharModal();
     carregarListaCotacoes(document.getElementById("filtroBusca")?.value.trim() || "");
   };
@@ -810,7 +846,7 @@ async function salvarCotacao() {
   const idEditando = document.getElementById("cotacaoEditandoId").value;
   const resultado  = idEditando
     ? await atualizarCotacao(idEditando, dados)
-    : await criarCotacao(dados, _usuario.uid);
+    : await criarCotacao(dados, _usuario.uid, _diasParaLembrete);
 
   btnSalvar.disabled = false;
   btnSalvar.innerHTML = `

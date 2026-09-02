@@ -23,7 +23,8 @@ import {
   arrayUnion,
   getAggregateFromServer,
   count,
-  sum
+  sum,
+  writeBatch
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import { db } from "./firebase-config.js";
@@ -37,14 +38,19 @@ const COLECAO_COTACOES = "cotacoes";
 // ----------------------------------------------------------------
 // Criar nova cotação
 // ----------------------------------------------------------------
-export async function criarCotacao(dados, uidUsuario) {
+export async function criarCotacao(dados, uidUsuario, diasParaPrimeiroLembrete = 4) {
   try {
+    const proximoLembreteEm = Timestamp.fromDate(new Date(
+      Date.now() + Math.max(1, Number(diasParaPrimeiroLembrete) || 4) * 86400000
+    ));
     const cotacao = {
       ...dados,
       criadoPor:   uidUsuario,
       dataCriacao: serverTimestamp(),
       updatedAt:   serverTimestamp(),
       status:      dados.status || "ativa",
+      etapaLembrete: 0,
+      proximoLembreteEm,
       historico: [{
         usuario: dados.funcionario || "—",
         data:    new Date().toISOString(),
@@ -681,18 +687,59 @@ export async function salvarConfigLembreteCotacao(dias) {
   }
 }
 
-// Registra que um lembrete foi enviado para a cotação (evita reenvio sem perceber)
-// `tipo` identifica o tipo de contato feito (ex: "Mensagem enviada", "Conversei com o cliente")
-export async function marcarLembreteEnviado(cotacaoId, tipo) {
+const DIAS_ENTRE_FOLLOW_UPS = 3;
+
+// Registra o contato em uma subcoleção (histórico completo) e atualiza
+// somente o resumo necessário no documento da cotação.
+export async function registrarLembreteCotacao(cotacaoId, {
+  atendente = "—", tipo = "Mensagem enviada", mensagem = "", resultado = "enviado", etapa = 1
+} = {}) {
   try {
-    await updateDoc(doc(db, COLECAO_COTACOES, cotacaoId), {
-      ultimoLembreteEm: serverTimestamp(),
-      ultimoLembreteTipo: tipo || "Mensagem enviada"
+    const etapaAtual = Math.min(3, Math.max(1, Number(etapa) || 1));
+    const ultimoContato = etapaAtual >= 3;
+    const cotacaoRef = doc(db, COLECAO_COTACOES, cotacaoId);
+    const lembreteRef = doc(collection(cotacaoRef, "lembretes"));
+    const batch = writeBatch(db);
+
+    batch.set(lembreteRef, {
+      etapa: etapaAtual,
+      atendente,
+      tipo,
+      mensagem,
+      resultado,
+      enviadoEm: serverTimestamp()
     });
+    batch.update(cotacaoRef, {
+      ultimoLembreteEm: serverTimestamp(),
+      ultimoLembreteTipo: tipo,
+      etapaLembrete: etapaAtual,
+      proximoLembreteEm: ultimoContato
+        ? null
+        : Timestamp.fromDate(new Date(Date.now() + DIAS_ENTRE_FOLLOW_UPS * 86400000)),
+      ...(ultimoContato ? {
+        status: "sem_retorno",
+        encerradaSemRetornoEm: serverTimestamp()
+      } : {})
+    });
+    await batch.commit();
     return { sucesso: true };
   } catch (erro) {
-    console.error("Erro ao marcar lembrete como enviado:", erro);
+    console.error("Erro ao registrar lembrete:", erro);
     return { sucesso: false, erro: erro.message };
+  }
+}
+
+export async function listarHistoricoLembretes(cotacaoId, limiteHistorico = 20) {
+  try {
+    const snap = await getDocs(query(
+      collection(doc(db, COLECAO_COTACOES, cotacaoId), "lembretes"),
+      orderBy("enviadoEm", "desc"),
+      limit(limiteHistorico)
+    ));
+    return { sucesso: true, lembretes: snap.docs.map(d => ({ id: d.id, ...d.data() })) };
+  } catch (erro) {
+    console.error("Erro ao carregar histórico de lembretes:", erro);
+    return { sucesso: false, erro: erro.message, lembretes: [] };
   }
 }
 

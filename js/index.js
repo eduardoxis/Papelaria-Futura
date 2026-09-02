@@ -140,7 +140,8 @@ export function badgeStatus(status) {
     ativa:     ["badge--ativa",    "Ativa"],
     aprovada:  ["badge--aprovada", "Aprovada"],
     recusada:  ["badge--recusada", "Recusada"],
-    expirada:  ["badge--expirada", "Expirada"]
+    expirada:  ["badge--expirada", "Expirada"],
+    sem_retorno: ["badge--expirada", "Sem retorno"]
   };
   const [cls, label] = map[status] || ["badge--expirada", status || "—"];
   return `<span class="badge ${cls}">${label}</span>`;

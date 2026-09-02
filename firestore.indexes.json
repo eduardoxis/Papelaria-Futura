@@ -7,6 +7,23 @@
         { "fieldPath": "criadoPor", "order": "ASCENDING" },
         { "fieldPath": "dataCriacao", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "cotacoes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "criadoPor", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "proximoLembreteEm", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "cotacoes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "proximoLembreteEm", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

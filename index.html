@@ -428,6 +428,7 @@
               <option value="aprovada">Aprovada</option>
               <option value="recusada">Recusada</option>
               <option value="expirada">Expirada</option>
+              <option value="sem_retorno">Sem retorno</option>
             </select>
           </div>
           <div class="field field--full">
@@ -2198,7 +2199,7 @@ Minha lista de produtos:
     if (isAdmin) iniciarPromissoria(usuario, dadosUsuario);
     if (isAdmin) iniciarCartaAnuencia(usuario, dadosUsuario);
     if (isAdmin) iniciarAnuenciaModelos(usuario, dadosUsuario);
-    iniciarNotificacoes();
+    iniciarNotificacoes(usuario, dadosUsuario);
 
     // Navegação
     configurarNavegacao(isAdmin);

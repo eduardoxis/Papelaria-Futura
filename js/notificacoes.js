@@ -4,10 +4,11 @@
 // clientes de Promissórias em atraso.
 // ============================================================
 import {
-  collection, getDocs, query, where
+  collection, getDocs, query, where, orderBy, limit, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
-import { buscarConfigLembreteCotacao, formatarMoeda } from "./database.js";
+import { formatarMoeda } from "./database.js";
+import { temCargo } from "./auth.js";
 
 const COL_COTACOES   = "cotacoes";
 const COL_PRODUTOS   = "pf_produtos";
@@ -17,6 +18,8 @@ const COL_PROM_PAG   = "prom_pagamentos";
 
 let _cache = [];
 let _carregando = false;
+let _usuario = null;
+let _dadosUsuario = null;
 
 function escHtml(str) {
   if (!str) return "";
@@ -33,25 +36,31 @@ function diasDesde(ts) {
 async function calcularNotificacoes() {
   const notificacoes = [];
 
-  // 1) Cotações paradas (mesma regra do lembrete em Cotações)
+  // 1) Somente os próximos follow-ups vencidos. A consulta é limitada e
+  // ordenada no banco; não baixa mais todas as cotações ativas.
   try {
-    const [cfg, cotSnap] = await Promise.all([
-      buscarConfigLembreteCotacao(),
-      getDocs(query(collection(db, COL_COTACOES), where("status", "==", "ativa")))
-    ]);
-    const diasLimite = cfg.sucesso ? cfg.dias : 4;
+    const filtros = [
+      where("status", "==", "ativa"),
+      where("proximoLembreteEm", "<=", Timestamp.now()),
+      orderBy("proximoLembreteEm", "asc"),
+      limit(20)
+    ];
+    if (!temCargo(_dadosUsuario, "admin")) {
+      filtros.unshift(where("criadoPor", "==", _usuario?.uid || ""));
+    }
+    const cotSnap = await getDocs(query(collection(db, COL_COTACOES), ...filtros));
     cotSnap.forEach(d => {
       const c = d.data();
-      const referencia = c.ultimoLembreteEm || c.dataCriacao;
+      const referencia = c.proximoLembreteEm;
       const dias = diasDesde(referencia);
-      if (dias !== null && dias >= diasLimite) {
+      if (dias !== null && dias >= 0) {
         notificacoes.push({
           tipo: "cotacao",
           icone: "clock",
-          titulo: `Cotação parada há ${dias} dia${dias > 1 ? "s" : ""}`,
+          titulo: `Follow-up ${Math.min(3, (Number(c.etapaLembrete) || 0) + 1)} pendente`,
           subtitulo: c.cliente || "Cliente não informado",
           pagina: "cotacoes",
-          urgencia: dias >= diasLimite * 2 ? "alta" : "media"
+          urgencia: dias >= 3 ? "alta" : "media"
         });
       }
     });
@@ -141,7 +150,7 @@ const ICONES = {
 };
 
 async function atualizarBadgeNotificacoes() {
-  if (_carregando) return;
+  if (_carregando || document.hidden) return;
   _carregando = true;
   try {
     _cache = await calcularNotificacoes();
@@ -216,7 +225,9 @@ function fecharPainelNotificacoes() {
   document.querySelectorAll(".notificacoes-painel--aberto").forEach(p => p.classList.remove("notificacoes-painel--aberto"));
 }
 
-export async function iniciarNotificacoes() {
+export async function iniciarNotificacoes(usuario, dadosUsuario) {
+  _usuario = usuario;
+  _dadosUsuario = dadosUsuario;
   document.querySelectorAll(".btn-notificacoes").forEach(btn => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -240,6 +251,12 @@ export async function iniciarNotificacoes() {
   });
 
   await atualizarBadgeNotificacoes();
-  // Reconsulta a cada 5 minutos enquanto o app estiver aberto
-  setInterval(atualizarBadgeNotificacoes, 5 * 60 * 1000);
+  // Só atualiza quando a aba estiver visível; em segundo plano não há
+  // consultas recorrentes ao Firestore.
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) atualizarBadgeNotificacoes();
+  });
+  setInterval(() => {
+    if (!document.hidden) atualizarBadgeNotificacoes();
+  }, 5 * 60 * 1000);
 }

@@ -20,6 +20,10 @@ service cloud.firestore {
       return estaAutenticado() &&
         get(/databases/$(database)/documents/comissoes/$(comissaoId)).data.criadoPor == request.auth.uid;
     }
+    function donoDaCotacao(cotacaoId) {
+      return estaAutenticado() &&
+        get(/databases/$(database)/documents/cotacoes/$(cotacaoId)).data.criadoPor == request.auth.uid;
+    }
     match /usuarios/{uid} {
       // Cada pessoa vê somente o próprio perfil. A gestão de usuários
       // permanece exclusiva do administrador.
@@ -38,6 +42,10 @@ service cloud.firestore {
       allow update: if (donoDoDocumento() || ehAdmin()) &&
         request.resource.data.criadoPor == resource.data.criadoPor;
       allow delete: if donoDoDocumento() || ehAdmin();
+      match /lembretes/{lembreteId} {
+        allow read, create: if donoDaCotacao(cotacaoId) || ehAdmin();
+        allow update, delete: if false;
+      }
     }
     match /config/{docId} {
       allow read:  if estaAutenticado();
