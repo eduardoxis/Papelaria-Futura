@@ -69,6 +69,10 @@ service cloud.firestore {
       allow read: if estaAutenticado();
       allow create, update, delete: if ehAdmin();
     }
+    match /pf_marcas/{marcaId} {
+      allow read: if estaAutenticado();
+      allow create, update, delete: if ehAdmin();
+    }
     match /pf_estoque_historico/{movId} {
       allow read: if estaAutenticado();
       allow create: if estaAutenticado();

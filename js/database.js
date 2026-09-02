@@ -267,6 +267,19 @@ export async function buscarEstatisticas(uidUsuario = null, apenasAdmin = false)
 // ================================================================
 
 const COLECAO_USUARIOS = "usuarios";
+const COLECAO_MARCAS = "pf_marcas";
+
+// Lista curta usada como sugestão nos formulários. A marca ainda pode ser
+// digitada livremente quando não estiver cadastrada.
+export async function listarMarcas() {
+  try {
+    const snap = await getDocs(query(collection(db, COLECAO_MARCAS), orderBy("nome")));
+    return { sucesso: true, marcas: snap.docs.map(d => ({ id: d.id, ...d.data() })) };
+  } catch (erro) {
+    console.error("Erro ao listar marcas:", erro);
+    return { sucesso: false, marcas: [], erro: erro.message };
+  }
+}
 
 // ----------------------------------------------------------------
 // Criar/atualizar usuário no Firestore

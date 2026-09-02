@@ -11,6 +11,7 @@ import { formatarMoeda, formatarData, exportarExcel } from "./database.js";
 import { escHtml } from "./index.js";
 
 const COL = "pf_produtos";
+const COL_MARCAS = "pf_marcas";
 const COL_HIST = "pf_estoque_historico";
 const COL_CUSTO_HIST = "pf_custo_historico";
 
@@ -80,6 +81,7 @@ function gerarCodigoEAN13(seed) {
 let _usuario = null;
 let _dadosUsuario = null;
 let _fotoAtual = null; // base64 da foto sendo editada no modal (null = sem foto)
+let _marcas = [];
 
 const ITENS_POR_PAGINA = 50;
 let _produtosFiltrados = []; // resultado atual (após busca/filtro), fatiado em páginas na renderização
@@ -167,6 +169,7 @@ export function iniciarProdutos(usuario, dadosUsuario) {
   });
 
   document.getElementById("btnNovoProduto")?.addEventListener("click", abrirModalNovoProduto);
+  document.getElementById("btnGerenciarMarcas")?.addEventListener("click", abrirGerenciadorMarcas);
 
   document.getElementById("btnBuscarProdutos")?.addEventListener("click", () => {
     const t = document.getElementById("filtroBuscaProdutos").value.trim();
@@ -223,8 +226,78 @@ export function iniciarProdutos(usuario, dadosUsuario) {
 }
 
 async function carregarProdutosPage() {
-  await carregarListaProdutos();
+  await Promise.all([carregarListaProdutos(), carregarMarcas()]);
   atualizarIndicadoresProdutos();
+}
+
+async function carregarMarcas() {
+  try {
+    const snap = await getDocs(query(collection(db, COL_MARCAS), orderBy("nome")));
+    _marcas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (err) {
+    console.error("Erro ao carregar marcas:", err);
+    _marcas = [];
+  }
+  return _marcas;
+}
+
+function campoMarcaHtml(idLista, valor = "") {
+  return `<div>
+    <label class="field-label">Marca</label>
+    <input type="text" id="mProdMarca" class="field-input--plain" value="${escHtml(valor)}" list="${idLista}" placeholder="Selecione ou digite uma marca" autocomplete="off" />
+    <datalist id="${idLista}">${_marcas.map(m => `<option value="${escHtml(m.nome)}"></option>`).join("")}</datalist>
+  </div>`;
+}
+
+async function abrirGerenciadorMarcas() {
+  await carregarMarcas();
+  const render = () => `
+    <div>
+      <p class="page-subtitle" style="margin-bottom:12px">Cadastre marcas para aparecerem como sugestão no produto. Você ainda pode digitar uma marca diferente.</p>
+      <div style="display:flex;gap:8px">
+        <input id="inputNovaMarca" class="field-input--plain" placeholder="Nova marca" style="flex:1" autocomplete="off" />
+        <button id="btnAdicionarMarca" class="btn-primary" type="button">Adicionar</button>
+      </div>
+      <div id="listaMarcasGerenciar" style="margin-top:14px;max-height:320px;overflow:auto">
+        ${_marcas.length ? _marcas.map(m => `<div style="display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--gray-100)"><span style="flex:1">${escHtml(m.nome)}</span><button class="btn-ghost btnEditarMarca" data-id="${m.id}" data-nome="${escHtml(m.nome)}" type="button">Editar</button><button class="btn-ghost btnExcluirMarca" data-id="${m.id}" type="button" style="color:#B91C1C">Excluir</button></div>`).join("") : `<p class="empty-cell">Nenhuma marca cadastrada.</p>`}
+      </div>
+    </div>`;
+  const ligarEventos = () => {
+    document.getElementById("btnAdicionarMarca")?.addEventListener("click", async () => {
+      const input = document.getElementById("inputNovaMarca");
+      const nome = input?.value.trim();
+      if (!nome) return;
+      if (_marcas.some(m => m.nome.toLowerCase() === nome.toLowerCase())) {
+        window.mostrarToast?.("Essa marca já está cadastrada.", "warning");
+        return;
+      }
+      await addDoc(collection(db, COL_MARCAS), { nome, criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp() });
+      await carregarMarcas();
+      atualizarModalMarcas(render, ligarEventos);
+    });
+    document.querySelectorAll(".btnEditarMarca").forEach(btn => btn.addEventListener("click", async () => {
+      const nome = prompt("Nome da marca:", btn.dataset.nome || "");
+      if (nome === null || !nome.trim()) return;
+      await updateDoc(doc(db, COL_MARCAS, btn.dataset.id), { nome: nome.trim(), atualizadoEm: serverTimestamp() });
+      await carregarMarcas();
+      atualizarModalMarcas(render, ligarEventos);
+    }));
+    document.querySelectorAll(".btnExcluirMarca").forEach(btn => btn.addEventListener("click", async () => {
+      if (!confirm("Remover esta marca da lista de sugestões? Produtos já cadastrados não serão alterados.")) return;
+      await deleteDoc(doc(db, COL_MARCAS, btn.dataset.id));
+      await carregarMarcas();
+      atualizarModalMarcas(render, ligarEventos);
+    }));
+  };
+  window.abrirModal("Gerenciar marcas", render(), `<button class="btn-ghost" onclick="window.fecharModal()">Fechar</button>`);
+  ligarEventos();
+}
+
+function atualizarModalMarcas(render, ligarEventos) {
+  const conteudo = document.querySelector(".modal-body");
+  if (!conteudo) { window.fecharModal?.(); return; }
+  conteudo.innerHTML = render();
+  ligarEventos();
 }
 
 async function atualizarIndicadoresProdutos() {
@@ -405,6 +478,7 @@ function abrirModalNovoProduto() {
           <option value="Mercearia Geral"/>
         </datalist>
       </div>
+      ${campoMarcaHtml("listaMarcasProdutoNovo")}
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
         <div>
           <label class="field-label">Preço de Venda (R$) *</label>
@@ -490,6 +564,7 @@ async function salvarNovoProduto() {
       codigo:        document.getElementById("mProdCodigo").value.trim(),
       codigoBarras:  document.getElementById("mProdCodBarras").value.trim(),
       categoria:     document.getElementById("mProdCategoria").value.trim(),
+      marca:         document.getElementById("mProdMarca").value.trim(),
       preco,
       precoCusto,
       unidade:       document.getElementById("mProdUnidade").value,
@@ -560,6 +635,7 @@ async function abrirModalEditarProduto(id) {
             <option value="Papéis e Envelopes"/><option value="Brinquedos"/><option value="Presentes"/><option value="Mercearia Geral"/>
           </datalist>
         </div>
+        ${campoMarcaHtml("listaMarcasProdutoEditar", p.marca || "")}
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
           <div>
             <label class="field-label">Preço de Venda (R$) *</label>
@@ -656,6 +732,7 @@ async function salvarEdicaoProduto(id) {
       codigo:        document.getElementById("mProdCodigo").value.trim(),
       codigoBarras:  document.getElementById("mProdCodBarras").value.trim(),
       categoria:     document.getElementById("mProdCategoria").value.trim(),
+      marca:         document.getElementById("mProdMarca").value.trim(),
       preco:         novoPreco,
       precoCusto:    novoCusto,
       unidade:       document.getElementById("mProdUnidade").value,

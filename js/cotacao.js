@@ -5,7 +5,8 @@
 import {
   criarCotacao, atualizarCotacao, listarCotacoes,
   excluirCotacao, buscarCotacao, formatarMoeda, formatarData,
-  buscarConfigLembreteCotacao, registrarLembreteCotacao, listarHistoricoLembretes
+  buscarConfigLembreteCotacao, registrarLembreteCotacao, listarHistoricoLembretes,
+  listarMarcas
 } from "./database.js";
 import { badgeStatus, escHtml } from "./index.js";
 import { gerarPDF } from "./pdf.js";
@@ -17,6 +18,21 @@ let _contadorLinhas = 0;
 let _modoSomenteLeitura = false;
 let _funcionarioCotacaoAtual = null; // nome de quem realmente criou/editou a cotação carregada
 let _tipoPessoaAtual = "pf"; // "pf" (CPF) ou "pj" (CNPJ) — controla a máscara do campo cotCnpj
+let _marcasCotacao = [];
+
+async function carregarMarcasCotacao() {
+  const resultado = await listarMarcas();
+  _marcasCotacao = resultado.sucesso ? resultado.marcas : [];
+  let datalist = document.getElementById("listaMarcasCotacao");
+  if (!datalist) {
+    datalist = document.createElement("datalist");
+    datalist.id = "listaMarcasCotacao";
+    document.body.appendChild(datalist);
+  }
+  datalist.innerHTML = _marcasCotacao
+    .map(marca => `<option value="${escHtml(marca.nome)}"></option>`)
+    .join("");
+}
 
 function filtroDoUsuarioAtual() {
   return temCargo(_dadosUsuario, "admin") ? null : _usuario?.uid || null;
@@ -77,6 +93,7 @@ export function iniciarCotacao(usuario, dadosUsuario) {
   _dadosUsuario = dadosUsuario;
 
   carregarConfigLembrete();
+  carregarMarcasCotacao();
 
   // Navegação
   document.addEventListener("navegacao", (e) => {
@@ -565,7 +582,7 @@ function adicionarLinha(dados = {}) {
     </td>
     <td class="col-marca">
       <input class="excel-input" type="text" placeholder="Marca" style="text-transform:uppercase" ${dis}
-        data-campo="marca" value="${escHtml((dados.marca || "").toUpperCase())}" autocomplete="off" />
+        data-campo="marca" value="${escHtml((dados.marca || "").toUpperCase())}" list="listaMarcasCotacao" autocomplete="off" />
     </td>
     <td class="col-unidade">
       <input class="excel-input excel-input--center" type="text" list="listaUnidadesMedida" placeholder="UN" style="text-transform:uppercase" ${dis}
