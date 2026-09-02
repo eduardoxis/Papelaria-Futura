@@ -26,6 +26,52 @@ let _autoSalvarTimer  = null;
 const AUTOSAVE_INTERVALO_MS = 20000;
 const _fotosPorLinha  = new WeakMap(); // tr -> array de dataURLs (base64)
 
+// ================================================================
+// AUTOCOMPLETAR DESCRIÇÃO (sugestão "fantasma" — completa com Tab)
+// ================================================================
+const CHAVE_SUGESTOES_DESCRICAO = "comissao_sugestoes_descricao";
+
+function _carregarSugestoesDescricao() {
+  try {
+    const bruto = localStorage.getItem(CHAVE_SUGESTOES_DESCRICAO);
+    const lista = bruto ? JSON.parse(bruto) : [];
+    return Array.isArray(lista) ? lista : [];
+  } catch {
+    return [];
+  }
+}
+
+function _salvarSugestaoDescricao(texto) {
+  const valor = (texto || "").trim();
+  if (!valor) return;
+  const lista = _carregarSugestoesDescricao();
+  const jaExiste = lista.some(v => v.toLowerCase() === valor.toLowerCase());
+  if (jaExiste) return;
+  lista.unshift(valor);
+  localStorage.setItem(CHAVE_SUGESTOES_DESCRICAO, JSON.stringify(lista.slice(0, 200)));
+}
+
+// Mostra o restante da palavra/frase já selecionado no input, à frente
+// do cursor — igual à barra de endereço do navegador. Como o texto já
+// fica pronto dentro do value, apertar Tab (ou qualquer tecla que troque
+// o foco) já "aceita" a sugestão sozinho.
+function _sugerirDescricao(input) {
+  const valor = input.value;
+  if (!valor || input.selectionStart !== valor.length || input.selectionStart !== input.selectionEnd) return;
+
+  const digitado = valor.toLowerCase();
+  const daTabela = Array.from(document.querySelectorAll('#tbodyComissao [data-campo="descricao"]'))
+    .map(el => el.value)
+    .filter(Boolean);
+  const candidatos = [...new Set([...daTabela, ..._carregarSugestoesDescricao()])];
+
+  const match = candidatos.find(c => c.toLowerCase().startsWith(digitado) && c.toLowerCase() !== digitado);
+  if (!match) return;
+
+  input.value = valor + match.slice(valor.length);
+  input.setSelectionRange(valor.length, match.length);
+}
+
 export function iniciarComissao(usuario, dadosUsuario) {
   _usuario = usuario;
   _dadosUsuario = dadosUsuario;
@@ -55,9 +101,31 @@ export function iniciarComissao(usuario, dadosUsuario) {
     if (_autoSalvarAtivo) iniciarAutoSalvar(); else pararAutoSalvar();
   });
   // Marca alterações pendentes ao editar qualquer célula da tabela
-  document.getElementById("tbodyComissao")?.addEventListener("input", () => {
+  document.getElementById("tbodyComissao")?.addEventListener("input", (e) => {
     if (_modoEdicao) marcarAutoSalvarPendente();
+
+    // Autocompletar descrição: só sugere quando o usuário está digitando
+    // (não ao apagar), pra não "grudar" a sugestão de novo no backspace.
+    const alvo = e.target;
+    if (alvo?.dataset?.campo === "descricao" && (!e.inputType || e.inputType.startsWith("insert"))) {
+      _sugerirDescricao(alvo);
+    }
   });
+
+  // Apagar (Esc) rejeita a sugestão em aberto, mantendo só o que foi digitado.
+  document.getElementById("tbodyComissao")?.addEventListener("keydown", (e) => {
+    const alvo = e.target;
+    if (alvo?.dataset?.campo === "descricao" && e.key === "Escape" && alvo.selectionStart !== alvo.selectionEnd) {
+      alvo.value = alvo.value.slice(0, alvo.selectionStart);
+      alvo.setSelectionRange(alvo.value.length, alvo.value.length);
+    }
+  });
+
+  // Guarda a descrição no histórico de sugestões ao sair do campo.
+  document.getElementById("tbodyComissao")?.addEventListener("blur", (e) => {
+    const alvo = e.target;
+    if (alvo?.dataset?.campo === "descricao") _salvarSugestaoDescricao(alvo.value);
+  }, true);
   document.getElementById("btnImportarComissao")?.addEventListener("click", () => {
     document.getElementById("inputImportarComissao").click();
   });
