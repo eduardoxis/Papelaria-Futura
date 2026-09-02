@@ -857,23 +857,21 @@ export async function adicionarRegistroComissao(comissaoId, dados) {
   }
 }
 
-export async function listarRegistrosComissao(comissaoId) {
+export async function listarRegistrosComissao(comissaoId, { limitQtd = 50, cursor = null } = {}) {
   try {
-    const snap = await getDocs(
-      collection(db, COLECAO_COMISSOES, comissaoId, "registros")
-    );
-    const registros = snap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .sort((a, b) => {
-        // Prioriza o campo "ordem" (posição definida manualmente na planilha).
-        // Garante que a ordem das linhas não mude ao salvar/recarregar.
-        if (a.ordem !== undefined && b.ordem !== undefined) return a.ordem - b.ordem;
-        if (a.data && b.data) return a.data.localeCompare(b.data);
-        const da = a.dataCriacao?.toDate?.() || new Date(a.dataCriacao || 0);
-        const db_ = b.dataCriacao?.toDate?.() || new Date(b.dataCriacao || 0);
-        return da - db_;
-      });
-    return { sucesso: true, registros };
+    const restricoes = [orderBy("ordem", "asc"), limit(limitQtd + 1)];
+    if (cursor) restricoes.push(startAfter(cursor));
+    const snap = await getDocs(query(
+      collection(db, COLECAO_COMISSOES, comissaoId, "registros"),
+      ...restricoes
+    ));
+    const docs = snap.docs.slice(0, limitQtd);
+    return {
+      sucesso: true,
+      registros: docs.map(d => ({ id: d.id, ...d.data() })),
+      proximoCursor: snap.docs.length > limitQtd ? docs[docs.length - 1] : null,
+      temMais: snap.docs.length > limitQtd
+    };
   } catch (erro) {
     return { sucesso: false, erro: erro.message };
   }

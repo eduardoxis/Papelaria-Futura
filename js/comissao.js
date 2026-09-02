@@ -29,6 +29,10 @@ let _linhasAlteradas = new Set();
 let _linhasSelecionadas = new Set();
 let _ultimaLinhaSelecionada = null;
 let _salvamentoEmAndamento = false;
+let _registrosCursor = null;
+let _registrosTemMais = false;
+let _carregandoMaisRegistros = false;
+const REGISTROS_POR_PAGINA = 50;
 
 // ================================================================
 // AUTOCOMPLETAR DESCRIÇÃO (sugestão "fantasma" — completa com Tab)
@@ -101,6 +105,7 @@ export function iniciarComissao(usuario, dadosUsuario) {
   document.getElementById("btnSalvarComissao")?.addEventListener("click", salvarTodosRegistros);
   document.getElementById("btnSelecionarIntervaloComissao")?.addEventListener("click", abrirSelecaoIntervalo);
   document.getElementById("btnExcluirSelecionadasComissao")?.addEventListener("click", confirmarExcluirSelecionadas);
+  document.getElementById("btnCarregarMaisComissao")?.addEventListener("click", carregarMaisRegistros);
   document.getElementById("chkSelecionarTodasComissao")?.addEventListener("change", (e) => {
     selecionarTodasAsLinhas(e.target.checked);
   });
@@ -185,6 +190,8 @@ function mostrarPainelLista() {
   _undoStack      = [];
   _linhasAlteradas.clear();
   limparSelecaoLinhas();
+  _registrosCursor = null;
+  _registrosTemMais = false;
   pararAutoSalvar();
   carregarListaComissoes();
 }
@@ -397,11 +404,14 @@ async function carregarRegistros(comissaoId) {
   tbody.innerHTML = `<tr><td colspan="9" class="loading-cell">Carregando...</td></tr>`;
   _contadorLinhas = 0;
   limparSelecaoLinhas();
+  _registrosCursor = null;
+  _registrosTemMais = false;
+  atualizarBotaoCarregarMaisRegistros();
 
   const timeoutPromise = new Promise(resolve =>
     setTimeout(() => resolve({ sucesso: false, erro: "tempo-esgotado" }), 12000)
   );
-  const resultado = await Promise.race([listarRegistrosComissao(comissaoId), timeoutPromise]);
+  const resultado = await Promise.race([listarRegistrosComissao(comissaoId, { limitQtd: REGISTROS_POR_PAGINA }), timeoutPromise]);
 
   if (!resultado.sucesso) {
     const msg = resultado.erro === "tempo-esgotado" ? "A conexão demorou demais para responder." : "Erro ao carregar registros.";
@@ -411,6 +421,8 @@ async function carregarRegistros(comissaoId) {
   }
 
   _registrosTodos = resultado.registros || [];
+  _registrosCursor = resultado.proximoCursor || null;
+  _registrosTemMais = !!resultado.temMais;
   tbody.innerHTML = "";
 
   if (_registrosTodos.length === 0 && _modoEdicao) {
@@ -423,6 +435,45 @@ async function carregarRegistros(comissaoId) {
 
   atualizarTotalGeral();
   atualizarContagem();
+  atualizarBotaoCarregarMaisRegistros();
+}
+
+function atualizarBotaoCarregarMaisRegistros() {
+  const wrap = document.getElementById("wrapCarregarMaisComissao");
+  const btn = document.getElementById("btnCarregarMaisComissao");
+  if (!wrap || !btn) return;
+  wrap.hidden = !_registrosTemMais;
+  if (!_carregandoMaisRegistros) {
+    btn.disabled = false;
+    btn.textContent = "Carregar mais registros";
+  }
+}
+
+async function carregarMaisRegistros() {
+  if (_carregandoMaisRegistros || !_registrosTemMais || !_comissaoAtual) return;
+  _carregandoMaisRegistros = true;
+  const btn = document.getElementById("btnCarregarMaisComissao");
+  if (btn) { btn.disabled = true; btn.textContent = "Carregando..."; }
+
+  const resultado = await listarRegistrosComissao(_comissaoAtual.id, {
+    limitQtd: REGISTROS_POR_PAGINA,
+    cursor: _registrosCursor
+  });
+  _carregandoMaisRegistros = false;
+  if (!resultado.sucesso) {
+    window.mostrarToast?.("Erro ao carregar mais registros.", "error");
+    atualizarBotaoCarregarMaisRegistros();
+    return;
+  }
+
+  const novos = resultado.registros || [];
+  _registrosTodos.push(...novos);
+  novos.forEach(registro => adicionarLinha(registro));
+  _registrosCursor = resultado.proximoCursor || null;
+  _registrosTemMais = !!resultado.temMais;
+  atualizarTotalGeral();
+  atualizarContagem();
+  atualizarBotaoCarregarMaisRegistros();
 }
 
 // ================================================================
@@ -1099,7 +1150,9 @@ async function gerarPDFComissao(id) {
   const res = await buscarComissao(id);
   if (!res.sucesso) { window.mostrarToast?.("Planilha não encontrada.", "error"); return; }
 
-  const regs = await listarRegistrosComissao(id);
+  // Exportação é uma ação explícita: carrega todos os registros somente
+  // neste momento para que o PDF saia completo.
+  const regs = await listarRegistrosComissao(id, { limitQtd: 10000 });
   if (!regs.sucesso) { window.mostrarToast?.("Erro ao carregar registros.", "error"); return; }
 
   const comissao  = res.dados;
