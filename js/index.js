@@ -3,7 +3,6 @@
 // ============================================================
 
 import { buscarEstatisticas, listarCotacoes, formatarMoeda, formatarData } from "./database.js";
-import { temCargo } from "./auth.js";
 
 let _usuario = null;
 let _dadosUsuario = null;
@@ -51,12 +50,9 @@ async function carregarDashboard() {
   document.getElementById("tbodyUltimas").innerHTML =
     `<tr><td colspan="5" class="loading-cell">Carregando...</td></tr>`;
 
-  // Usuários comuns carregam somente as próprias cotações; administradores
-  // mantêm a visão geral do negócio.
-  const uidUsuario = temCargo(_dadosUsuario, "admin") ? null : _usuario?.uid || null;
   const [resultado, resumo] = await Promise.all([
-    listarCotacoes({ uidUsuario, limitQtd: 5 }),
-    buscarEstatisticas(uidUsuario)
+    listarCotacoes({ limitQtd: 5 }),
+    buscarEstatisticas()
   ]);
 
   if (!resultado.sucesso || !resumo.sucesso) {

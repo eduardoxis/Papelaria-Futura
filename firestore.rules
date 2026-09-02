@@ -35,8 +35,9 @@ service cloud.firestore {
       allow delete: if ehAdmin();
     }
     match /cotacoes/{cotacaoId} {
-      // Vendedores veem e alteram somente as próprias cotações.
-      allow read: if donoDoDocumento() || ehAdmin();
+      // A equipe pode consultar todas as cotações. Alterações continuam
+      // limitadas ao criador ou ao administrador.
+      allow read: if estaAutenticado();
       allow create: if estaAutenticado() &&
         request.resource.data.criadoPor == request.auth.uid;
       allow update: if (donoDoDocumento() || ehAdmin()) &&
