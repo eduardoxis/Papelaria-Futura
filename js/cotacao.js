@@ -94,6 +94,11 @@ export function iniciarCotacao(usuario, dadosUsuario) {
 
   carregarConfigLembrete();
   carregarMarcasCotacao();
+  window.addEventListener("marcasAtualizadas", (e) => {
+    _marcasCotacao = Array.isArray(e.detail) ? e.detail : [];
+    const datalist = document.getElementById("listaMarcasCotacao");
+    if (datalist) datalist.innerHTML = _marcasCotacao.map(m => `<option value="${escHtml(m.nome)}"></option>`).join("");
+  });
 
   // Navegação
   document.addEventListener("navegacao", (e) => {

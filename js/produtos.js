@@ -238,6 +238,7 @@ async function carregarMarcas() {
     console.error("Erro ao carregar marcas:", err);
     _marcas = [];
   }
+  window.dispatchEvent(new CustomEvent("marcasAtualizadas", { detail: _marcas }));
   return _marcas;
 }
 
@@ -258,6 +259,11 @@ async function abrirGerenciadorMarcas() {
         <input id="inputNovaMarca" class="field-input--plain" placeholder="Nova marca" style="flex:1" autocomplete="off" />
         <button id="btnAdicionarMarca" class="btn-primary" type="button">Adicionar</button>
       </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
+        <button id="btnImportarMarcasJson" class="btn-secondary" type="button">Importar JSON</button>
+        <input id="inputImportarMarcasJson" type="file" accept="application/json,.json" hidden />
+        <span style="font-size:12px;color:var(--gray-500)">Aceita uma lista de nomes ou objetos com o campo <code>nome</code>.</span>
+      </div>
       <div id="listaMarcasGerenciar" style="margin-top:14px;max-height:320px;overflow:auto">
         ${_marcas.length ? _marcas.map(m => `<div style="display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--gray-100)"><span style="flex:1">${escHtml(m.nome)}</span><button class="btn-ghost btnEditarMarca" data-id="${m.id}" data-nome="${escHtml(m.nome)}" type="button">Editar</button><button class="btn-ghost btnExcluirMarca" data-id="${m.id}" type="button" style="color:#B91C1C">Excluir</button></div>`).join("") : `<p class="empty-cell">Nenhuma marca cadastrada.</p>`}
       </div>
@@ -274,6 +280,49 @@ async function abrirGerenciadorMarcas() {
       await addDoc(collection(db, COL_MARCAS), { nome, criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp() });
       await carregarMarcas();
       atualizarModalMarcas(render, ligarEventos);
+    });
+    document.getElementById("btnImportarMarcasJson")?.addEventListener("click", () => {
+      document.getElementById("inputImportarMarcasJson")?.click();
+    });
+    document.getElementById("inputImportarMarcasJson")?.addEventListener("change", async (e) => {
+      const arquivo = e.target.files?.[0];
+      e.target.value = "";
+      if (!arquivo) return;
+      let bruto;
+      try { bruto = JSON.parse(await arquivo.text()); }
+      catch { window.mostrarToast?.("Arquivo JSON inválido.", "error"); return; }
+      const lista = Array.isArray(bruto) ? bruto : bruto?.marcas;
+      if (!Array.isArray(lista)) { window.mostrarToast?.("Use uma lista de marcas no JSON.", "error"); return; }
+      const existentes = new Set(_marcas.map(m => m.nome.toLocaleLowerCase("pt-BR")));
+      const candidatos = new Map();
+      lista
+        .map(item => typeof item === "string" ? item : item?.nome)
+        .map(nome => String(nome || "").trim())
+        .forEach(nome => {
+          const chave = nome.toLocaleLowerCase("pt-BR");
+          if (nome && !existentes.has(chave) && !candidatos.has(chave)) candidatos.set(chave, nome);
+        });
+      const nomes = [...candidatos.values()];
+      if (!nomes.length) { window.mostrarToast?.("Nenhuma marca nova foi encontrada.", "warning"); return; }
+      const btn = document.getElementById("btnImportarMarcasJson");
+      btn.disabled = true; btn.textContent = "Importando...";
+      try {
+        // O Firestore aceita até 500 operações por lote.
+        for (let inicio = 0; inicio < nomes.length; inicio += 450) {
+          const lote = writeBatch(db);
+          nomes.slice(inicio, inicio + 450).forEach(nome => {
+            lote.set(doc(collection(db, COL_MARCAS)), { nome, criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp() });
+          });
+          await lote.commit();
+        }
+        await carregarMarcas();
+        atualizarModalMarcas(render, ligarEventos);
+        window.mostrarToast?.(`${nomes.length} marca(s) importada(s).`, "success");
+      } catch (erro) {
+        console.error(erro);
+        window.mostrarToast?.("Não foi possível importar as marcas.", "error");
+        btn.disabled = false; btn.textContent = "Importar JSON";
+      }
     });
     document.querySelectorAll(".btnEditarMarca").forEach(btn => btn.addEventListener("click", async () => {
       const nome = prompt("Nome da marca:", btn.dataset.nome || "");
