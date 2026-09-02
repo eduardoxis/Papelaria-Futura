@@ -5,10 +5,11 @@
 // ============================================================
 import {
   collection, doc, addDoc, getDocs,
-  updateDoc, deleteDoc, query, orderBy, serverTimestamp
+  updateDoc, deleteDoc, query, where, orderBy, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 import { escHtml } from "./index.js";
+import { temCargo } from "./auth.js";
 
 export const COL_ENTREGAS = "pf_entregas";
 
@@ -49,7 +50,13 @@ async function carregarListaEntregas() {
   const tbody = document.getElementById("tbodyEntrega");
   if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="loading-cell">Carregando...</td></tr>`;
   try {
-    const snap = await getDocs(query(collection(db, COL_ENTREGAS), orderBy("data", "desc")));
+    const restricoes = [orderBy("data", "desc")];
+    // A consulta também precisa respeitar a regra do Firestore: sem isso
+    // o banco recusa uma tentativa de buscar entregas de outras pessoas.
+    if (!temCargo(_dadosUsuario, "admin")) {
+      restricoes.unshift(where("criadoPor", "==", _usuario?.uid || ""));
+    }
+    const snap = await getDocs(query(collection(db, COL_ENTREGAS), ...restricoes));
     _entregasCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   } catch (err) {
     console.error("Erro ao carregar entregas:", err);

@@ -13,8 +13,17 @@ service cloud.firestore {
     function ehDono(uid) {
       return estaAutenticado() && request.auth.uid == uid;
     }
+    function donoDoDocumento() {
+      return estaAutenticado() && resource.data.criadoPor == request.auth.uid;
+    }
+    function donoDaComissao(comissaoId) {
+      return estaAutenticado() &&
+        get(/databases/$(database)/documents/comissoes/$(comissaoId)).data.criadoPor == request.auth.uid;
+    }
     match /usuarios/{uid} {
-      allow read: if estaAutenticado();
+      // Cada pessoa vê somente o próprio perfil. A gestão de usuários
+      // permanece exclusiva do administrador.
+      allow read: if ehDono(uid) || ehAdmin();
       allow create: if estaAutenticado() && request.auth.uid == uid &&
         request.resource.data.roles == ["user"];
       allow update: if ehAdmin() ||
@@ -22,28 +31,27 @@ service cloud.firestore {
       allow delete: if ehAdmin();
     }
     match /cotacoes/{cotacaoId} {
-      allow read: if estaAutenticado();
+      // Vendedores veem e alteram somente as próprias cotações.
+      allow read: if donoDoDocumento() || ehAdmin();
       allow create: if estaAutenticado() &&
         request.resource.data.criadoPor == request.auth.uid;
-      allow update: if estaAutenticado() &&
-        (resource.data.criadoPor == request.auth.uid || ehAdmin());
-      allow delete: if estaAutenticado() &&
-        (resource.data.criadoPor == request.auth.uid || ehAdmin());
+      allow update: if (donoDoDocumento() || ehAdmin()) &&
+        request.resource.data.criadoPor == resource.data.criadoPor;
+      allow delete: if donoDoDocumento() || ehAdmin();
     }
     match /config/{docId} {
       allow read:  if estaAutenticado();
       allow write: if ehAdmin();
     }
     match /comissoes/{comissaoId} {
-      allow read:   if estaAutenticado();
-      allow create: if estaAutenticado();
-      allow update: if ehAdmin();
-      allow delete: if estaAutenticado();
+      allow read:   if donoDoDocumento() || ehAdmin();
+      allow create: if estaAutenticado() &&
+        request.resource.data.criadoPor == request.auth.uid;
+      allow update: if (donoDoDocumento() || ehAdmin()) &&
+        request.resource.data.criadoPor == resource.data.criadoPor;
+      allow delete: if donoDoDocumento() || ehAdmin();
       match /registros/{registroId} {
-        allow read:   if estaAutenticado();
-        allow create: if estaAutenticado();
-        allow update: if estaAutenticado();
-        allow delete: if estaAutenticado();
+        allow read, create, update, delete: if donoDaComissao(comissaoId) || ehAdmin();
       }
     }
     // ── Produtos / Estoque — leitura liberada p/ o Caixa (PDV),
@@ -51,8 +59,7 @@ service cloud.firestore {
     //     Cadastro/edição completa do módulo Estoque continua admin.
     match /pf_produtos/{produtoId} {
       allow read: if estaAutenticado();
-      allow create, delete: if ehAdmin();
-      allow update: if estaAutenticado();
+      allow create, update, delete: if ehAdmin();
     }
     match /pf_estoque_historico/{movId} {
       allow read: if estaAutenticado();
@@ -83,10 +90,12 @@ service cloud.firestore {
     // ── Entrega — controle de saídas/entregas, liberado pra qualquer
     //     usuário autenticado (mesmo nível de acesso do Caixa) ──────
     match /pf_entregas/{entregaId} {
-      allow read:   if estaAutenticado();
-      allow create: if estaAutenticado();
-      allow update: if estaAutenticado();
-      allow delete: if estaAutenticado();
+      allow read:   if donoDoDocumento() || ehAdmin();
+      allow create: if estaAutenticado() &&
+        request.resource.data.criadoPor == request.auth.uid;
+      allow update: if (donoDoDocumento() || ehAdmin()) &&
+        request.resource.data.criadoPor == resource.data.criadoPor;
+      allow delete: if donoDoDocumento() || ehAdmin();
     }
     match /prom_historico/{registroId} {
       allow read:   if ehAdmin();

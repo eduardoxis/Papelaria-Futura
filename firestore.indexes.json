@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "cotacoes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "criadoPor", "order": "ASCENDING" },
+        { "fieldPath": "dataCriacao", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

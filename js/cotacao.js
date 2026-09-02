@@ -9,6 +9,7 @@ import {
 } from "./database.js";
 import { badgeStatus, escHtml } from "./index.js";
 import { gerarPDF } from "./pdf.js";
+import { temCargo } from "./auth.js";
 
 let _usuario      = null;
 let _dadosUsuario = null;
@@ -16,6 +17,10 @@ let _contadorLinhas = 0;
 let _modoSomenteLeitura = false;
 let _funcionarioCotacaoAtual = null; // nome de quem realmente criou/editou a cotação carregada
 let _tipoPessoaAtual = "pf"; // "pf" (CPF) ou "pj" (CNPJ) — controla a máscara do campo cotCnpj
+
+function filtroDoUsuarioAtual() {
+  return temCargo(_dadosUsuario, "admin") ? null : _usuario?.uid || null;
+}
 
 // Aplica a máscara de CPF ou CNPJ de acordo com o tipo informado.
 function aplicarMascaraDocumento(valorBruto, tipo) {
@@ -225,6 +230,7 @@ async function carregarListaCotacoes(termoBusca = "", dataInicio = null, dataFim
   _cotTemMais      = false;
 
   const resultado = await listarCotacoes({
+    uidUsuario: filtroDoUsuarioAtual(),
     cliente: termoBusca || null,
     dataInicio,
     dataFim,
@@ -265,6 +271,7 @@ async function carregarMaisCotacoes() {
   const { termoBusca, dataInicio, dataFim } = _cotFiltroAtual;
 
   const resultado = await listarCotacoes({
+    uidUsuario: filtroDoUsuarioAtual(),
     cliente: termoBusca || null,
     dataInicio,
     dataFim,

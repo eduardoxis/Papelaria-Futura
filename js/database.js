@@ -20,7 +20,10 @@ import {
   serverTimestamp,
   onSnapshot,
   Timestamp,
-  arrayUnion
+  arrayUnion,
+  getAggregateFromServer,
+  count,
+  sum
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import { db } from "./firebase-config.js";
@@ -220,33 +223,33 @@ export async function excluirCotacao(id) {
 // ----------------------------------------------------------------
 export async function buscarEstatisticas(uidUsuario = null, apenasAdmin = false) {
   try {
-    let q = collection(db, COLECAO_COTACOES);
-
-    if (!apenasAdmin && uidUsuario) {
-      q = query(q, where("criadoPor", "==", uidUsuario));
-    }
-
-    const snapshot    = await getDocs(q);
-    const cotacoes    = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     const agora       = new Date();
     const inicioMes   = new Date(agora.getFullYear(), agora.getMonth(), 1);
+    const filtros = uidUsuario ? [where("criadoPor", "==", uidUsuario)] : [];
+    const consultaTotal = query(collection(db, COLECAO_COTACOES), ...filtros);
+    const consultaMes = query(
+      collection(db, COLECAO_COTACOES),
+      ...filtros,
+      where("dataCriacao", ">=", Timestamp.fromDate(inicioMes))
+    );
 
-    const totalCotacoes    = cotacoes.length;
-    const valorTotalGeral  = cotacoes.reduce((s, c) => s + (Number(c.valorTotal) || 0), 0);
-    const cotacoesMes      = cotacoes.filter(c => {
-      const data = c.dataCriacao?.toDate?.() || new Date(c.dataCriacao);
-      return data >= inicioMes;
-    }).length;
+    // Agregações retornam somente os números calculados pelo Firestore,
+    // sem baixar cada cotação para o navegador.
+    const [total, mes] = await Promise.all([
+      getAggregateFromServer(consultaTotal, {
+        quantidade: count(),
+        valor: sum("valorTotal")
+      }),
+      getAggregateFromServer(consultaMes, { quantidade: count() })
+    ]);
 
-    const ultimas = [...cotacoes]
-      .sort((a, b) => {
-        const da = a.dataCriacao?.toDate?.() || new Date(a.dataCriacao || 0);
-        const db_ = b.dataCriacao?.toDate?.() || new Date(b.dataCriacao || 0);
-        return db_ - da;
-      })
-      .slice(0, 5);
-
-    return { sucesso: true, totalCotacoes, valorTotalGeral, cotacoesMes, ultimas };
+    return {
+      sucesso: true,
+      totalCotacoes: total.data().quantidade || 0,
+      valorTotalGeral: Number(total.data().valor) || 0,
+      cotacoesMes: mes.data().quantidade || 0,
+      ultimas: []
+    };
   } catch (erro) {
     console.error("Erro ao buscar estatísticas:", erro);
     return { sucesso: false, erro: erro.message };
