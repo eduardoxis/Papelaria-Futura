@@ -142,7 +142,35 @@ export function iniciarComissao(usuario, dadosUsuario) {
     if (alvo?.dataset?.campo === "descricao" && e.key === "Escape" && alvo.selectionStart !== alvo.selectionEnd) {
       alvo.value = alvo.value.slice(0, alvo.selectionStart);
       alvo.setSelectionRange(alvo.value.length, alvo.value.length);
+      return;
     }
+
+    // Navegação de planilha: as setas trocam de linha mantendo a mesma coluna.
+    // Na última linha, a seta para baixo cria uma nova linha automaticamente.
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    if (!alvo?.matches?.("[data-campo]")) return;
+
+    const linhaAtual = alvo.closest("tr[data-linha]");
+    if (!linhaAtual) return;
+
+    const camposDaLinha = Array.from(linhaAtual.querySelectorAll("[data-campo]"));
+    const indiceColuna = camposDaLinha.indexOf(alvo);
+    if (indiceColuna < 0) return;
+
+    let linhaDestino = e.key === "ArrowDown"
+      ? linhaAtual.nextElementSibling
+      : linhaAtual.previousElementSibling;
+
+    if (e.key === "ArrowDown" && !linhaDestino && _modoEdicao) {
+      linhaDestino = adicionarLinha({});
+      marcarAutoSalvarPendente();
+    }
+
+    const campoDestino = linhaDestino?.querySelectorAll("[data-campo]")[indiceColuna];
+    if (!campoDestino || campoDestino.disabled) return;
+
+    e.preventDefault();
+    campoDestino.focus();
   });
 
   // Guarda a descrição no histórico de sugestões ao sair do campo.
@@ -599,6 +627,7 @@ function adicionarLinha(dados = {}) {
   renumerarLinhas();
   atualizarContagem();
   atualizarEstadoSelecao();
+  return tr;
 }
 
 // ================================================================
