@@ -1222,13 +1222,33 @@ function limparFiltro() {
 // ================================================================
 // PDF
 // ================================================================
+async function listarTodosRegistrosParaPDF(comissaoId) {
+  const registros = [];
+  let cursor = null;
+
+  // O Firestore tem limite por consulta. Busca em páginas para o PDF sair
+  // completo sem tentar carregar milhares de documentos em uma única query.
+  do {
+    const pagina = await listarRegistrosComissao(comissaoId, {
+      limitQtd: 500,
+      cursor
+    });
+    if (!pagina.sucesso) return pagina;
+
+    registros.push(...(pagina.registros || []));
+    cursor = pagina.proximoCursor || null;
+  } while (cursor);
+
+  return { sucesso: true, registros };
+}
+
 async function gerarPDFComissao(id) {
   const res = await buscarComissao(id);
   if (!res.sucesso) { window.mostrarToast?.("Planilha não encontrada.", "error"); return; }
 
   // Exportação é uma ação explícita: carrega todos os registros somente
-  // neste momento para que o PDF saia completo.
-  const regs = await listarRegistrosComissao(id, { limitQtd: 10000 });
+  // neste momento, em páginas, para que o PDF saia completo.
+  const regs = await listarTodosRegistrosParaPDF(id);
   if (!regs.sucesso) { window.mostrarToast?.("Erro ao carregar registros.", "error"); return; }
 
   const comissao  = res.dados;
