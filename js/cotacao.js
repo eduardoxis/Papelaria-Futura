@@ -637,6 +637,34 @@ function adicionarLinha(dados = {}) {
     }
   });
 
+  // Navegação de planilha: as setas mantêm a mesma coluna ao trocar de linha.
+  // Ao descer da última linha, uma nova linha é criada automaticamente.
+  tr.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+
+    const campoAtual = e.target.closest("input[data-campo]");
+    if (!campoAtual) return;
+
+    const camposDaLinha = Array.from(tr.querySelectorAll("input[data-campo]"));
+    const indiceColuna = camposDaLinha.indexOf(campoAtual);
+    if (indiceColuna < 0) return;
+
+    let linhaDestino = e.key === "ArrowDown"
+      ? tr.nextElementSibling
+      : tr.previousElementSibling;
+
+    if (e.key === "ArrowDown" && !linhaDestino) {
+      linhaDestino = adicionarLinha();
+      renumerarLinhas();
+    }
+
+    const campoDestino = linhaDestino?.querySelectorAll("input[data-campo]")[indiceColuna];
+    if (!campoDestino || campoDestino.disabled) return;
+
+    e.preventDefault();
+    campoDestino.focus();
+  });
+
   tr.querySelector(".btn-remove-row").addEventListener("click", () => {
     tr.remove();
     renumerarLinhas();
