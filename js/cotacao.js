@@ -5,8 +5,7 @@
 import {
   criarCotacao, atualizarCotacao, listarCotacoes,
   excluirCotacao, buscarCotacao, formatarMoeda, formatarData,
-  buscarConfigLembreteCotacao, registrarLembreteCotacao, listarHistoricoLembretes,
-  listarMarcas
+  buscarConfigLembreteCotacao, registrarLembreteCotacao, listarHistoricoLembretes
 } from "./database.js";
 import { badgeStatus, escHtml } from "./index.js";
 import { gerarPDF } from "./pdf.js";
@@ -18,21 +17,6 @@ let _contadorLinhas = 0;
 let _modoSomenteLeitura = false;
 let _funcionarioCotacaoAtual = null; // nome de quem realmente criou/editou a cotação carregada
 let _tipoPessoaAtual = "pf"; // "pf" (CPF) ou "pj" (CNPJ) — controla a máscara do campo cotCnpj
-let _marcasCotacao = [];
-
-async function carregarMarcasCotacao() {
-  const resultado = await listarMarcas();
-  _marcasCotacao = resultado.sucesso ? resultado.marcas : [];
-  let datalist = document.getElementById("listaMarcasCotacao");
-  if (!datalist) {
-    datalist = document.createElement("datalist");
-    datalist.id = "listaMarcasCotacao";
-    document.body.appendChild(datalist);
-  }
-  datalist.innerHTML = _marcasCotacao
-    .map(marca => `<option value="${escHtml(marca.nome)}"></option>`)
-    .join("");
-}
 
 function filtroDoUsuarioAtual() {
   // Cotações são visíveis para toda a equipe. O Firestore e os botões
@@ -100,12 +84,6 @@ export function iniciarCotacao(usuario, dadosUsuario) {
   _dadosUsuario = dadosUsuario;
 
   carregarConfigLembrete();
-  carregarMarcasCotacao();
-  window.addEventListener("marcasAtualizadas", (e) => {
-    _marcasCotacao = Array.isArray(e.detail) ? e.detail : [];
-    const datalist = document.getElementById("listaMarcasCotacao");
-    if (datalist) datalist.innerHTML = _marcasCotacao.map(m => `<option value="${escHtml(m.nome)}"></option>`).join("");
-  });
 
   // Navegação
   document.addEventListener("navegacao", (e) => {
@@ -595,7 +573,7 @@ function adicionarLinha(dados = {}) {
     </td>
     <td class="col-marca">
       <input class="excel-input" type="text" placeholder="Marca" style="text-transform:uppercase" ${dis}
-        data-campo="marca" value="${escHtml((dados.marca || "").toUpperCase())}" list="listaMarcasCotacao" autocomplete="off" />
+        data-campo="marca" value="${escHtml((dados.marca || "").toUpperCase())}" autocomplete="off" />
     </td>
     <td class="col-unidade">
       <input class="excel-input excel-input--center" type="text" list="listaUnidadesMedida" placeholder="UN" style="text-transform:uppercase" ${dis}
