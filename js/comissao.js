@@ -1242,7 +1242,36 @@ async function listarTodosRegistrosParaPDF(comissaoId) {
   return { sucesso: true, registros };
 }
 
-function adicionarFotosServicosAoPDF(doc, registros) {
+function formatarMesDoPDF(comissao, registros) {
+  const criadoEm = comissao.dataCriacao?.toDate?.() || comissao.dataCriacao;
+  const dataRegistro = registros.find(registro => registro.data)?.data;
+  const data = criadoEm instanceof Date
+    ? criadoEm
+    : dataRegistro ? new Date(`${dataRegistro}T12:00:00`) : new Date();
+  const mes = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(data);
+  return mes.charAt(0).toUpperCase() + mes.slice(1);
+}
+
+function desenharCabecalhoPDF(doc, { vendedor, mes, etiqueta }) {
+  const pageW = doc.internal.pageSize.getWidth();
+  const margem = 12;
+  const azul = [31, 71, 107];
+
+  doc.setFillColor(...azul);
+  doc.rect(0, 0, pageW, 42, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.text("PLANILHA DE COMISSÃO", margem, 15);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(`VENDEDOR: ${vendedor}`, margem, 28);
+  doc.text(`MÊS: ${mes}`, 112, 28);
+  doc.text(etiqueta, pageW - margem, 28, { align: "right" });
+  doc.setTextColor(45, 55, 72);
+}
+
+function adicionarFotosServicosAoPDF(doc, registros, dadosCabecalho) {
   const servicosComFotos = registros
     .map((registro, indice) => ({ registro, linha: indice + 1 }))
     .filter(({ registro }) => Array.isArray(registro.fotos) && registro.fotos.length);
@@ -1254,16 +1283,10 @@ function adicionarFotosServicosAoPDF(doc, registros) {
   const alturaBloco = 78;
   const larguraFoto = 108;
   const xResumo = margem + larguraFoto + 10;
-  let y = 29;
+  let y = 51;
 
   const cabecalho = () => {
-    doc.setFillColor(30, 58, 95);
-    doc.rect(0, 0, pageW, 20, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(15);
-    doc.text("Fotos dos serviços", margem, 12);
-    doc.setTextColor(60, 60, 60);
+    desenharCabecalhoPDF(doc, { ...dadosCabecalho, etiqueta: "Fotos dos serviços" });
   };
 
   doc.addPage();
@@ -1274,20 +1297,26 @@ function adicionarFotosServicosAoPDF(doc, registros) {
       if (y + alturaBloco > pageH - 10) {
         doc.addPage();
         cabecalho();
-        y = 29;
+        y = 51;
       }
 
-      doc.setDrawColor(220, 226, 235);
-      doc.roundedRect(margem, y, pageW - (margem * 2), alturaBloco - 5, 2, 2, "S");
+      const alturaCard = alturaBloco - 5;
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(216, 226, 235);
+      doc.roundedRect(margem, y, pageW - (margem * 2), alturaCard, 4, 4, "FD");
+      doc.setFillColor(62, 116, 163);
+      doc.roundedRect(margem, y, 2, alturaCard, 1, 1, "F");
+      doc.setDrawColor(216, 226, 235);
+      doc.line(xResumo - 10, y + 9, xResumo - 10, y + alturaCard - 9);
 
       try {
         const props = doc.getImageProperties(foto);
         const proporcao = props.width / props.height;
-        const maxAltura = alturaBloco - 13;
+        const maxAltura = alturaCard - 13;
         const imgLargura = Math.min(larguraFoto, maxAltura * proporcao);
         const imgAltura = imgLargura / proporcao;
         const xFoto = margem + ((larguraFoto - imgLargura) / 2);
-        const yFoto = y + ((alturaBloco - 5 - imgAltura) / 2);
+        const yFoto = y + ((alturaCard - imgAltura) / 2);
         doc.addImage(foto, "JPEG", xFoto, yFoto, imgLargura, imgAltura);
       } catch {
         doc.setTextColor(120, 120, 120);
@@ -1300,15 +1329,6 @@ function adicionarFotosServicosAoPDF(doc, registros) {
         ? new Date(registro.data + "T00:00:00").toLocaleDateString("pt-BR")
         : "—";
       const titulo = registro.descricao || "Serviço sem descrição";
-      const resumo = [
-        `Linha: ${linha}`,
-        `Cliente: ${registro.cliente || "—"}`,
-        `Quantidade: ${registro.qtdFolhas ?? "—"}`,
-        `Valor: ${formatarMoeda(registro.valor)}`,
-        `Data: ${dataFmt}`,
-        `Pagamento: ${registro.categoria || "—"}`
-      ];
-
       doc.setTextColor(30, 58, 95);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
@@ -1316,12 +1336,34 @@ function adicionarFotosServicosAoPDF(doc, registros) {
       doc.setTextColor(45, 55, 72);
       doc.setFontSize(10);
       doc.text(doc.splitTextToSize(titulo, pageW - xResumo - margem), xResumo, y + 22);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.text(resumo, xResumo, y + 40, { lineHeightFactor: 1.55 });
+
+      doc.setFillColor(230, 245, 237);
+      doc.roundedRect(pageW - margem - 44, y + 12, 36, 12, 5, 5, "F");
+      doc.setTextColor(25, 120, 86);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.text(formatarMoeda(registro.valor), pageW - margem - 26, y + 20, { align: "center" });
+
+      const detalhes = [
+        ["Linha:", String(linha)],
+        ["Cliente:", registro.cliente || "—"],
+        ["Quantidade:", String(registro.qtdFolhas ?? "—")],
+        ["Data:", dataFmt],
+        ["Pagamento:", registro.categoria || "—"]
+      ];
+      detalhes.forEach(([rotulo, valor], indice) => {
+        const yDetalhe = y + 38 + (indice * 8);
+        doc.setTextColor(99, 119, 142);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.text(rotulo, xResumo, yDetalhe);
+        doc.setTextColor(45, 55, 72);
+        doc.setFont("helvetica", "bold");
+        doc.text(String(valor), xResumo + 28, yDetalhe);
+      });
       doc.setTextColor(110, 120, 135);
       doc.setFontSize(8);
-      doc.text(`Foto ${indiceFoto + 1}`, xResumo, y + alturaBloco - 11);
+      doc.text(`Foto ${indiceFoto + 1}`, margem + 8, y + alturaCard - 6);
 
       y += alturaBloco;
     });
@@ -1344,18 +1386,16 @@ async function gerarPDFComissao(id) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
   const pageW = doc.internal.pageSize.getWidth();
+  const dadosCabecalho = {
+    vendedor: comissao.criadoPorNome || "—",
+    mes: formatarMesDoPDF(comissao, registros)
+  };
 
-  doc.setFillColor(30, 58, 95);
-  doc.rect(0, 0, pageW, 20, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(15);
-  doc.text(comissao.titulo || "Comissão", 12, 12);
-
-  doc.setTextColor(60, 60, 60);
+  desenharCabecalhoPDF(doc, { ...dadosCabecalho, etiqueta: "Relatório de serviços" });
+  doc.setTextColor(99, 119, 142);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  if (comissao.descricao) doc.text(comissao.descricao, 12, 27);
+  doc.setFontSize(11);
+  doc.text("Resumo geral", 12, 54);
 
   const linhas = registros.map((r, i) => {
     const dataFmt = r.data ? new Date(r.data + "T00:00:00").toLocaleDateString("pt-BR") : "—";
@@ -1371,13 +1411,14 @@ async function gerarPDFComissao(id) {
   });
 
   doc.autoTable({
-    startY: comissao.descricao ? 33 : 26,
+    startY: 64,
     head: [["#", "Cliente", "Descrição", "Folhas", "Valor", "Data", "Forma de Pagamento"]],
     body: linhas,
     foot: [["", "", "", "", "", "TOTAL", formatarMoeda(total)]],
     showFoot: "lastPage",
     theme: "grid",
-    headStyles: { fillColor: [30, 58, 95], textColor: 255, fontStyle: "bold", fontSize: 9 },
+    margin: { left: 12, right: 12 },
+    headStyles: { fillColor: [31, 71, 107], textColor: 255, fontStyle: "bold", fontSize: 9 },
     footStyles: { fillColor: [30, 58, 95], textColor: 255, fontStyle: "bold", fontSize: 10 },
     styles: { fontSize: 9, cellPadding: 2.5 },
     alternateRowStyles: { fillColor: [249, 250, 251] },
@@ -1388,7 +1429,7 @@ async function gerarPDFComissao(id) {
     }
   });
 
-  adicionarFotosServicosAoPDF(doc, registros);
+  adicionarFotosServicosAoPDF(doc, registros, dadosCabecalho);
 
   doc.save(`${comissao.titulo.replace(/\s+/g, "_")}.pdf`);
   window.mostrarToast?.("PDF gerado com sucesso!", "success");
