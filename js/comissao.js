@@ -32,6 +32,7 @@ let _salvamentoEmAndamento = false;
 let _registrosCursor = null;
 let _registrosTemMais = false;
 let _carregandoMaisRegistros = false;
+const _nomesCriadoresComissao = new Map();
 const REGISTROS_POR_PAGINA = 50;
 
 // ================================================================
@@ -370,6 +371,9 @@ async function carregarListaComissoes() {
   }
 
   const { comissoes } = resultado;
+  comissoes.forEach(c => {
+    if (c.criadoPor && c.criadoPorNome) _nomesCriadoresComissao.set(c.criadoPor, c.criadoPorNome);
+  });
 
   // Fallback para planilhas antigas: se faltar o nome do criador mas existir
   // o uid (criadoPor), busca o nome na coleção de usuários. Feito com
@@ -383,7 +387,10 @@ async function carregarListaComissoes() {
         const mapaNomes = new Map(resUsuarios.usuarios.map(u => [u.id, u.nome]));
         precisamDeNome.forEach(c => {
           const nome = mapaNomes.get(c.criadoPor);
-          if (nome) c.criadoPorNome = nome;
+          if (nome) {
+            c.criadoPorNome = nome;
+            _nomesCriadoresComissao.set(c.criadoPor, nome);
+          }
         });
       }
     } catch { /* sem permissão ou offline — mantém "—" */ }
@@ -1294,7 +1301,9 @@ function adicionarFotosServicosAoPDF(doc, registros, dadosCabecalho) {
 
   servicosComFotos.forEach(({ registro, linha }) => {
     registro.fotos.forEach((foto, indiceFoto) => {
-      if (y + alturaBloco > pageH - 10) {
+      // Cada página comporta dois cartões de foto, sem separar uma imagem
+      // em uma página inteira quando ainda há espaço para a próxima.
+      if (y + alturaBloco - 5 > pageH - 5) {
         doc.addPage();
         cabecalho();
         y = 51;
@@ -1387,7 +1396,10 @@ async function gerarPDFComissao(id) {
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
   const pageW = doc.internal.pageSize.getWidth();
   const dadosCabecalho = {
-    vendedor: comissao.criadoPorNome || "—",
+    vendedor: comissao.criadoPorNome
+      || _nomesCriadoresComissao.get(comissao.criadoPor)
+      || (comissao.criadoPor === _usuario?.uid ? _dadosUsuario?.nome : "")
+      || "—",
     mes: formatarMesDoPDF(comissao, registros)
   };
 
