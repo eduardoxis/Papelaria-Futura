@@ -77,7 +77,7 @@ function _obterSugestoesDescricao(texto) {
   [...daTabela, ...dosRegistros, ..._carregarSugestoesDescricao()].forEach(valor => {
     const descricao = String(valor || "").trim();
     const chave = descricao.toLocaleLowerCase("pt-BR");
-    if (descricao && chave !== digitado && chave.includes(digitado) && !unicos.has(chave)) {
+    if (descricao && chave !== digitado && chave.startsWith(digitado) && !unicos.has(chave)) {
       unicos.set(chave, descricao);
     }
   });
