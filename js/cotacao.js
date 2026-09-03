@@ -18,6 +18,72 @@ let _modoSomenteLeitura = false;
 let _funcionarioCotacaoAtual = null; // nome de quem realmente criou/editou a cotação carregada
 let _tipoPessoaAtual = "pf"; // "pf" (CPF) ou "pj" (CNPJ) — controla a máscara do campo cotCnpj
 
+// Sugestões de produtos já digitados nas cotações. São gravadas apenas no
+// navegador e também consideram as linhas abertas na cotação atual.
+const CHAVE_SUGESTOES_ITENS_COTACAO = "cotacao_sugestoes_descricao";
+
+function carregarSugestoesItensCotacao() {
+  try {
+    const lista = JSON.parse(localStorage.getItem(CHAVE_SUGESTOES_ITENS_COTACAO) || "[]");
+    return Array.isArray(lista) ? lista : [];
+  } catch {
+    return [];
+  }
+}
+
+function salvarSugestaoItemCotacao(descricao) {
+  const valor = String(descricao || "").trim().toUpperCase();
+  if (!valor) return;
+  const lista = carregarSugestoesItensCotacao();
+  if (lista.some(item => item.toUpperCase() === valor)) return;
+  localStorage.setItem(CHAVE_SUGESTOES_ITENS_COTACAO, JSON.stringify([valor, ...lista].slice(0, 200)));
+}
+
+function fecharSugestoesItensCotacao() {
+  document.querySelectorAll(".cotacao-descricao-sugestoes").forEach(el => el.remove());
+}
+
+function mostrarSugestoesItensCotacao(input) {
+  fecharSugestoesItensCotacao();
+  const termo = String(input.value || "").trim().toUpperCase();
+  if (!termo) return;
+
+  const linhasAbertas = Array.from(document.querySelectorAll('#tbodyItens [data-campo="descricao"]'))
+    .map(el => el.value);
+  const unicos = new Map();
+  [...linhasAbertas, ...carregarSugestoesItensCotacao()].forEach(item => {
+    const descricao = String(item || "").trim().toUpperCase();
+    if (descricao && descricao !== termo && descricao.startsWith(termo) && !unicos.has(descricao)) {
+      unicos.set(descricao, descricao);
+    }
+  });
+  const sugestoes = Array.from(unicos.values()).slice(0, 8);
+  if (!sugestoes.length) return;
+
+  const celula = input.closest("td");
+  if (!celula) return;
+  const lista = document.createElement("div");
+  lista.className = "cotacao-descricao-sugestoes";
+  lista.setAttribute("role", "listbox");
+
+  sugestoes.forEach(descricao => {
+    const botao = document.createElement("button");
+    botao.type = "button";
+    botao.className = "cotacao-descricao-sugestao";
+    botao.textContent = descricao;
+    botao.setAttribute("role", "option");
+    botao.addEventListener("mousedown", (evento) => {
+      evento.preventDefault();
+      input.value = descricao;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      fecharSugestoesItensCotacao();
+      input.focus();
+    });
+    lista.appendChild(botao);
+  });
+  celula.appendChild(lista);
+}
+
 function filtroDoUsuarioAtual() {
   // Cotações são visíveis para toda a equipe. O Firestore e os botões
   // abaixo preservam edição/exclusão somente para autor ou administrador.
@@ -604,6 +670,7 @@ function adicionarLinha(dados = {}) {
   const inputQtd  = tr.querySelector('[data-campo="quantidade"]');
   const inputUnit = tr.querySelector('[data-campo="valorUnitario"]');
   const cellTotal = tr.querySelector('[data-campo="valorTotal"]');
+  const inputDescricao = tr.querySelector('[data-campo="descricao"]');
 
   // Força maiúsculas de verdade (o valor salvo, não só a exibição) nos
   // campos de texto livre: descrição, marca e unidade de medida.
@@ -613,6 +680,27 @@ function adicionarLinha(dados = {}) {
       campo.value = campo.value.toUpperCase();
       campo.setSelectionRange(posicaoCursor, posicaoCursor);
     });
+  });
+
+  // Busca sugestões a partir das descrições já usadas nas cotações.
+  inputDescricao.addEventListener("input", () => mostrarSugestoesItensCotacao(inputDescricao));
+  inputDescricao.addEventListener("focus", () => mostrarSugestoesItensCotacao(inputDescricao));
+  inputDescricao.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      fecharSugestoesItensCotacao();
+      return;
+    }
+    if (e.key === "Enter") {
+      const primeiraSugestao = inputDescricao.closest("td")?.querySelector(".cotacao-descricao-sugestao");
+      if (primeiraSugestao) {
+        e.preventDefault();
+        primeiraSugestao.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+      }
+    }
+  });
+  inputDescricao.addEventListener("blur", () => {
+    salvarSugestaoItemCotacao(inputDescricao.value);
+    setTimeout(fecharSugestoesItensCotacao, 150);
   });
 
   function recalcularLinha() {

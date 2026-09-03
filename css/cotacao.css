@@ -88,11 +88,44 @@
 
 /* Larguras das colunas */
 .col-item     { width: 48px; text-align: center; }
-.col-desc     { min-width: 220px; }
+.col-desc     { min-width: 220px; position: relative; overflow: visible; }
 .col-marca    { min-width: 120px; }
 .col-unidade  { width: 100px; text-align: center; }
 .col-qtd      { width: 80px; text-align: center; }
 .col-unit     { width: 130px; text-align: right; }
+
+/* Busca de produtos já digitados nas cotações */
+.cotacao-descricao-sugestoes {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% - 2px);
+  left: 4px;
+  right: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--white);
+  border: 1px solid var(--blue-200);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+.cotacao-descricao-sugestao {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--gray-100);
+  background: var(--white);
+  color: var(--gray-800);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.cotacao-descricao-sugestao:last-child { border-bottom: 0; }
+.cotacao-descricao-sugestao:hover,
+.cotacao-descricao-sugestao:focus { background: var(--blue-050); color: var(--blue-700); outline: 0; }
 .col-total    { width: 130px; text-align: right; }
 .col-acao     { width: 44px; text-align: center; }
 
