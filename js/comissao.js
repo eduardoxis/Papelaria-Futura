@@ -35,7 +35,7 @@ let _carregandoMaisRegistros = false;
 const REGISTROS_POR_PAGINA = 50;
 
 // ================================================================
-// AUTOCOMPLETAR DESCRIÇÃO (sugestão "fantasma" — completa com Tab)
+// BUSCA DE DESCRIÇÃO — sugestões das linhas já preenchidas
 // ================================================================
 const CHAVE_SUGESTOES_DESCRICAO = "comissao_sugestoes_descricao";
 
@@ -59,25 +59,60 @@ function _salvarSugestaoDescricao(texto) {
   localStorage.setItem(CHAVE_SUGESTOES_DESCRICAO, JSON.stringify(lista.slice(0, 200)));
 }
 
-// Mostra o restante da palavra/frase já selecionado no input, à frente
-// do cursor — igual à barra de endereço do navegador. Como o texto já
-// fica pronto dentro do value, apertar Tab (ou qualquer tecla que troque
-// o foco) já "aceita" a sugestão sozinho.
-function _sugerirDescricao(input) {
-  const valor = input.value;
-  if (!valor || input.selectionStart !== valor.length || input.selectionStart !== input.selectionEnd) return;
+function _fecharBuscaDescricao() {
+  document.querySelectorAll(".comissao-descricao-sugestoes").forEach(el => el.remove());
+}
 
-  const digitado = valor.toLowerCase();
+function _obterSugestoesDescricao(texto) {
+  const digitado = String(texto || "").trim().toLocaleLowerCase("pt-BR");
+  if (!digitado) return [];
+
+  // Junta dados das linhas visíveis, registros carregados da planilha e
+  // descrições já usadas neste navegador. Não existe uma lista fixa.
   const daTabela = Array.from(document.querySelectorAll('#tbodyComissao [data-campo="descricao"]'))
-    .map(el => el.value)
-    .filter(Boolean);
-  const candidatos = [...new Set([...daTabela, ..._carregarSugestoesDescricao()])];
+    .map(el => el.value);
+  const dosRegistros = _registrosTodos.map(registro => registro.descricao);
+  const unicos = new Map();
 
-  const match = candidatos.find(c => c.toLowerCase().startsWith(digitado) && c.toLowerCase() !== digitado);
-  if (!match) return;
+  [...daTabela, ...dosRegistros, ..._carregarSugestoesDescricao()].forEach(valor => {
+    const descricao = String(valor || "").trim();
+    const chave = descricao.toLocaleLowerCase("pt-BR");
+    if (descricao && chave !== digitado && chave.includes(digitado) && !unicos.has(chave)) {
+      unicos.set(chave, descricao);
+    }
+  });
 
-  input.value = valor + match.slice(valor.length);
-  input.setSelectionRange(valor.length, match.length);
+  return Array.from(unicos.values()).slice(0, 8);
+}
+
+function _mostrarBuscaDescricao(input) {
+  _fecharBuscaDescricao();
+  const sugestoes = _obterSugestoesDescricao(input.value);
+  if (!sugestoes.length) return;
+
+  const celula = input.closest("td");
+  if (!celula) return;
+  const lista = document.createElement("div");
+  lista.className = "comissao-descricao-sugestoes";
+  lista.setAttribute("role", "listbox");
+
+  sugestoes.forEach(descricao => {
+    const botao = document.createElement("button");
+    botao.type = "button";
+    botao.className = "comissao-descricao-sugestao";
+    botao.textContent = descricao;
+    botao.setAttribute("role", "option");
+    botao.addEventListener("mousedown", (evento) => {
+      evento.preventDefault();
+      input.value = descricao;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      _fecharBuscaDescricao();
+      input.focus();
+    });
+    lista.appendChild(botao);
+  });
+
+  celula.appendChild(lista);
 }
 
 export function iniciarComissao(usuario, dadosUsuario) {
@@ -121,12 +156,11 @@ export function iniciarComissao(usuario, dadosUsuario) {
       marcarAutoSalvarPendente();
     }
 
-    // Autocompletar descrição: só sugere quando o usuário está digitando
-    // (não ao apagar), pra não "grudar" a sugestão de novo no backspace.
     const alvo = e.target;
-    if (alvo?.dataset?.campo === "descricao" && (!e.inputType || e.inputType.startsWith("insert"))) {
-      _sugerirDescricao(alvo);
-    }
+    if (alvo?.dataset?.campo === "descricao") _mostrarBuscaDescricao(alvo);
+  });
+  document.getElementById("tbodyComissao")?.addEventListener("focusin", (e) => {
+    if (e.target?.dataset?.campo === "descricao") _mostrarBuscaDescricao(e.target);
   });
   document.getElementById("tbodyComissao")?.addEventListener("change", (e) => {
     if (e.target.matches(".comissao-row-select")) {
@@ -139,10 +173,20 @@ export function iniciarComissao(usuario, dadosUsuario) {
   // Apagar (Esc) rejeita a sugestão em aberto, mantendo só o que foi digitado.
   document.getElementById("tbodyComissao")?.addEventListener("keydown", (e) => {
     const alvo = e.target;
-    if (alvo?.dataset?.campo === "descricao" && e.key === "Escape" && alvo.selectionStart !== alvo.selectionEnd) {
-      alvo.value = alvo.value.slice(0, alvo.selectionStart);
-      alvo.setSelectionRange(alvo.value.length, alvo.value.length);
+    if (alvo?.dataset?.campo === "descricao" && e.key === "Escape") {
+      _fecharBuscaDescricao();
       return;
+    }
+
+    // Enter aceita a primeira sugestão exibida; setas continuam livres
+    // para navegar entre as linhas da planilha.
+    if (alvo?.dataset?.campo === "descricao" && e.key === "Enter") {
+      const primeiraSugestao = alvo.closest("td")?.querySelector(".comissao-descricao-sugestao");
+      if (primeiraSugestao) {
+        e.preventDefault();
+        primeiraSugestao.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+        return;
+      }
     }
 
     // Navegação de planilha: as setas trocam de linha mantendo a mesma coluna.
@@ -176,7 +220,10 @@ export function iniciarComissao(usuario, dadosUsuario) {
   // Guarda a descrição no histórico de sugestões ao sair do campo.
   document.getElementById("tbodyComissao")?.addEventListener("blur", (e) => {
     const alvo = e.target;
-    if (alvo?.dataset?.campo === "descricao") _salvarSugestaoDescricao(alvo.value);
+    if (alvo?.dataset?.campo === "descricao") {
+      _salvarSugestaoDescricao(alvo.value);
+      setTimeout(_fecharBuscaDescricao, 150);
+    }
   }, true);
   document.getElementById("btnImportarComissao")?.addEventListener("click", () => {
     document.getElementById("inputImportarComissao").click();
