@@ -1242,6 +1242,92 @@ async function listarTodosRegistrosParaPDF(comissaoId) {
   return { sucesso: true, registros };
 }
 
+function adicionarFotosServicosAoPDF(doc, registros) {
+  const servicosComFotos = registros
+    .map((registro, indice) => ({ registro, linha: indice + 1 }))
+    .filter(({ registro }) => Array.isArray(registro.fotos) && registro.fotos.length);
+  if (!servicosComFotos.length) return;
+
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margem = 12;
+  const alturaBloco = 78;
+  const larguraFoto = 108;
+  const xResumo = margem + larguraFoto + 10;
+  let y = 29;
+
+  const cabecalho = () => {
+    doc.setFillColor(30, 58, 95);
+    doc.rect(0, 0, pageW, 20, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(15);
+    doc.text("Fotos dos serviços", margem, 12);
+    doc.setTextColor(60, 60, 60);
+  };
+
+  doc.addPage();
+  cabecalho();
+
+  servicosComFotos.forEach(({ registro, linha }) => {
+    registro.fotos.forEach((foto, indiceFoto) => {
+      if (y + alturaBloco > pageH - 10) {
+        doc.addPage();
+        cabecalho();
+        y = 29;
+      }
+
+      doc.setDrawColor(220, 226, 235);
+      doc.roundedRect(margem, y, pageW - (margem * 2), alturaBloco - 5, 2, 2, "S");
+
+      try {
+        const props = doc.getImageProperties(foto);
+        const proporcao = props.width / props.height;
+        const maxAltura = alturaBloco - 13;
+        const imgLargura = Math.min(larguraFoto, maxAltura * proporcao);
+        const imgAltura = imgLargura / proporcao;
+        const xFoto = margem + ((larguraFoto - imgLargura) / 2);
+        const yFoto = y + ((alturaBloco - 5 - imgAltura) / 2);
+        doc.addImage(foto, "JPEG", xFoto, yFoto, imgLargura, imgAltura);
+      } catch {
+        doc.setTextColor(120, 120, 120);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.text("Não foi possível exibir esta foto.", margem + 8, y + 35);
+      }
+
+      const dataFmt = registro.data
+        ? new Date(registro.data + "T00:00:00").toLocaleDateString("pt-BR")
+        : "—";
+      const titulo = registro.descricao || "Serviço sem descrição";
+      const resumo = [
+        `Linha: ${linha}`,
+        `Cliente: ${registro.cliente || "—"}`,
+        `Quantidade: ${registro.qtdFolhas ?? "—"}`,
+        `Valor: ${formatarMoeda(registro.valor)}`,
+        `Data: ${dataFmt}`,
+        `Pagamento: ${registro.categoria || "—"}`
+      ];
+
+      doc.setTextColor(30, 58, 95);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("Resumo do serviço", xResumo, y + 12);
+      doc.setTextColor(45, 55, 72);
+      doc.setFontSize(10);
+      doc.text(doc.splitTextToSize(titulo, pageW - xResumo - margem), xResumo, y + 22);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text(resumo, xResumo, y + 40, { lineHeightFactor: 1.55 });
+      doc.setTextColor(110, 120, 135);
+      doc.setFontSize(8);
+      doc.text(`Foto ${indiceFoto + 1}`, xResumo, y + alturaBloco - 11);
+
+      y += alturaBloco;
+    });
+  });
+}
+
 async function gerarPDFComissao(id) {
   const res = await buscarComissao(id);
   if (!res.sucesso) { window.mostrarToast?.("Planilha não encontrada.", "error"); return; }
@@ -1301,6 +1387,8 @@ async function gerarPDFComissao(id) {
       4: { halign: "right" }
     }
   });
+
+  adicionarFotosServicosAoPDF(doc, registros);
 
   doc.save(`${comissao.titulo.replace(/\s+/g, "_")}.pdf`);
   window.mostrarToast?.("PDF gerado com sucesso!", "success");
