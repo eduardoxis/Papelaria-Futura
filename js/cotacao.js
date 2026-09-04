@@ -21,6 +21,7 @@ let _tipoPessoaAtual = "pf"; // "pf" (CPF) ou "pj" (CNPJ) — controla a máscar
 // Sugestões de produtos já digitados nas cotações. São gravadas apenas no
 // navegador e também consideram as linhas abertas na cotação atual.
 const CHAVE_SUGESTOES_ITENS_COTACAO = "cotacao_sugestoes_descricao";
+const CHAVE_SUGESTOES_MARCAS_COTACAO = "cotacao_sugestoes_marca";
 
 function carregarSugestoesItensCotacao() {
   try {
@@ -77,6 +78,65 @@ function mostrarSugestoesItensCotacao(input) {
       input.value = descricao;
       input.dispatchEvent(new Event("input", { bubbles: true }));
       fecharSugestoesItensCotacao();
+      input.focus();
+    });
+    lista.appendChild(botao);
+  });
+  celula.appendChild(lista);
+}
+
+function carregarSugestoesMarcasCotacao() {
+  try {
+    const lista = JSON.parse(localStorage.getItem(CHAVE_SUGESTOES_MARCAS_COTACAO) || "[]");
+    return Array.isArray(lista) ? lista : [];
+  } catch {
+    return [];
+  }
+}
+
+function salvarSugestaoMarcaCotacao(marca) {
+  const valor = String(marca || "").trim().toUpperCase();
+  if (!valor) return;
+  const lista = carregarSugestoesMarcasCotacao();
+  if (lista.some(item => item.toUpperCase() === valor)) return;
+  localStorage.setItem(CHAVE_SUGESTOES_MARCAS_COTACAO, JSON.stringify([valor, ...lista].slice(0, 200)));
+}
+
+function fecharSugestoesMarcasCotacao() {
+  document.querySelectorAll(".cotacao-marca-sugestoes").forEach(el => el.remove());
+}
+
+function mostrarSugestoesMarcasCotacao(input) {
+  fecharSugestoesMarcasCotacao();
+  const termo = String(input.value || "").trim().toUpperCase();
+  if (!termo) return;
+
+  const marcasAbertas = Array.from(document.querySelectorAll('#tbodyItens [data-campo="marca"]'))
+    .map(el => el.value);
+  const unicos = new Map();
+  [...marcasAbertas, ...carregarSugestoesMarcasCotacao()].forEach(item => {
+    const marca = String(item || "").trim().toUpperCase();
+    if (marca && marca !== termo && marca.startsWith(termo) && !unicos.has(marca)) unicos.set(marca, marca);
+  });
+  const sugestoes = Array.from(unicos.values()).slice(0, 8);
+  if (!sugestoes.length) return;
+
+  const celula = input.closest("td");
+  if (!celula) return;
+  const lista = document.createElement("div");
+  lista.className = "cotacao-marca-sugestoes";
+  lista.setAttribute("role", "listbox");
+  sugestoes.forEach(marca => {
+    const botao = document.createElement("button");
+    botao.type = "button";
+    botao.className = "cotacao-marca-sugestao";
+    botao.textContent = marca;
+    botao.setAttribute("role", "option");
+    botao.addEventListener("mousedown", (evento) => {
+      evento.preventDefault();
+      input.value = marca;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      fecharSugestoesMarcasCotacao();
       input.focus();
     });
     lista.appendChild(botao);
@@ -671,6 +731,7 @@ function adicionarLinha(dados = {}) {
   const inputUnit = tr.querySelector('[data-campo="valorUnitario"]');
   const cellTotal = tr.querySelector('[data-campo="valorTotal"]');
   const inputDescricao = tr.querySelector('[data-campo="descricao"]');
+  const inputMarca = tr.querySelector('[data-campo="marca"]');
 
   // Força maiúsculas de verdade (o valor salvo, não só a exibição) nos
   // campos de texto livre: descrição, marca e unidade de medida.
@@ -701,6 +762,28 @@ function adicionarLinha(dados = {}) {
   inputDescricao.addEventListener("blur", () => {
     salvarSugestaoItemCotacao(inputDescricao.value);
     setTimeout(fecharSugestoesItensCotacao, 150);
+  });
+
+  // A Marca segue a mesma busca: somente marcas já digitadas que começam
+  // com o texto informado aparecem na lista.
+  inputMarca.addEventListener("input", () => mostrarSugestoesMarcasCotacao(inputMarca));
+  inputMarca.addEventListener("focus", () => mostrarSugestoesMarcasCotacao(inputMarca));
+  inputMarca.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      fecharSugestoesMarcasCotacao();
+      return;
+    }
+    if (e.key === "Enter") {
+      const primeiraSugestao = inputMarca.closest("td")?.querySelector(".cotacao-marca-sugestao");
+      if (primeiraSugestao) {
+        e.preventDefault();
+        primeiraSugestao.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+      }
+    }
+  });
+  inputMarca.addEventListener("blur", () => {
+    salvarSugestaoMarcaCotacao(inputMarca.value);
+    setTimeout(fecharSugestoesMarcasCotacao, 150);
   });
 
   function recalcularLinha() {
@@ -833,7 +916,7 @@ async function importarItensJson(evento) {
       if (!descricao) tr.remove();
     });
 
-    itensValidos.forEach(item => adicionarLinha(item));
+    ordenarItensPorDescricao(itensValidos).forEach(item => adicionarLinha(item));
     renumerarLinhas();
     atualizarTotalGeral();
   } catch (erro) {
@@ -888,7 +971,17 @@ function coletarItens() {
       itens.push({ item: idx + 1, descricao, marca, unidade, quantidade, valorUnitario: valorUnit, valorTotal });
     }
   });
-  return itens;
+  return ordenarItensPorDescricao(itens);
+}
+
+function ordenarItensPorDescricao(itens) {
+  return [...(itens || [])]
+    .sort((a, b) => String(a.descricao || "").localeCompare(
+      String(b.descricao || ""),
+      "pt-BR",
+      { sensitivity: "base", numeric: true }
+    ))
+    .map((item, indice) => ({ ...item, item: indice + 1 }));
 }
 
 // ================================================================
@@ -1030,7 +1123,7 @@ async function abrirCotacaoSomenteLeitura(id) {
 
   document.getElementById("tbodyItens").innerHTML = "";
   _contadorLinhas = 0;
-  const itens = c.itens || [];
+  const itens = ordenarItensPorDescricao(c.itens || []);
   if (itens.length === 0) {
     document.getElementById("tbodyItens").innerHTML =
       `<tr><td colspan="7" class="empty-cell">Nenhum item nesta cotação.</td></tr>`;
@@ -1084,7 +1177,7 @@ async function editarCotacaoById(id) {
 
   document.getElementById("tbodyItens").innerHTML = "";
   _contadorLinhas = 0;
-  const itens = c.itens || [];
+  const itens = ordenarItensPorDescricao(c.itens || []);
   if (itens.length === 0) {
     adicionarLinha(); adicionarLinha(); adicionarLinha();
   } else {
@@ -1159,6 +1252,7 @@ async function gerarPDFById(id) {
     return;
   }
   const dados = resultado.dados;
+  dados.itens = ordenarItensPorDescricao(dados.itens || []);
   // Mantém o elaborador real já salvo na cotação — apenas baixar/abrir o
   // PDF não deve mudar quem aparece como responsável.
   dados.funcionario = dados.funcionario || "—";

@@ -399,7 +399,7 @@ export async function buscarClientesPorNome(termo) {
   const t = termo.trim().toLowerCase();
   if (!t) return [];
   return _cacheClientes
-    .filter(c => (c.nome || "").toLowerCase().includes(t))
+    .filter(c => (c.nome || "").toLowerCase().startsWith(t))
     .slice(0, 6);
 }
 
@@ -420,7 +420,7 @@ function ativarAutocompleteCotacao() {
     clearTimeout(timeoutBusca);
     const termo = input.value;
     timeoutBusca = setTimeout(async () => {
-      if (termo.trim().length < 2) {
+      if (termo.trim().length < 1) {
         dropdown.hidden = true;
         return;
       }
