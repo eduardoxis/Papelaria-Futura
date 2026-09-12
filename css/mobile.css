@@ -360,6 +360,24 @@
     font-weight: 700;
   }
 
+  /* Os atalhos flutuantes de notificações e menu ocupam a direita da tela.
+     Reservamos essa área na cotação para o botão Salvar ficar no header sem
+     passar por baixo deles. */
+  #page-nova-cotacao .mobile-page-header {
+    padding-right: calc(var(--space-4) + 104px);
+  }
+
+  @media (max-width: 390px) {
+    #page-nova-cotacao .mobile-page-header {
+      gap: 8px;
+      padding-right: calc(var(--space-3) + 104px);
+      padding-left: var(--space-3);
+    }
+
+    #page-nova-cotacao .mobile-page-header h2 { font-size: 1rem; }
+    #page-nova-cotacao .mobile-save-cotacao { padding-inline: 9px; }
+  }
+
   .mobile-page-header .btn-icon {
     color: var(--white);
     background: rgba(255,255,255,0.12);
