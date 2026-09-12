@@ -343,6 +343,21 @@
     font-weight: 700;
     color: var(--white);
     flex: 1;
+    min-width: 0;
+  }
+
+  .mobile-page-header .mobile-save-cotacao {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    min-height: 38px;
+    padding: 0 12px;
+    border: 1px solid rgba(255,255,255,0.65);
+    background: var(--white);
+    color: var(--blue-800);
+    font-size: var(--text-sm);
+    font-weight: 700;
   }
 
   .mobile-page-header .btn-icon {
@@ -444,6 +459,40 @@
   #page-admin .card {
     margin: 0 var(--space-4) var(--space-4);
     padding: var(--space-4);
+  }
+
+  /* A tabela pode rolar somente dentro dela; o restante da página não deve
+     ultrapassar a largura da tela. */
+  #page-nova-cotacao {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  #page-nova-cotacao .card {
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  #page-nova-cotacao .excel-wrap {
+    max-width: 100%;
+  }
+
+  #page-nova-cotacao .card-header {
+    align-items: flex-start;
+  }
+
+  #page-nova-cotacao .cotacao-itens-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  #page-nova-cotacao .cotacao-itens-acoes .btn-sm {
+    font-size: 12px;
+    padding-inline: 10px;
   }
 
   /* Toast — acima do CTA + bottom nav */
