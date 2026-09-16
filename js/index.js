@@ -95,7 +95,7 @@ function renderizarUltimas(cotacoes) {
       (!!_usuario?.uid && c.criadoPor === _usuario.uid);
     return `
     <tr>
-      <td class="td-cliente-row">
+      <td class="td-cliente-row" title="${escHtml(c.cliente || "—")}">
         <strong>${escHtml(c.cliente || "—")}</strong>
       </td>
       <td class="td-data-col">${formatarData(c.dataCriacao)}</td>

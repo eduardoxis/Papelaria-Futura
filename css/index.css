@@ -1172,6 +1172,21 @@ body {
   gap: var(--space-2);
 }
 
+/* Dashboard — mantém a coluna de cliente compacta e mostra o nome
+   completo ao passar o cursor, como na página de Cotações. */
+#tabelaUltimas .td-cliente-row {
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#tabelaUltimas .td-cliente-row strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Página cotações — desktop: td de ações lado a lado (igual Dashboard) */
 #tabelaCotacoes .td-actions-col {
   width: 1%;
