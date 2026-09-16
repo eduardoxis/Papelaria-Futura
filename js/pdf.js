@@ -16,6 +16,23 @@ async function carregarImagemBase64(caminho) {
   });
 }
 
+// Faz o download pelo navegador com um Blob. É mais confiável que doc.save()
+// em telas que mantêm o PDF gerado, mas não acionam o download automaticamente.
+function baixarPdf(doc, nomeArquivo) {
+  const blob = doc.output("blob");
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = nomeArquivo;
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
 export async function gerarPDF(cotacao) {
   try {
     const { jsPDF } = window.jspdf;
@@ -562,7 +579,7 @@ export async function gerarPDF(cotacao) {
     }
 
     // Download
-    doc.save(`Cotacao_${sanitize(cotacao.cliente)}_${new Date().toISOString().split("T")[0]}.pdf`);
+    baixarPdf(doc, `Cotacao_${sanitize(cotacao.cliente)}_${new Date().toISOString().split("T")[0]}.pdf`);
     window.mostrarToast?.("PDF gerado com sucesso!", "success");
 
   } catch (err) {
