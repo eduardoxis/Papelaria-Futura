@@ -7,7 +7,7 @@ import {
   excluirComissao, verificarSenhaComissao,
   adicionarRegistroComissao, listarRegistrosComissao,
   atualizarRegistroComissao, excluirRegistroComissao,
-  formatarMoeda, formatarData, listarUsuarios
+  formatarMoeda, formatarData
 } from "./database.js";
 
 const CATEGORIAS = ["Dinheiro", "Débito", "Crédito", "Pix celular", "Pix maquininha", "Convênio"];
@@ -375,26 +375,17 @@ async function carregarListaComissoes() {
     if (c.criadoPor && c.criadoPorNome) _nomesCriadoresComissao.set(c.criadoPor, c.criadoPorNome);
   });
 
-  // Fallback para planilhas antigas: se faltar o nome do criador mas existir
-  // o uid (criadoPor), busca o nome na coleção de usuários. Feito com
-  // try/catch e de forma silenciosa — se o usuário logado não tiver
-  // permissão para listar todos os usuários, apenas mantém "—".
+  // Planilhas novas já guardam criadoPorNome. Para as antigas, usamos o
+  // nome da conta atual quando ela for a criadora. Não listamos a coleção
+  // inteira de usuários: isso é restrito a admins e não é necessário para
+  // salvar ou consultar as comissões.
   const precisamDeNome = comissoes.filter(c => !c.criadoPorNome && c.criadoPor);
-  if (precisamDeNome.length) {
-    try {
-      const resUsuarios = await listarUsuarios();
-      if (resUsuarios.sucesso) {
-        const mapaNomes = new Map(resUsuarios.usuarios.map(u => [u.id, u.nome]));
-        precisamDeNome.forEach(c => {
-          const nome = mapaNomes.get(c.criadoPor);
-          if (nome) {
-            c.criadoPorNome = nome;
-            _nomesCriadoresComissao.set(c.criadoPor, nome);
-          }
-        });
-      }
-    } catch { /* sem permissão ou offline — mantém "—" */ }
-  }
+  precisamDeNome.forEach(c => {
+    if (c.criadoPor !== _usuario?.uid) return;
+    const nome = _dadosUsuario?.nome || _usuario?.email?.split("@")[0] || "—";
+    c.criadoPorNome = nome;
+    _nomesCriadoresComissao.set(c.criadoPor, nome);
+  });
 
   if (comissoes.length === 0) {
     container.innerHTML = `
