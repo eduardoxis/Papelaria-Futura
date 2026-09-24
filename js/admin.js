@@ -974,6 +974,30 @@ async function carregarDashboardComissao(atualizar = false) {
   if (barra) barra.style.width = `${percentualPago}%`;
 
   renderGraficoDashboardComissao(cotacoes, percentual);
+  renderTabelaDashboardComissao(cotacoes, percentual);
+}
+
+function renderTabelaDashboardComissao(cotacoes, percentual) {
+  const tbody = document.getElementById("tbodyDashboardComissao");
+  if (!tbody) return;
+  if (!cotacoes.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty-cell">Nenhuma cotação ganha encontrada.</td></tr>`;
+    return;
+  }
+
+  const obterData = cotacao => cotacao.dataCriacao?.toDate?.() || new Date(cotacao.dataCriacao);
+  const ordenadas = [...cotacoes].sort((a, b) => obterData(b) - obterData(a));
+  tbody.innerHTML = ordenadas.map(cotacao => {
+    const paga = !!cotacao.comissaoCriadorPaga;
+    const comissao = (Number(cotacao.valorTotal) || 0) * percentual;
+    return `<tr>
+      <td><strong>${escHtml(cotacao.cliente || "—")}</strong></td>
+      <td>${formatarData(cotacao.dataCriacao)}</td>
+      <td class="col-right">${formatarMoeda(cotacao.valorTotal || 0)}</td>
+      <td class="col-right"><strong>${formatarMoeda(comissao)}</strong></td>
+      <td class="col-center"><span class="role-badge ${paga ? "role-badge--vendedor" : "role-badge--user"}">${paga ? "Paga" : "Pendente"}</span></td>
+    </tr>`;
+  }).join("");
 }
 
 function renderGraficoDashboardComissao(cotacoes, percentual) {

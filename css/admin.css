@@ -485,6 +485,9 @@ body {
 .dcc-dot--paid { background: #10B981; }
 .dcc-dot--pending { background: #F59E0B; }
 .dcc-note { margin: 22px 0 0; padding-top: 16px; border-top: 1px solid var(--gray-100); color: var(--gray-600); font-size: var(--text-sm); }
+.dcc-lista-cotacoes { margin-top: var(--space-6); }
+.dcc-lista-cotacoes h4 { margin: 0 0 4px; color: var(--gray-800); font-size: var(--text-base); }
+.dcc-lista-cotacoes .page-subtitle { margin: 0 0 var(--space-4); }
 @media (max-width: 760px) {
   .dcc-grid { grid-template-columns: 1fr; }
 }
