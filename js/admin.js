@@ -143,6 +143,9 @@ export function iniciarAdmin(usuario, dadosUsuario) {
   document.getElementById("btnExportarComissaoCriadorExcel")?.addEventListener("click", () => {
     exportarComissaoCriador("excel");
   });
+  document.getElementById("btnAtualizarDashboardComissao")?.addEventListener("click", () => {
+    carregarDashboardComissao(true);
+  });
 }
 
 // ================================================================
@@ -404,6 +407,7 @@ const PAINEIS_ADMIN = {
   historico: "adminPanelHistorico",
   vendas:    "adminPanelVendas",
   comissaoCriador: "adminPanelComissaoCriador",
+  dashboardComissao: "adminPanelDashboardComissao",
   backup: "adminPanelBackup"
 };
 
@@ -414,6 +418,7 @@ const TITULOS_ADMIN = {
   vendas: "Vendas Realizadas",
   dashboardVendas: "Dashboard de Vendas",
   comissaoCriador: "Comissão por Cotação Ganhada",
+  dashboardComissao: "Dashboard de Comissões",
   backup: "Backup"
 };
 
@@ -438,6 +443,10 @@ function trocarPainelAdmin(painelId) {
   if (painelId === "comissaoCriador" && !_comissaoCriadorCarregado) {
     _comissaoCriadorCarregado = true;
     carregarComissaoCriador();
+  }
+
+  if (painelId === "dashboardComissao") {
+    carregarDashboardComissao();
   }
 }
 
@@ -928,6 +937,77 @@ function renderStatsComissaoCriador() {
     `<span class="ccg-pp-linha"><span class="ccg-pp-dot" style="background:#047857"></span><span class="ccg-pp-label">Paga</span><span class="ccg-pp-valor">${formatarMoeda(comissaoPaga)}</span></span>`;
 }
 
+// Dashboard exclusivo: usa apenas cotações aprovadas, que são as que geram
+// comissão. A área de "Comissão por Cotação Ganhada" continua responsável
+// pelas configurações e pela baixa dos pagamentos.
+async function carregarDashboardComissao(atualizar = false) {
+  if (atualizar || _todasCotacoesAprovadasCache.length === 0) {
+    const [resConfig, resCotacoes] = await Promise.all([
+      buscarConfigComissaoCriador(),
+      listarCotacoesAprovadas()
+    ]);
+    if (!resCotacoes.sucesso) {
+      window.mostrarToast?.("Não foi possível carregar o dashboard de comissões.", "error");
+      return;
+    }
+    _percentualComissaoCriador = resConfig.sucesso ? resConfig.percentual : _percentualComissaoCriador;
+    _todasCotacoesAprovadasCache = resCotacoes.cotacoes;
+  }
+
+  const cotacoes = _todasCotacoesAprovadasCache;
+  const percentual = _percentualComissaoCriador / 100;
+  const total = cotacoes.reduce((soma, cotacao) => soma + (Number(cotacao.valorTotal) || 0) * percentual, 0);
+  const paga = cotacoes.reduce((soma, cotacao) => soma + (cotacao.comissaoCriadorPaga ? (Number(cotacao.valorTotal) || 0) * percentual : 0), 0);
+  const pendente = total - paga;
+  const percentualPago = total > 0 ? (paga / total) * 100 : 0;
+  const ticketMedio = cotacoes.length ? total / cotacoes.length : 0;
+
+  document.getElementById("dccQtd").textContent = cotacoes.length;
+  document.getElementById("dccTotal").textContent = formatarMoeda(total);
+  document.getElementById("dccPaga").textContent = formatarMoeda(paga);
+  document.getElementById("dccPendente").textContent = formatarMoeda(pendente);
+  document.getElementById("dccPercentualPago").textContent = `${percentualPago.toFixed(1).replace(".", ",")}%`;
+  document.getElementById("dccResumoPago").textContent = formatarMoeda(paga);
+  document.getElementById("dccResumoPendente").textContent = formatarMoeda(pendente);
+  document.getElementById("dccTicketMedio").textContent = `Comissão média por cotação: ${formatarMoeda(ticketMedio)}`;
+  const barra = document.getElementById("dccBarraPaga");
+  if (barra) barra.style.width = `${percentualPago}%`;
+
+  renderGraficoDashboardComissao(cotacoes, percentual);
+}
+
+function renderGraficoDashboardComissao(cotacoes, percentual) {
+  const canvas = document.getElementById("chartDashboardComissao");
+  if (!canvas || !window.Chart) return;
+
+  const meses = [];
+  const agora = new Date();
+  for (let deslocamento = 5; deslocamento >= 0; deslocamento--) {
+    meses.push(new Date(agora.getFullYear(), agora.getMonth() - deslocamento, 1));
+  }
+  const valores = meses.map(mes => cotacoes.reduce((soma, cotacao) => {
+    const data = cotacao.dataCriacao?.toDate?.() || new Date(cotacao.dataCriacao);
+    return data instanceof Date && !Number.isNaN(data.getTime()) && data.getFullYear() === mes.getFullYear() && data.getMonth() === mes.getMonth()
+      ? soma + (Number(cotacao.valorTotal) || 0) * percentual
+      : soma;
+  }, 0));
+
+  _chartDashboardComissao?.destroy();
+  _chartDashboardComissao = new window.Chart(canvas, {
+    type: "bar",
+    data: {
+      labels: meses.map(mes => mes.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" })),
+      datasets: [{ label: "Comissão (R$)", data: valores, backgroundColor: "#DB2777", borderRadius: 7, maxBarThickness: 38 }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { callback: valor => formatarMoeda(valor) } }, x: { grid: { display: false } } }
+    }
+  });
+}
+
 function renderTabelaComissaoCriador(termoBusca = "") {
   const tbody = document.getElementById("tbodyComissaoCriador");
   if (!tbody) return;
@@ -1241,6 +1321,7 @@ function renderRelatorioDiaConteudo() {
 let _todasVendasCache = [];
 let _dashboardVendasCarregado = false;
 let _chartVendasDias = null;
+let _chartDashboardComissao = null;
 let _comissaoCriadorCarregado = false;
 let _todasCotacoesAprovadasCache = [];
 let _percentualComissaoCriador = 0;

@@ -1744,6 +1744,14 @@ Minha lista de produtos:
           <span class="admin-menu-item__desc">Veja as comissões geradas por cotações ganhas.</span>
           <span class="admin-menu-item__link">Acessar <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H3a1 1 0 110-2h9.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg></span>
         </button>
+        <button class="admin-menu-item admin-menu-item--pink" data-admin-panel="dashboardComissao">
+          <span class="admin-menu-item__icon">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 17a1 1 0 01-1-1V9a1 1 0 112 0v6h2V5a1 1 0 112 0v10h2V8a1 1 0 112 0v7h2V3a1 1 0 112 0v13a1 1 0 01-1 1H3z"/></svg>
+          </span>
+          <span class="admin-menu-item__title">Dashboard de Comissões</span>
+          <span class="admin-menu-item__desc">Acompanhe somente as comissões das cotações ganhas.</span>
+          <span class="admin-menu-item__link">Acessar <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H3a1 1 0 110-2h9.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg></span>
+        </button>
         <button class="admin-menu-item admin-menu-item--cyan" data-admin-panel="backup">
           <span class="admin-menu-item__icon">
             <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v1H2V6z"/><path fill-rule="evenodd" d="M2 9h16v5a2 2 0 01-2 2H4a2 2 0 01-2-2V9zm8 1a1 1 0 011 1v2.586l.793-.793a1 1 0 111.414 1.414l-2.5 2.5a1 1 0 01-1.414 0l-2.5-2.5a1 1 0 111.414-1.414l.793.793V11a1 1 0 011-1z" clip-rule="evenodd"/></svg>
@@ -1957,6 +1965,42 @@ Minha lista de produtos:
               <tr><td colspan="7" class="loading-cell">Carregando...</td></tr>
             </tbody>
           </table>
+        </div>
+      </div>
+      </div>
+
+      <!-- Painel: Dashboard de Comissão por Cotação Ganhada -->
+      <div class="admin-panel" id="adminPanelDashboardComissao">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-section-title" style="margin-bottom:4px">Dashboard de Comissões</h3>
+            <p class="page-subtitle" style="margin:0">Indicadores exclusivos das comissões geradas por cotações ganhas.</p>
+          </div>
+          <button class="btn-secondary" id="btnAtualizarDashboardComissao">
+            <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px"><path fill-rule="evenodd" d="M4 10a6 6 0 111.76 4.24 1 1 0 10-1.414 1.414A8 8 0 1010 2V.5a.5.5 0 00-.854-.354l-3 3A.5.5 0 006.5 4H10a6 6 0 00-6 6z" clip-rule="evenodd"/></svg>
+            Atualizar
+          </button>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card stat-card--blue"><div class="stat-card__body"><span class="stat-card__label">Cotações ganhas</span><strong class="stat-card__value" id="dccQtd">—</strong></div></div>
+          <div class="stat-card stat-card--green"><div class="stat-card__body"><span class="stat-card__label">Comissão gerada</span><strong class="stat-card__value" id="dccTotal">—</strong></div></div>
+          <div class="stat-card stat-card--purple"><div class="stat-card__body"><span class="stat-card__label">Comissão paga</span><strong class="stat-card__value" id="dccPaga">—</strong></div></div>
+          <div class="stat-card stat-card--gold"><div class="stat-card__body"><span class="stat-card__label">Comissão pendente</span><strong class="stat-card__value" id="dccPendente">—</strong></div></div>
+        </div>
+
+        <div class="dcc-grid">
+          <section class="dcc-card">
+            <h4>Comissão gerada por mês</h4>
+            <div class="dcc-chart-wrap"><canvas id="chartDashboardComissao"></canvas></div>
+          </section>
+          <section class="dcc-card">
+            <h4>Resumo dos pagamentos</h4>
+            <div class="dcc-progress"><div class="dcc-progress__bar"><span id="dccBarraPaga"></span></div><strong id="dccPercentualPago">—</strong> pago</div>
+            <div class="dcc-summary"><span><i class="dcc-dot dcc-dot--paid"></i>Pago <strong id="dccResumoPago">—</strong></span><span><i class="dcc-dot dcc-dot--pending"></i>Pendente <strong id="dccResumoPendente">—</strong></span></div>
+            <p class="dcc-note" id="dccTicketMedio">—</p>
+          </section>
         </div>
       </div>
       </div>

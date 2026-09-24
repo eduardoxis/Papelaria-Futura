@@ -441,6 +441,53 @@ body {
   font-size: var(--text-sm);
   white-space: nowrap;
 }
+
+/* Dashboard exclusivo de comissões por cotações ganhas */
+.dcc-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(260px, 1fr);
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+.dcc-card {
+  border: 1px solid var(--gray-150, #E6EAF0);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  background: #fff;
+}
+.dcc-card h4 {
+  margin: 0 0 var(--space-4);
+  color: var(--gray-800);
+  font-size: var(--text-base);
+}
+.dcc-chart-wrap { position: relative; height: 250px; }
+.dcc-progress { color: var(--gray-600); font-size: var(--text-sm); }
+.dcc-progress__bar {
+  height: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--gray-100);
+  margin: 0 0 10px;
+}
+.dcc-progress__bar span {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: #10B981;
+  transition: width 260ms ease;
+}
+.dcc-progress strong { color: var(--gray-900); }
+.dcc-summary { display: grid; gap: 12px; margin-top: 22px; }
+.dcc-summary span { display: flex; align-items: center; gap: 8px; color: var(--gray-600); font-size: var(--text-sm); }
+.dcc-summary strong { margin-left: auto; color: var(--gray-900); }
+.dcc-dot { width: 9px; height: 9px; border-radius: 50%; }
+.dcc-dot--paid { background: #10B981; }
+.dcc-dot--pending { background: #F59E0B; }
+.dcc-note { margin: 22px 0 0; padding-top: 16px; border-top: 1px solid var(--gray-100); color: var(--gray-600); font-size: var(--text-sm); }
+@media (max-width: 760px) {
+  .dcc-grid { grid-template-columns: 1fr; }
+}
 .admin-menu {
   display: flex;
   flex-wrap: nowrap;
