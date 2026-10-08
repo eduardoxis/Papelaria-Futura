@@ -33,7 +33,13 @@ function baixarPdf(doc, nomeArquivo) {
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-export async function gerarPDF(cotacao) {
+export async function gerarPDF(cotacao, modelo = "original") {
+  if (modelo === "fw3") return gerarPDFFW3(cotacao);
+  if (modelo === "avenida") return gerarPDFAvenida(cotacao);
+  return gerarPDFOriginal(cotacao);
+}
+
+async function gerarPDFOriginal(cotacao) {
   try {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
@@ -586,6 +592,160 @@ export async function gerarPDF(cotacao) {
     console.error("Erro ao gerar PDF:", err);
     window.mostrarToast?.("Erro ao gerar PDF. Tente novamente.", "error");
   }
+}
+
+// ============================================================
+// PDF — Papelaria FW3
+// Mantém o modelo recebido: cabeçalho FW3, tabela azul e no máximo 20 itens
+// por página. Cada página é montada separadamente para nunca cortar uma linha.
+// ============================================================
+async function gerarPDFFW3(cotacao) {
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+    const MX = 16, PW = 210, CW = PW - MX * 2;
+    const azul = [38, 86, 132];
+    const fmtMoeda = (valor) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(valor) || 0);
+    const fmtQtd = (valor) => {
+      const numero = Number(valor) || 0;
+      return Number.isInteger(numero) ? String(numero) : numero.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+    };
+    const paginas = dividirEmPaginas(cotacao.itens || [], 20);
+    let logo = null;
+    try { logo = await carregarImagemBase64("./img/logo-fw3.png"); } catch { /* há cabeçalho textual de reserva */ }
+
+    const desenharCabecalho = (numeroPagina, totalPaginas) => {
+      if (logo) doc.addImage(logo, "PNG", MX, 13, 48, 23);
+      else {
+        doc.setFont("helvetica", "bold"); doc.setFontSize(25); doc.setTextColor(18, 83, 144);
+        doc.text("FM3", MX + 8, 30);
+      }
+      doc.setDrawColor(38, 86, 132); doc.setLineWidth(1); doc.line(MX, 39, MX + 48, 39);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
+      ["PAPELARIA FM3 LTDA ME", "CNPJ - 31.045.957/0001-88", "IE - 10.733.916-1", "RUA BRASILIA QD 58 LT 26 LOJA 02 - JARDIM INGA", "LUZIÂNIA - GO"].forEach((linha, indice) => {
+        doc.text(linha, 137, 13 + indice * 5.2, { align: "center" });
+      });
+      doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.45); doc.rect(MX, 43, CW, 12);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(18); doc.text("ORÇAMENTO", PW / 2, 51.5, { align: "center" });
+      doc.setFont("helvetica", "bold"); doc.setFontSize(8);
+      doc.text(`CLIENTE: ${String(cotacao.cliente || "").toUpperCase()}`, MX, 63);
+      doc.text(`CNPJ/CPF: ${cotacao.cnpj || ""}`, MX, 68);
+      doc.text(`ENDEREÇO: ${cotacao.endereco || ""}`, MX, 73);
+      doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(85, 85, 85);
+      doc.text(`Página ${numeroPagina} de ${totalPaginas}`, MX + CW, 290, { align: "right" });
+    };
+
+    paginas.forEach((itensPagina, indice) => {
+      if (indice) doc.addPage();
+      desenharCabecalho(indice + 1, paginas.length);
+      const linhas = itensPagina.map((item, numero) => [
+        String(indice * 20 + numero + 1), fmtQtd(item.quantidade), String(item.unidade || "UN").toUpperCase(),
+        String(item.descricao || "").toUpperCase(), fmtMoeda(item.valorUnitario), fmtMoeda(item.valorTotal)
+      ]);
+      doc.autoTable({
+        startY: 78,
+        head: [["ÍTEM", "QTD", "UND", "DESCRIÇÃO DO PRODUTO", "P UNIT", "P TOTAL"]],
+        body: linhas,
+        margin: { left: MX, right: MX }, theme: "grid",
+        styles: { font: "helvetica", fontSize: 7.5, cellPadding: 2.1, valign: "middle", lineColor: [0, 0, 0], lineWidth: 0.2, minCellHeight: 7.9 },
+        headStyles: { fillColor: azul, textColor: [255, 255, 255], fontStyle: "bold", halign: "center", minCellHeight: 8 },
+        columnStyles: { 0: { cellWidth: 12, halign: "center" }, 1: { cellWidth: 13, halign: "center" }, 2: { cellWidth: 13, halign: "center" }, 3: { cellWidth: 95 }, 4: { cellWidth: 24, halign: "right" }, 5: { cellWidth: 24, halign: "right" } }
+      });
+      if (indice === paginas.length - 1) {
+        const y = Math.min((doc.lastAutoTable?.finalY || 78) + 8, 267);
+        doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.5); doc.rect(122, y, 72, 12);
+        doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(0, 0, 0);
+        doc.text("VALOR TOTAL", 126, y + 7.3);
+        doc.text(fmtMoeda(cotacao.valorTotal), 190, y + 7.3, { align: "right" });
+      }
+    });
+    baixarPdf(doc, `Orcamento_FW3_${nomeSeguroPdf(cotacao.cliente)}.pdf`);
+    window.mostrarToast?.("PDF FW3 gerado com sucesso!", "success");
+  } catch (erro) {
+    console.error("Erro ao gerar PDF FW3:", erro);
+    window.mostrarToast?.("Erro ao gerar PDF FW3. Tente novamente.", "error");
+  }
+}
+
+// ============================================================
+// PDF — Papelaria Avenida
+// Reproduz o modelo enviado: cabeçalho azul, Times New Roman, tabela cinza
+// e no máximo 16 itens por página.
+// ============================================================
+async function gerarPDFAvenida(cotacao) {
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+    const MX = 10, PW = 210, CW = PW - MX * 2;
+    const fmtMoeda = (valor) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(valor) || 0);
+    const fmtQtd = (valor) => {
+      const numero = Number(valor) || 0;
+      return Number.isInteger(numero) ? String(numero) : numero.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+    };
+    const paginas = dividirEmPaginas(cotacao.itens || [], 16);
+    let cabecalho = null;
+    try { cabecalho = await carregarImagemBase64("./img/cabecalho-avenida.png"); } catch { /* há texto de reserva abaixo */ }
+
+    const desenharCabecalho = (numeroPagina, totalPaginas) => {
+      if (cabecalho) doc.addImage(cabecalho, "PNG", MX, 7, CW, 65);
+      else {
+        doc.setDrawColor(19, 44, 124); doc.setLineWidth(0.8); doc.rect(MX, 7, CW, 65);
+        doc.setFont("times", "bold"); doc.setFontSize(26); doc.setTextColor(12, 32, 91); doc.text("PAPELARIA AVENIDA", MX + 15, 39);
+        doc.setFontSize(9); doc.text("PAPELARIA AVENIDA HTL LTDA", MX + CW - 15, 24, { align: "right" });
+        doc.text("AV. ALFREDO NASSER SN QD 31 LT 03", MX + CW - 15, 31, { align: "right" });
+        doc.text("(61) 3055-0102", MX + CW - 15, 42, { align: "right" });
+      }
+      doc.setFont("times", "normal"); doc.setTextColor(0, 0, 0); doc.setFontSize(9);
+      doc.text(`CLIENTE : ${String(cotacao.cliente || "").toUpperCase()}`, MX, 78);
+      doc.text(`CNPJ: ${cotacao.cnpj || ""}`, MX, 84);
+      doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.25); doc.line(MX, 87, MX + CW, 87);
+      doc.setFontSize(7); doc.setTextColor(70, 70, 70); doc.text(`Página ${numeroPagina} de ${totalPaginas}`, MX + CW, 290, { align: "right" });
+    };
+
+    paginas.forEach((itensPagina, indice) => {
+      if (indice) doc.addPage();
+      desenharCabecalho(indice + 1, paginas.length);
+      const linhas = itensPagina.map((item, numero) => [
+        String(indice * 16 + numero + 1),
+        `${String(item.descricao || "").toUpperCase()}${item.unidade ? ` (${String(item.unidade).toUpperCase()})` : ""}`,
+        fmtQtd(item.quantidade), fmtMoeda(item.valorUnitario), fmtMoeda(item.valorTotal), ""
+      ]);
+      doc.autoTable({
+        startY: 96,
+        head: [["Item", "Descrição do Produto / Serviço", "Qtd.", "Valor Unitário", "Valor Total", "Entrega"]],
+        body: linhas,
+        margin: { left: MX, right: MX }, theme: "grid",
+        styles: { font: "times", fontSize: 8, cellPadding: 2.1, valign: "middle", lineColor: [0, 0, 0], lineWidth: 0.2, minCellHeight: 7.7 },
+        headStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], font: "times", fontStyle: "bold", halign: "center", minCellHeight: 8 },
+        columnStyles: { 0: { cellWidth: 12, halign: "center" }, 1: { cellWidth: 82 }, 2: { cellWidth: 18, halign: "center" }, 3: { cellWidth: 29, halign: "right" }, 4: { cellWidth: 31, halign: "right" }, 5: { cellWidth: 28, halign: "center" } }
+      });
+      if (indice === paginas.length - 1) {
+        const y = Math.min((doc.lastAutoTable?.finalY || 96) + 8, 267);
+        doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.45); doc.rect(128, y, 72, 12);
+        doc.setFont("times", "bold"); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
+        doc.text("VALOR TOTAL", 132, y + 7.3);
+        doc.text(fmtMoeda(cotacao.valorTotal), 196, y + 7.3, { align: "right" });
+      }
+    });
+    baixarPdf(doc, `Orcamento_Avenida_${nomeSeguroPdf(cotacao.cliente)}.pdf`);
+    window.mostrarToast?.("PDF Avenida gerado com sucesso!", "success");
+  } catch (erro) {
+    console.error("Erro ao gerar PDF Avenida:", erro);
+    window.mostrarToast?.("Erro ao gerar PDF Avenida. Tente novamente.", "error");
+  }
+}
+
+function dividirEmPaginas(itens, quantidadePorPagina) {
+  const lista = Array.isArray(itens) && itens.length ? itens : [{}];
+  const paginas = [];
+  for (let inicio = 0; inicio < lista.length; inicio += quantidadePorPagina) paginas.push(lista.slice(inicio, inicio + quantidadePorPagina));
+  return paginas;
+}
+
+function nomeSeguroPdf(valor) {
+  return String(valor || "cliente")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40) || "cliente";
 }
 
 // ============================================================

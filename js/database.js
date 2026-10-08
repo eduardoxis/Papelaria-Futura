@@ -35,6 +35,19 @@ import { db } from "./firebase-config.js";
 
 const COLECAO_COTACOES = "cotacoes";
 
+// As cotações anteriores a esta atualização não possuem este campo e
+// continuam pertencendo ao modelo original.
+function normalizarTipoOrcamento(tipo) {
+  return ["fw3", "avenida"].includes(tipo) ? tipo : "original";
+}
+
+function pertenceAoTipoOrcamento(cotacao, tipo) {
+  const tipoNormalizado = normalizarTipoOrcamento(tipo);
+  return tipoNormalizado === "original"
+    ? !cotacao.tipoOrcamento || cotacao.tipoOrcamento === "original"
+    : cotacao.tipoOrcamento === tipoNormalizado;
+}
+
 // ----------------------------------------------------------------
 // Criar nova cotação
 // ----------------------------------------------------------------
@@ -45,6 +58,7 @@ export async function criarCotacao(dados, uidUsuario, diasParaPrimeiroLembrete =
     ));
     const cotacao = {
       ...dados,
+      tipoOrcamento: normalizarTipoOrcamento(dados.tipoOrcamento),
       criadoPor:   uidUsuario,
       dataCriacao: serverTimestamp(),
       updatedAt:   serverTimestamp(),
@@ -119,9 +133,11 @@ export async function listarCotacoes({
   dataInicio = null,
   dataFim = null,
   limitQtd = 50,
-  cursor = null
+  cursor = null,
+  tipoOrcamento = "original"
 } = {}) {
   try {
+    const tipoNormalizado = normalizarTipoOrcamento(tipoOrcamento);
     const temFiltroData = !!(dataInicio || dataFim);
 
     function montarRestricoesBase() {
@@ -142,68 +158,53 @@ export async function listarCotacoes({
       return restricoes;
     }
 
-    // ── Busca por cliente ──────────────────────────────────────
-    // O filtro de texto é feito no JS (case-insensitive — o Firestore só
-    // suporta range "começa com" sensível a maiúsculas/minúsculas). Por
-    // isso buscamos em lotes do Firestore e vamos filtrando até juntar
-    // `limitQtd` resultados (ou até a coleção acabar), em vez de buscar
-    // tudo de uma vez.
-    if (cliente) {
-      const termo = cliente.toLowerCase();
-      const TAMANHO_LOTE = 150;
-      const MAX_LOTES = 6; // protege contra escanear a coleção inteira numa chamada só
+    // O texto do cliente e as cotações do modelo original exigem uma
+    // filtragem local: Firestore não busca texto e os registros antigos não
+    // têm tipoOrcamento. A leitura ocorre em poucos lotes e não pula itens.
+    const termo = String(cliente || "").trim().toLowerCase();
+    const TAMANHO_LOTE = 150;
+    const MAX_LOTES = 6;
+    const encontrados = [];
+    let cursorAtual = cursor;
 
-      let cotacoes = [];
-      let cursorAtual = cursor;
-      let ultimoDocBruto = null;
-      let chegouAoFim = false;
+    for (let lote = 0; lote < MAX_LOTES; lote++) {
+      const restricoes = montarRestricoesBase();
+      restricoes.push(limit(TAMANHO_LOTE));
+      if (cursorAtual) restricoes.push(startAfter(cursorAtual));
 
-      for (let lote = 0; lote < MAX_LOTES; lote++) {
-        const restricoes = montarRestricoesBase();
-        restricoes.push(limit(TAMANHO_LOTE));
-        if (cursorAtual) restricoes.push(startAfter(cursorAtual));
-
-        const snapshot = await getDocs(query(collection(db, COLECAO_COTACOES), ...restricoes));
-
-        if (snapshot.empty) { chegouAoFim = true; break; }
-
-        ultimoDocBruto = snapshot.docs[snapshot.docs.length - 1];
-        cursorAtual = ultimoDocBruto;
-
-        const encontrados = snapshot.docs
-          .map(d => ({ id: d.id, ...d.data() }))
-          .filter(c => (c.cliente || "").toLowerCase().includes(termo));
-
-        cotacoes.push(...encontrados);
-
-        if (snapshot.docs.length < TAMANHO_LOTE) { chegouAoFim = true; break; }
-        if (cotacoes.length >= limitQtd) break;
+      const snapshot = await getDocs(query(collection(db, COLECAO_COTACOES), ...restricoes));
+      if (snapshot.empty) {
+        return { sucesso: true, cotacoes: encontrados.map(item => item.cotacao), proximoCursor: null, temMais: false };
       }
 
-      return {
-        sucesso: true,
-        cotacoes,
-        proximoCursor: chegouAoFim ? null : ultimoDocBruto,
-        temMais: !chegouAoFim
-      };
+      for (const documento of snapshot.docs) {
+        const cotacao = { id: documento.id, ...documento.data() };
+        const correspondeAoCliente = !termo || String(cotacao.cliente || "").toLowerCase().includes(termo);
+        if (!pertenceAoTipoOrcamento(cotacao, tipoNormalizado) || !correspondeAoCliente) continue;
+
+        encontrados.push({ cotacao, documento });
+        if (encontrados.length > limitQtd) {
+          return {
+            sucesso: true,
+            cotacoes: encontrados.slice(0, limitQtd).map(item => item.cotacao),
+            proximoCursor: encontrados[limitQtd - 1].documento,
+            temMais: true
+          };
+        }
+      }
+
+      if (snapshot.docs.length < TAMANHO_LOTE) {
+        return { sucesso: true, cotacoes: encontrados.map(item => item.cotacao), proximoCursor: null, temMais: false };
+      }
+      cursorAtual = snapshot.docs[snapshot.docs.length - 1];
     }
 
-    // ── Sem filtro de cliente ──────────────────────────────────
-    // Pede 1 documento extra só pra saber se existe próxima página,
-    // sem precisar de uma consulta de contagem separada.
-    const restricoes = montarRestricoesBase();
-    restricoes.push(limit(limitQtd + 1));
-    if (cursor) restricoes.push(startAfter(cursor));
-
-    const snapshot = await getDocs(query(collection(db, COLECAO_COTACOES), ...restricoes));
-    const docsPagina = snapshot.docs.slice(0, limitQtd);
-    const temMais = snapshot.docs.length > limitQtd;
-
+    // Protege contra uma busca sem fim em coleções muito grandes.
     return {
       sucesso: true,
-      cotacoes: docsPagina.map(d => ({ id: d.id, ...d.data() })),
-      proximoCursor: temMais ? docsPagina[docsPagina.length - 1] : null,
-      temMais
+      cotacoes: encontrados.map(item => item.cotacao),
+      proximoCursor: cursorAtual,
+      temMais: true
     };
   } catch (erro) {
     console.error("Erro ao listar cotações:", erro);

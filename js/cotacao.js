@@ -17,6 +17,31 @@ let _contadorLinhas = 0;
 let _modoSomenteLeitura = false;
 let _funcionarioCotacaoAtual = null; // nome de quem realmente criou/editou a cotação carregada
 let _tipoPessoaAtual = "pf"; // "pf" (CPF) ou "pj" (CNPJ) — controla a máscara do campo cotCnpj
+let _tipoOrcamentoAtual = "original";
+
+const TIPOS_ORCAMENTO = {
+  original: { titulo: "Cotações", singular: "Cotação" },
+  fw3: { titulo: "Orçamentos FW3", singular: "Orçamento FW3" },
+  avenida: { titulo: "Orçamentos Avenida", singular: "Orçamento Avenida" }
+};
+
+function normalizarTipoOrcamento(tipo) {
+  return TIPOS_ORCAMENTO[tipo] ? tipo : "original";
+}
+
+function configurarTipoOrcamento(tipo) {
+  _tipoOrcamentoAtual = normalizarTipoOrcamento(tipo);
+  const config = TIPOS_ORCAMENTO[_tipoOrcamentoAtual];
+  document.querySelectorAll("[data-titulo-orcamento]").forEach(el => { el.textContent = config.titulo; });
+  document.querySelectorAll("[data-subtitulo-orcamento]").forEach(el => {
+    el.textContent = _tipoOrcamentoAtual === "original"
+      ? "Gerencie todas as suas cotações"
+      : `Gerencie os orçamentos da ${_tipoOrcamentoAtual === "fw3" ? "Papelaria FW3" : "Papelaria Avenida"}`;
+  });
+  document.querySelectorAll("[data-nova-cotacao-texto]").forEach(el => {
+    el.textContent = _tipoOrcamentoAtual === "original" ? "Nova Cotação" : `Novo ${config.singular}`;
+  });
+}
 
 // Sugestões de produtos já digitados nas cotações. São gravadas apenas no
 // navegador e também consideram as linhas abertas na cotação atual.
@@ -213,7 +238,10 @@ export function iniciarCotacao(usuario, dadosUsuario) {
 
   // Navegação
   document.addEventListener("navegacao", (e) => {
-    if (e.detail.page === "cotacoes")     carregarListaCotacoes();
+    if (e.detail.page === "cotacoes" || e.detail.page === "nova-cotacao") {
+      configurarTipoOrcamento(e.detail.tipoOrcamento ?? _tipoOrcamentoAtual);
+    }
+    if (e.detail.page === "cotacoes") carregarListaCotacoes();
     if (e.detail.page === "nova-cotacao") prepararNovaCotacao();
   });
 
@@ -368,7 +396,8 @@ async function carregarListaCotacoes(termoBusca = "", dataInicio = null, dataFim
     cliente: termoBusca || null,
     dataInicio,
     dataFim,
-    limitQtd: COTACOES_POR_PAGINA
+    limitQtd: COTACOES_POR_PAGINA,
+    tipoOrcamento: _tipoOrcamentoAtual
   });
 
   if (!resultado.sucesso) {
@@ -410,7 +439,8 @@ async function carregarMaisCotacoes() {
     dataInicio,
     dataFim,
     limitQtd: COTACOES_POR_PAGINA,
-    cursor: _cotPaginaCursor
+    cursor: _cotPaginaCursor,
+    tipoOrcamento: _tipoOrcamentoAtual
   });
 
   _cotCarregandoMais = false;
@@ -649,9 +679,10 @@ function prepararNovaCotacao() {
   restaurarModoEdicao();
   _funcionarioCotacaoAtual = null;
   document.getElementById("cotacaoEditandoId").value = "";
-  document.getElementById("titleFormCotacao").textContent = "Nova Cotação";
+  const titulo = _tipoOrcamentoAtual === "original" ? "Nova Cotação" : `Novo ${TIPOS_ORCAMENTO[_tipoOrcamentoAtual].singular}`;
+  document.getElementById("titleFormCotacao").textContent = titulo;
   const tituloMobile = document.getElementById("titleFormCotacaoMobile");
-  if (tituloMobile) tituloMobile.textContent = "Nova Cotação";
+  if (tituloMobile) tituloMobile.textContent = titulo;
 
   ["cotCliente","cotCnpj","cotObs"].forEach(id => {
     document.getElementById(id).value = "";
@@ -1028,7 +1059,7 @@ function coletarDadosCotacao() {
   const itens    = coletarItens();
   const valorTotal = itens.reduce((s, i) => s + i.valorTotal, 0);
 
-  return { cliente, cnpj, telefone, validade, observacoes: obs, status, itens, valorTotal, funcionario: nomeFuncionarioLogado() };
+  return { cliente, cnpj, telefone, validade, observacoes: obs, status, itens, valorTotal, funcionario: nomeFuncionarioLogado(), tipoOrcamento: _tipoOrcamentoAtual };
 }
 
 // ================================================================
@@ -1094,7 +1125,7 @@ async function salvarCotacao() {
 // ABRIR (SOMENTE LEITURA) — sem exigir senha
 // ================================================================
 async function abrirCotacaoSomenteLeitura(id) {
-  window.navegar?.("nova-cotacao");
+  window.navegar?.("nova-cotacao", _tipoOrcamentoAtual);
   await new Promise(r => setTimeout(r, 50));
   _modoSomenteLeitura = true;
 
@@ -1108,10 +1139,11 @@ async function abrirCotacaoSomenteLeitura(id) {
   const c = resultado.dados;
   _funcionarioCotacaoAtual = c.funcionario || null;
 
+  const tituloVisualizacao = _tipoOrcamentoAtual === "original" ? "Visualizar Cotação" : `Visualizar ${TIPOS_ORCAMENTO[_tipoOrcamentoAtual].singular}`;
   document.getElementById("cotacaoEditandoId").value      = id;
-  document.getElementById("titleFormCotacao").textContent = "Visualizar Cotação";
+  document.getElementById("titleFormCotacao").textContent = tituloVisualizacao;
   const tituloMobile = document.getElementById("titleFormCotacaoMobile");
-  if (tituloMobile) tituloMobile.textContent = "Visualizar Cotação";
+  if (tituloMobile) tituloMobile.textContent = tituloVisualizacao;
 
   ["cotCliente","cotCnpj","cotTelefone","cotValidade","cotStatus","cotObs"].forEach(campoId => {
     const el = document.getElementById(campoId);
@@ -1162,7 +1194,7 @@ function restaurarModoEdicao() {
 // EDITAR COTAÇÃO
 // ================================================================
 async function editarCotacaoById(id) {
-  window.navegar?.("nova-cotacao");
+  window.navegar?.("nova-cotacao", _tipoOrcamentoAtual);
   await new Promise(r => setTimeout(r, 50));
 
   const resultado = await buscarCotacao(id);
@@ -1174,8 +1206,11 @@ async function editarCotacaoById(id) {
   const c = resultado.dados;
   _funcionarioCotacaoAtual = c.funcionario || null;
 
+  const tituloEdicao = _tipoOrcamentoAtual === "original" ? "Editar Cotação" : `Editar ${TIPOS_ORCAMENTO[_tipoOrcamentoAtual].singular}`;
   document.getElementById("cotacaoEditandoId").value       = id;
-  document.getElementById("titleFormCotacao").textContent  = "Editar Cotação";
+  document.getElementById("titleFormCotacao").textContent  = tituloEdicao;
+  const tituloMobile = document.getElementById("titleFormCotacaoMobile");
+  if (tituloMobile) tituloMobile.textContent = tituloEdicao;
   document.getElementById("cotCliente").value  = c.cliente    || "";
   definirTipoPessoa(detectarTipoPessoaPorDocumento(c.cnpj));
   document.getElementById("cotCnpj").value     = c.cnpj       || "";
@@ -1251,7 +1286,7 @@ function gerarPDFDaTela() {
   // nome de quem realmente criou/editou pela última vez via salvarCotacao.
   const idEditando = document.getElementById("cotacaoEditandoId").value;
   dados.funcionario = idEditando ? (_funcionarioCotacaoAtual || "—") : nomeFuncionarioLogado();
-  gerarPDF(dados);
+  gerarPDF(dados, _tipoOrcamentoAtual);
 }
 
 async function gerarPDFById(id) {
@@ -1265,7 +1300,7 @@ async function gerarPDFById(id) {
   // Mantém o elaborador real já salvo na cotação — apenas baixar/abrir o
   // PDF não deve mudar quem aparece como responsável.
   dados.funcionario = dados.funcionario || "—";
-  gerarPDF(dados);
+  gerarPDF(dados, normalizarTipoOrcamento(dados.tipoOrcamento));
 }
 
 // ================================================================
