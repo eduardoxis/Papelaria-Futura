@@ -737,17 +737,24 @@ async function gerarPDFAvenida(cotacao) {
         columnStyles: { 0: { cellWidth: 12, halign: "center" }, 1: { cellWidth: 82 }, 2: { cellWidth: 18, halign: "center" }, 3: { cellWidth: 29, halign: "right" }, 4: { cellWidth: 31, halign: "right" }, 5: { cellWidth: 28, halign: "center" } }
       });
       if (indice === paginas.length - 1) {
-        const y = Math.min((doc.lastAutoTable?.finalY || 96) + 8, 267);
-        doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.45); doc.rect(128, y, 72, 12);
-        doc.setFont("times", "bold"); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
-        doc.text("VALOR TOTAL", 132, y + 7.3);
-        doc.text(fmtMoeda(cotacao.valorTotal), 196, y + 7.3, { align: "right" });
+        // A soma é a continuação imediata da tabela de itens.
+        doc.autoTable({
+          startY: doc.lastAutoTable?.finalY || 96,
+          body: [["", "", "", "", "VALOR TOTAL", fmtMoeda(cotacao.valorTotal)]],
+          margin: { left: MX, right: MX }, theme: "grid",
+          styles: { font: "times", fontSize: 9, cellPadding: 2.1, valign: "middle", lineColor: [0, 0, 0], lineWidth: 0.2, minCellHeight: 8 },
+          columnStyles: {
+            0: { cellWidth: 12 }, 1: { cellWidth: 82 }, 2: { cellWidth: 18 }, 3: { cellWidth: 29 },
+            4: { cellWidth: 31, halign: "right", fontStyle: "bold" },
+            5: { cellWidth: 28, halign: "right", fontStyle: "bold" }
+          }
+        });
 
         // Rodapé conforme o modelo HTL: validade, data e campo de observações.
         const dataEmissao = new Intl.DateTimeFormat("pt-BR", {
           day: "2-digit", month: "long", year: "numeric"
         }).format(new Date()).toUpperCase();
-        const rodapeY = y + 17;
+        const rodapeY = (doc.lastAutoTable?.finalY || 96) + 9;
         doc.setFont("times", "bold"); doc.setFontSize(9); doc.setTextColor(0, 0, 0);
         doc.text("Válido por 30 dias", MX, rodapeY);
         doc.text(`Luziânia-GO ${dataEmissao}.`, MX, rodapeY + 6);
