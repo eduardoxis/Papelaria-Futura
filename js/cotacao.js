@@ -21,8 +21,8 @@ let _tipoOrcamentoAtual = "original";
 
 const TIPOS_ORCAMENTO = {
   original: { titulo: "Cotações", singular: "Cotação" },
-  fw3: { titulo: "Orçamentos FW3", singular: "Orçamento FW3" },
-  avenida: { titulo: "Orçamentos Avenida", singular: "Orçamento Avenida" }
+  fw3: { titulo: "Orçamentos FM3", singular: "Orçamento FM3" },
+  avenida: { titulo: "Orçamentos HTL", singular: "Orçamento HTL" }
 };
 
 function normalizarTipoOrcamento(tipo) {
@@ -36,7 +36,7 @@ function configurarTipoOrcamento(tipo) {
   document.querySelectorAll("[data-subtitulo-orcamento]").forEach(el => {
     el.textContent = _tipoOrcamentoAtual === "original"
       ? "Gerencie todas as suas cotações"
-      : `Gerencie os orçamentos da ${_tipoOrcamentoAtual === "fw3" ? "Papelaria FW3" : "Papelaria Avenida"}`;
+      : `Gerencie os orçamentos da ${_tipoOrcamentoAtual === "fw3" ? "Papelaria FM3" : "Papelaria HTL"}`;
   });
   document.querySelectorAll("[data-nova-cotacao-texto]").forEach(el => {
     el.textContent = _tipoOrcamentoAtual === "original" ? "Nova Cotação" : `Novo ${config.singular}`;

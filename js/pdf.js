@@ -595,8 +595,8 @@ async function gerarPDFOriginal(cotacao) {
 }
 
 // ============================================================
-// PDF — Papelaria FW3
-// Mantém o modelo recebido: cabeçalho FW3, tabela azul e no máximo 20 itens
+// PDF — Papelaria FM3
+// Mantém o modelo recebido: cabeçalho FM3, tabela azul e no máximo 20 itens
 // por página. Cada página é montada separadamente para nunca cortar uma linha.
 // ============================================================
 async function gerarPDFFW3(cotacao) {
@@ -659,16 +659,16 @@ async function gerarPDFFW3(cotacao) {
         doc.text(fmtMoeda(cotacao.valorTotal), 190, y + 7.3, { align: "right" });
       }
     });
-    baixarPdf(doc, `Orcamento_FW3_${nomeSeguroPdf(cotacao.cliente)}.pdf`);
-    window.mostrarToast?.("PDF FW3 gerado com sucesso!", "success");
+    baixarPdf(doc, `Orcamento_FM3_${nomeSeguroPdf(cotacao.cliente)}.pdf`);
+    window.mostrarToast?.("PDF FM3 gerado com sucesso!", "success");
   } catch (erro) {
-    console.error("Erro ao gerar PDF FW3:", erro);
-    window.mostrarToast?.("Erro ao gerar PDF FW3. Tente novamente.", "error");
+    console.error("Erro ao gerar PDF FM3:", erro);
+    window.mostrarToast?.("Erro ao gerar PDF FM3. Tente novamente.", "error");
   }
 }
 
 // ============================================================
-// PDF — Papelaria Avenida
+// PDF — Papelaria HTL
 // Reproduz o modelo enviado: cabeçalho azul, Times New Roman, tabela cinza
 // e no máximo 16 itens por página.
 // ============================================================
@@ -725,13 +725,33 @@ async function gerarPDFAvenida(cotacao) {
         doc.setFont("times", "bold"); doc.setFontSize(10); doc.setTextColor(0, 0, 0);
         doc.text("VALOR TOTAL", 132, y + 7.3);
         doc.text(fmtMoeda(cotacao.valorTotal), 196, y + 7.3, { align: "right" });
+
+        // Rodapé conforme o modelo HTL: validade, data e campo de observações.
+        const dataEmissao = new Intl.DateTimeFormat("pt-BR", {
+          day: "2-digit", month: "long", year: "numeric"
+        }).format(new Date()).toUpperCase();
+        const rodapeY = y + 17;
+        doc.setFont("times", "bold"); doc.setFontSize(9); doc.setTextColor(0, 0, 0);
+        doc.text("Válido por 30 dias", MX, rodapeY);
+        doc.text(`Luziânia-GO ${dataEmissao}.`, MX, rodapeY + 6);
+
+        const observacoesY = rodapeY + 9;
+        doc.setFillColor(190, 190, 190); doc.rect(MX, observacoesY, CW, 6, "F");
+        doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.45); doc.rect(MX, observacoesY, CW, 25);
+        doc.setFont("times", "bold"); doc.setFontSize(8); doc.text("OBSERVAÇÕES", PW / 2, observacoesY + 4.1, { align: "center" });
+        const observacoes = String(cotacao.observacoes || "").trim();
+        if (observacoes) {
+          doc.setFont("times", "normal"); doc.setFontSize(8);
+          const linhasObservacoes = doc.splitTextToSize(observacoes, CW - 6).slice(0, 4);
+          doc.text(linhasObservacoes, MX + 3, observacoesY + 10);
+        }
       }
     });
-    baixarPdf(doc, `Orcamento_Avenida_${nomeSeguroPdf(cotacao.cliente)}.pdf`);
-    window.mostrarToast?.("PDF Avenida gerado com sucesso!", "success");
+    baixarPdf(doc, `Orcamento_HTL_${nomeSeguroPdf(cotacao.cliente)}.pdf`);
+    window.mostrarToast?.("PDF HTL gerado com sucesso!", "success");
   } catch (erro) {
-    console.error("Erro ao gerar PDF Avenida:", erro);
-    window.mostrarToast?.("Erro ao gerar PDF Avenida. Tente novamente.", "error");
+    console.error("Erro ao gerar PDF HTL:", erro);
+    window.mostrarToast?.("Erro ao gerar PDF HTL. Tente novamente.", "error");
   }
 }
 
