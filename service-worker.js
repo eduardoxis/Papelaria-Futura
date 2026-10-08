@@ -3,7 +3,7 @@
 // ============================================================
 // Sobe a versão do cache sempre que alterar arquivos estáticos
 // para forçar os usuários a receberem a versão nova.
-const CACHE_VERSION = "pf-v7";
+const CACHE_VERSION = "pf-v8";
 const CACHE_NAME = `papelaria-futura-${CACHE_VERSION}`;
 
 const APP_SHELL = [
@@ -96,7 +96,7 @@ self.addEventListener("fetch", (event) => {
               .catch((err) => console.warn("Falha ao atualizar cache:", err));
             return resposta;
           })
-          .catch(() => cached);
+          .catch(() => cached || new Response("Recurso indisponível", { status: 503, statusText: "Offline" }));
         return cached || rede;
       })
     );
@@ -117,6 +117,8 @@ self.addEventListener("fetch", (event) => {
         }
         return resposta;
       })
-      .catch(() => caches.match(request))
+      .catch(() => caches.match(request).then((cached) =>
+        cached || new Response("Recurso indisponível", { status: 503, statusText: "Offline" })
+      ))
   );
 });

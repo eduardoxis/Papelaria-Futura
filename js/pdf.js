@@ -610,7 +610,10 @@ async function gerarPDFFW3(cotacao) {
       const numero = Number(valor) || 0;
       return Number.isInteger(numero) ? String(numero) : numero.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
     };
-    const paginas = dividirEmPaginas(cotacao.itens || [], 20);
+    // Deixa espaço para a validade e a descrição no rodapé, mantendo menos
+    // de 20 itens por página conforme o modelo FM3.
+    const itensPorPagina = 18;
+    const paginas = dividirEmPaginas(cotacao.itens || [], itensPorPagina);
     let logo = null;
     try { logo = await carregarImagemBase64("./img/logo-fw3.png"); } catch { /* há cabeçalho textual de reserva */ }
 
@@ -637,7 +640,7 @@ async function gerarPDFFW3(cotacao) {
       if (indice) doc.addPage();
       desenharCabecalho(indice + 1, paginas.length);
       const linhas = itensPagina.map((item, numero) => [
-        String(indice * 20 + numero + 1), fmtQtd(item.quantidade), String(item.unidade || "UN").toUpperCase(),
+        String(indice * itensPorPagina + numero + 1), fmtQtd(item.quantidade), String(item.unidade || "UN").toUpperCase(),
         String(item.descricao || "").toUpperCase(), fmtMoeda(item.valorUnitario), fmtMoeda(item.valorTotal)
       ]);
       doc.autoTable({
@@ -655,6 +658,22 @@ async function gerarPDFFW3(cotacao) {
         doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(0, 0, 0);
         doc.text("VALOR TOTAL", 126, y + 7.3);
         doc.text(fmtMoeda(cotacao.valorTotal), 190, y + 7.3, { align: "right" });
+
+        const rodapeY = y + 17;
+        const dataEmissao = new Intl.DateTimeFormat("pt-BR").format(new Date());
+        doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(0, 0, 0);
+        doc.text(`VALIDADE DO ORÇAMENTO 30 DIAS • ENTREGA: IMEDIATO • LUZIÂNIA-GO ${dataEmissao}`, MX, rodapeY);
+
+        const descricaoY = rodapeY + 4;
+        doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.35); doc.line(MX, descricaoY, MX + CW, descricaoY);
+        doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.text("DESCRIÇÃO:", MX, descricaoY + 6);
+        doc.rect(MX, descricaoY, CW, 24);
+        const descricao = String(cotacao.observacoes || "").trim();
+        if (descricao) {
+          doc.setFont("helvetica", "normal"); doc.setFontSize(8);
+          const linhasDescricao = doc.splitTextToSize(descricao, CW - 6).slice(0, 3);
+          doc.text(linhasDescricao, MX + 3, descricaoY + 12);
+        }
       }
     });
     baixarPdf(doc, `Orcamento_FM3_${nomeSeguroPdf(cotacao.cliente)}.pdf`);
