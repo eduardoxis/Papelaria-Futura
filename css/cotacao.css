@@ -93,6 +93,7 @@
 .col-unidade  { width: 100px; text-align: center; }
 .col-qtd      { width: 80px; text-align: center; }
 .col-unit     { width: 130px; text-align: right; }
+.col-entrega  { width: 145px; text-align: center; }
 
 /* Busca de produtos já digitados nas cotações */
 .cotacao-descricao-sugestoes {

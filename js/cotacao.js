@@ -750,6 +750,12 @@ function adicionarLinha(dados = {}) {
     <td class="col-total cell-total" data-campo="valorTotal">
       ${formatarMoeda(calcularTotal(dados.quantidade, dados.valorUnitario))}
     </td>
+    <td class="col-entrega">
+      <select class="excel-input excel-input--center" data-campo="entrega" ${dis}>
+        <option value="IMEDIATA" ${dados.entrega === "SOB ENCOMENDA" ? "" : "selected"}>IMEDIATA</option>
+        <option value="SOB ENCOMENDA" ${dados.entrega === "SOB ENCOMENDA" ? "selected" : ""}>SOB ENCOMENDA</option>
+      </select>
+    </td>
     <td class="col-acao">
       <button class="btn-remove-row" aria-label="Remover linha ${n}" ${_modoSomenteLeitura ? 'style="display:none"' : ""}>
         <svg viewBox="0 0 20 20" fill="currentColor">
@@ -885,9 +891,9 @@ function adicionarLinha(dados = {}) {
 // Formatos aceitos:
 //   1) Lista simples de nomes:      ["Caneta azul", "Caderno 10 matérias"]
 //   2) Lista de objetos:            [{ "descricao": "Caneta azul", "marca": "BIC",
-//                                      "unidade": "UND", "quantidade": 10, "valorUnitario": 2.5 }]
+//                                      "unidade": "UND", "quantidade": 10, "valorUnitario": 2.5, "entrega": "IMEDIATA" }]
 //      Aceita variações de nome de campo: descricao/produto/nome/item,
-//      marca, unidade/un, quantidade/qtd/qtde, valorUnitario/valor/preco/valorunit.
+//      marca, unidade/un, quantidade/qtd/qtde, valorUnitario/valor/preco/valorunit e entrega.
 function _normalizarItemImportado(entrada) {
   if (typeof entrada === "string") {
     const descricao = entrada.trim();
@@ -916,7 +922,8 @@ function _normalizarItemImportado(entrada) {
     marca: String(pegar(["marca"])).trim().toUpperCase(),
     unidade: String(pegar(["unidade", "un", "und"])).trim().toUpperCase(),
     quantidade: qtdBruta !== "" ? parsearNumero(qtdBruta) : "",
-    valorUnitario: valorBruto !== "" ? parsearMoeda(valorBruto) : ""
+    valorUnitario: valorBruto !== "" ? parsearMoeda(valorBruto) : "",
+    entrega: String(pegar(["entrega"])).trim().toUpperCase() === "SOB ENCOMENDA" ? "SOB ENCOMENDA" : "IMEDIATA"
   };
 }
 
@@ -962,7 +969,7 @@ async function importarItensJson(evento) {
 function mostrarVazio() {
   document.getElementById("tbodyItens").innerHTML = `
     <tr class="excel-empty-row">
-      <td colspan="7" class="excel-empty">
+      <td colspan="9" class="excel-empty">
         <div class="excel-empty-icon">📋</div>
         Nenhum item adicionado. Clique em <strong>Adicionar Item</strong> para começar.
       </td>
@@ -998,9 +1005,10 @@ function coletarItens() {
     const quantidade = parsearNumero(get("quantidade")?.value) || 0;
     const valorUnit  = parsearMoeda(get("valorUnitario")?.value) || 0;
     const valorTotal = calcularTotal(quantidade, valorUnit);
+    const entrega    = get("entrega")?.value === "SOB ENCOMENDA" ? "SOB ENCOMENDA" : "IMEDIATA";
 
     if (descricao || quantidade || valorUnit) {
-      itens.push({ item: idx + 1, descricao, marca, unidade, quantidade, valorUnitario: valorUnit, valorTotal });
+      itens.push({ item: idx + 1, descricao, marca, unidade, quantidade, valorUnitario: valorUnit, valorTotal, entrega });
     }
   });
   return ordenarItensPorDescricao(itens);
@@ -1167,7 +1175,7 @@ async function abrirCotacaoSomenteLeitura(id) {
   const itens = ordenarItensPorDescricao(c.itens || []);
   if (itens.length === 0) {
     document.getElementById("tbodyItens").innerHTML =
-      `<tr><td colspan="7" class="empty-cell">Nenhum item nesta cotação.</td></tr>`;
+      `<tr><td colspan="9" class="empty-cell">Nenhum item nesta cotação.</td></tr>`;
   } else {
     itens.forEach(item => adicionarLinha(item));
   }

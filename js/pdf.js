@@ -725,7 +725,7 @@ async function gerarPDFAvenida(cotacao) {
       const linhas = itensPagina.map((item, numero) => [
         String(indice * 16 + numero + 1),
         `${String(item.descricao || "").toUpperCase()}${item.unidade ? ` (${String(item.unidade).toUpperCase()})` : ""}`,
-        fmtQtd(item.quantidade), fmtMoeda(item.valorUnitario), fmtMoeda(item.valorTotal), ""
+        fmtQtd(item.quantidade), fmtMoeda(item.valorUnitario), fmtMoeda(item.valorTotal), String(item.entrega || "IMEDIATA").toUpperCase()
       ]);
       doc.autoTable({
         startY: 96,
@@ -740,13 +740,17 @@ async function gerarPDFAvenida(cotacao) {
         // A soma é a continuação imediata da tabela de itens.
         doc.autoTable({
           startY: doc.lastAutoTable?.finalY || 96,
-          body: [["", "", "", "", "VALOR TOTAL", fmtMoeda(cotacao.valorTotal)]],
+          body: [[
+            { content: "VALOR TOTAL", colSpan: 4, styles: { halign: "center", fontStyle: "bold" } },
+            { content: fmtMoeda(cotacao.valorTotal), styles: { halign: "center", fontStyle: "bold" } },
+            ""
+          ]],
           margin: { left: MX, right: MX }, theme: "grid",
           styles: { font: "times", fontSize: 9, cellPadding: 2.1, valign: "middle", lineColor: [0, 0, 0], lineWidth: 0.2, minCellHeight: 8 },
           columnStyles: {
             0: { cellWidth: 12 }, 1: { cellWidth: 82 }, 2: { cellWidth: 18 }, 3: { cellWidth: 29 },
-            4: { cellWidth: 31, halign: "right", fontStyle: "bold" },
-            5: { cellWidth: 28, halign: "right", fontStyle: "bold" }
+            4: { cellWidth: 31, halign: "center", fontStyle: "bold" },
+            5: { cellWidth: 28, halign: "center" }
           }
         });
 
