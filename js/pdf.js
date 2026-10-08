@@ -631,8 +631,6 @@ async function gerarPDFFW3(cotacao) {
       doc.text(`CLIENTE: ${String(cotacao.cliente || "").toUpperCase()}`, MX, 63);
       doc.text(`CNPJ/CPF: ${cotacao.cnpj || ""}`, MX, 68);
       doc.text(`ENDEREÇO: ${cotacao.endereco || ""}`, MX, 73);
-      doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(85, 85, 85);
-      doc.text(`Página ${numeroPagina} de ${totalPaginas}`, MX + CW, 290, { align: "right" });
     };
 
     paginas.forEach((itensPagina, indice) => {
