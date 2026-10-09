@@ -140,6 +140,7 @@ export function iniciarAdmin(usuario, dadosUsuario) {
   document.getElementById("btnExportarComissaoCriadorPDF")?.addEventListener("click", () => {
     exportarComissaoCriador("pdf");
   });
+  document.getElementById("btnExportarComissaoPendentePDF")?.addEventListener("click", exportarComissoesPendentesPDF);
   document.getElementById("btnExportarComissaoCriadorExcel")?.addEventListener("click", () => {
     exportarComissaoCriador("excel");
   });
@@ -1168,6 +1169,19 @@ function exportarComissaoCriador(formato) {
     if (ok) window.mostrarToast?.("Excel gerado com sucesso!", "success");
     else window.mostrarToast?.("Erro ao gerar Excel. Tente novamente.", "error");
   }
+}
+
+// Gera uma relação para pagamento sem depender da aba ou da busca que esteja
+// ativa: inclui somente cotações ganhas com a comissão ainda pendente.
+function exportarComissoesPendentesPDF() {
+  const cotacoesPendentes = _todasCotacoesAprovadasCache.filter(cotacao => !cotacao.comissaoCriadorPaga);
+
+  if (cotacoesPendentes.length === 0) {
+    window.mostrarToast?.("Não há comissões pendentes para gerar o PDF.", "warning");
+    return;
+  }
+
+  gerarPdfComissaoCriador(cotacoesPendentes, _percentualComissaoCriador, "Comissões Pendentes");
 }
 
 // ================================================================
