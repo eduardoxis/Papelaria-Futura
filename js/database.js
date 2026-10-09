@@ -43,9 +43,16 @@ function normalizarTipoOrcamento(tipo) {
 
 function pertenceAoTipoOrcamento(cotacao, tipo) {
   const tipoNormalizado = normalizarTipoOrcamento(tipo);
-  return tipoNormalizado === "original"
-    ? !cotacao.tipoOrcamento || cotacao.tipoOrcamento === "original"
-    : cotacao.tipoOrcamento === tipoNormalizado;
+  const tipoDaCotacao = String(cotacao?.tipoOrcamento || "").trim().toLowerCase();
+
+  // A lista da Papelaria Futura reúne as cotações antigas e quaisquer
+  // registros sem uma marcação explícita de FM3/HTL.
+  if (tipoNormalizado === "original") {
+    return !["fw3", "fm3", "avenida", "htl"].includes(tipoDaCotacao);
+  }
+
+  if (tipoNormalizado === "fw3") return ["fw3", "fm3"].includes(tipoDaCotacao);
+  return ["avenida", "htl"].includes(tipoDaCotacao);
 }
 
 // ----------------------------------------------------------------
