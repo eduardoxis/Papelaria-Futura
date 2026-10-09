@@ -162,7 +162,10 @@ export async function listarCotacoes({
     // filtragem local: Firestore não busca texto e os registros antigos não
     // têm tipoOrcamento. A leitura ocorre em poucos lotes e não pula itens.
     const termo = String(cliente || "").trim().toLowerCase();
-    const TAMANHO_LOTE = 150;
+    // A consulta lê somente uma página e um item extra por vez. Caso parte
+    // dos registros pertença a FM3/HTL, busca o próximo lote apenas até
+    // completar a página da Papelaria Futura.
+    const TAMANHO_LOTE = Math.max(2, Number(limitQtd) + 1);
     const MAX_LOTES = 6;
     const encontrados = [];
     let cursorAtual = cursor;
