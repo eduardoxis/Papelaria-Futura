@@ -20,7 +20,7 @@ let _tipoPessoaAtual = "pf"; // "pf" (CPF) ou "pj" (CNPJ) — controla a máscar
 let _tipoOrcamentoAtual = "original";
 
 const TIPOS_ORCAMENTO = {
-  original: { titulo: "Cotações", singular: "Cotação" },
+  original: { titulo: "Orçamento Futura", singular: "Orçamento Futura" },
   fw3: { titulo: "Orçamentos FM3", singular: "Orçamento FM3" },
   avenida: { titulo: "Orçamentos HTL", singular: "Orçamento HTL" }
 };
@@ -35,11 +35,11 @@ function configurarTipoOrcamento(tipo) {
   document.querySelectorAll("[data-titulo-orcamento]").forEach(el => { el.textContent = config.titulo; });
   document.querySelectorAll("[data-subtitulo-orcamento]").forEach(el => {
     el.textContent = _tipoOrcamentoAtual === "original"
-      ? "Gerencie todas as suas cotações"
+      ? "Gerencie todos os orçamentos da Papelaria Futura"
       : `Gerencie os orçamentos da ${_tipoOrcamentoAtual === "fw3" ? "Papelaria FM3" : "Papelaria HTL"}`;
   });
   document.querySelectorAll("[data-nova-cotacao-texto]").forEach(el => {
-    el.textContent = _tipoOrcamentoAtual === "original" ? "Nova Cotação" : `Novo ${config.singular}`;
+    el.textContent = _tipoOrcamentoAtual === "original" ? "Novo Orçamento Futura" : `Novo ${config.singular}`;
   });
 }
 
@@ -447,7 +447,7 @@ async function carregarMaisCotacoes() {
 
   if (!resultado.sucesso) {
     window.mostrarToast?.("Erro ao carregar mais cotações.", "error");
-    if (btn) { btn.disabled = false; btn.textContent = "Carregar mais"; }
+    if (btn) { btn.disabled = false; btn.textContent = "Carregar mais orçamentos"; }
     return;
   }
 
@@ -467,7 +467,7 @@ function atualizarBotaoCarregarMais() {
   if (!wrap || !btn) return;
   wrap.style.display = _cotTemMais ? "flex" : "none";
   btn.disabled = false;
-  btn.textContent = "Carregar mais";
+  btn.textContent = "Carregar mais orçamentos";
 }
 
 function linhaCotacaoHtml(c) {

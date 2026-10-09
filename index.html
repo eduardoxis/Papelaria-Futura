@@ -63,7 +63,7 @@
       <li>
         <a href="#" class="nav-item" data-page="cotacoes" data-tipo-orcamento="original">
           <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></svg>
-          Cotações
+          Orçamento Futura
         </a>
       </li>
       <li>
@@ -304,17 +304,17 @@
     <!-- ======================================================== -->
     <!-- PÁGINA: LISTA DE COTAÇÕES                                 -->
     <!-- ======================================================== -->
-    <section id="page-cotacoes" class="page" aria-label="Cotações" hidden>
+    <section id="page-cotacoes" class="page" aria-label="Orçamento Futura" hidden>
 
       <!-- Mobile page header -->
       <div class="mobile-page-header">
-        <h2 data-titulo-orcamento>Cotações</h2>
+        <h2 data-titulo-orcamento>Orçamento Futura</h2>
       </div>
 
       <div class="page-header">
         <div>
-          <h2 class="page-title" data-titulo-orcamento>Cotações</h2>
-          <p class="page-subtitle" data-subtitulo-orcamento>Gerencie todas as suas cotações</p>
+          <h2 class="page-title" data-titulo-orcamento>Orçamento Futura</h2>
+          <p class="page-subtitle" data-subtitulo-orcamento>Gerencie todos os orçamentos da Papelaria Futura</p>
         </div>
         <button class="btn-primary" data-page="nova-cotacao">
           <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
@@ -362,6 +362,9 @@
               <tr><td colspan="5" class="loading-cell">Carregando...</td></tr>
             </tbody>
           </table>
+        </div>
+        <div id="wrapCarregarMaisCotacoes" style="display:none;justify-content:center;padding:14px">
+          <button class="btn-secondary" id="btnCarregarMaisCotacoes" type="button">Carregar mais orçamentos</button>
         </div>
       </div>
 
@@ -2326,7 +2329,7 @@ Minha lista de produtos:
       "cotacoes-avenida": "cotacoes"
     };
     const titulosOrcamento = {
-      original: "Cotações",
+      original: "Orçamento Futura",
       fw3: "Orçamentos FM3",
       avenida: "Orçamentos HTL"
     };
