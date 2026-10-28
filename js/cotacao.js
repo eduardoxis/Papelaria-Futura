@@ -1092,11 +1092,10 @@ async function oferecerEnvioCotacao(cotacao) {
      <label class="field-label" for="envioCotacaoEmail">E-mail do cliente</label>
      <input id="envioCotacaoEmail" type="email" required class="field-input--plain" style="width:100%" value="${escHtml(cotacao.email || "")}" />
      <p id="envioCotacaoStatus" role="status" style="margin-top:12px">Preparando PDF...</p>`,
-    `<button class="btn-ghost" id="envioCotacaoFechar">Fechar</button>
+    `
      <button class="btn-secondary" id="envioCotacaoBaixar" disabled>Baixar PDF</button>
      <button class="btn-primary" id="envioCotacaoWhats" disabled>WhatsApp + PDF</button>
      <button class="btn-primary" id="envioCotacaoMail" disabled>E-mail + PDF</button>`);
-  document.getElementById("envioCotacaoFechar").onclick = () => window.fecharModal();
   const status = document.getElementById("envioCotacaoStatus");
   try {
     const arquivo = await gerarPDF(cotacao, normalizarTipoOrcamento(cotacao.tipoOrcamento), true);
@@ -1405,6 +1404,7 @@ function formatarCampoMoeda(valor) {
     style: "currency", currency: "BRL"
   }).format(Number(valor) || 0);
 }
+
 
 
 
