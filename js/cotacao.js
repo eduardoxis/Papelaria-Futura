@@ -623,7 +623,7 @@ async function abrirLembreteCotacao(id) {
     </p>
     <label class="field-label">Mensagem sugerida</label>
     <textarea class="field-input--plain field-textarea" id="textoLembreteCotacao" rows="5" style="width:100%">${escHtml(mensagem)}</textarea>
-    <img src="./img/lembrete-orcamento.png" alt="Equipe de orçamentos da Papelaria Futura do Centro" style="display:block;width:100%;max-height:180px;object-fit:contain;margin-top:12px;border-radius:8px" />
+    <img src="./img/lembrete-equipe-orcamentos-v3.png" alt="Equipe de orçamentos da Papelaria Futura do Centro" style="display:block;width:100%;max-height:180px;object-fit:contain;margin-top:12px;border-radius:8px" />
     <p id="statusImagemLembrete" role="status" style="font-size:13px;margin-top:8px">Preparando imagem...</p>
     ${!numeroWhats ? `<p style="color:#B45309;font-size:13px;margin-top:8px">Essa cotação não tem telefone cadastrado — copie a mensagem e envie manualmente, ou edite a cotação para adicionar o número.</p>` : ""}
     <label class="field-label" style="margin-top:12px">Tipo de contato</label>
@@ -680,7 +680,7 @@ async function abrirLembreteCotacao(id) {
     btnImagem.disabled = true;
     statusImagem.textContent = "Preparando imagem...";
     try {
-      const resposta = await fetch("./img/lembrete-orcamento.png");
+      const resposta = await fetch("./img/lembrete-equipe-orcamentos-v3.png");
       if (!resposta.ok) throw new Error("Imagem indisponível");
       const blob = await resposta.blob();
       if (!blob.type.startsWith("image/") || !blob.size) throw new Error("Imagem inválida");
@@ -1484,6 +1484,7 @@ function formatarCampoMoeda(valor) {
     style: "currency", currency: "BRL"
   }).format(Number(valor) || 0);
 }
+
 
 
 
