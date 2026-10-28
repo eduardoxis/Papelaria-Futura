@@ -617,42 +617,79 @@ async function abrirLembreteCotacao(id) {
     ? `<div style="margin-top:18px;border-top:1px solid var(--gray-200);padding-top:12px"><strong style="font-size:13px">Histórico de contatos</strong>${historico.map(h => `<div style="font-size:12px;color:var(--gray-600);padding:8px 0;border-bottom:1px solid var(--gray-100)"><strong>${escHtml(`Etapa ${h.etapa || "—"} · ${h.tipo || "Contato"}`)}</strong><br>${escHtml(h.atendente || "—")} · ${escHtml(formatarDataHoraLembrete(h.enviadoEm))}<br>${escHtml(h.resultado || "enviado")}</div>`).join("")}</div>`
     : `<p style="font-size:12px;color:var(--gray-500);margin-top:14px">Nenhum contato registrado ainda.</p>`;
 
+  const iconeLembrete = nome => {
+    const paths = {
+      relogio: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+      calendario: '<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4m8-4v4M4 11h16"/>',
+      documento: '<path d="M14 3H5v18h14V8zM14 3v5h5M8 12h8m-8 4h5"/>',
+      imagem: '<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1"/><path d="m3 17 5-5 4 4 4-6 5 7"/>',
+      copiar: '<rect x="8" y="5" width="12" height="16" rx="2"/><path d="M16 5V3H4v15h4"/>',
+      baixar: '<path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/>',
+      chat: '<path d="M21 11a9 9 0 0 1-13 8L3 21l2-5A9 9 0 1 1 21 11Z"/><path d="M8 11h.01M12 11h.01M16 11h.01"/>',
+      resultado: '<path d="M4 21V11h4v10m2 0V3h4v18m2 0V7h4v14"/>',
+      fechar: '<path d="m6 6 12 12M18 6 6 18"/>'
+    };
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[nome] || paths.chat}</svg>`;
+  };
   const body = `
-    <p style="color:var(--gray-500);font-size:13px;margin-bottom:10px">
-      ${etapa === 3 ? "Último contato: após confirmar, a cotação será marcada como Sem retorno." : `Follow-up ${etapa} de 3. A próxima etapa será disponibilizada em 3 dias.`}
-    </p>
-    <label class="field-label">Mensagem sugerida</label>
-    <textarea class="field-input--plain field-textarea" id="textoLembreteCotacao" rows="5" style="width:100%">${escHtml(mensagem)}</textarea>
-    <img src="./img/lembrete-equipe-orcamentos-v3.png" alt="Equipe de orçamentos da Papelaria Futura do Centro" style="display:block;width:100%;max-height:180px;object-fit:contain;margin-top:12px;border-radius:8px" />
-    <p id="statusImagemLembrete" role="status" style="font-size:13px;margin-top:8px">Preparando imagem...</p>
-    ${!numeroWhats ? `<p style="color:#B45309;font-size:13px;margin-top:8px">Essa cotação não tem telefone cadastrado — copie a mensagem e envie manualmente, ou edite a cotação para adicionar o número.</p>` : ""}
-    <label class="field-label" style="margin-top:12px">Tipo de contato</label>
-    <select class="field-input--plain" id="tipoLembreteCotacao" style="width:100%">
-      <option value="Mensagem enviada">Mensagem enviada</option>
-      <option value="Conversei com o cliente">Conversei com o cliente</option>
-      <option value="Cliente confirmou (OK)">Cliente confirmou (OK)</option>
-      <option value="Sem retorno">Sem retorno</option>
-    </select>
-    <label class="field-label" style="margin-top:12px">Resultado</label>
-    <select class="field-input--plain" id="resultadoLembreteCotacao" style="width:100%">
-      <option value="enviado">Mensagem enviada</option>
-      <option value="conversei">Conversei com o cliente</option>
-      <option value="confirmou">Cliente confirmou</option>
-      <option value="sem_retorno">Sem retorno</option>
-    </select>
-    ${historicoHtml}
-  `;
-
+    <div class="lembrete-layout">
+      <section class="lembrete-formulario" aria-label="Mensagem e contato">
+        <div class="lembrete-etapa">
+          ${iconeLembrete("relogio")}
+          <div><strong>Follow-up ${etapa} de 3</strong><p>${etapa === 3 ? "Último contato: ao confirmar, o orçamento será marcado como Sem retorno." : "A próxima etapa será disponibilizada em 3 dias."}</p></div>
+          ${iconeLembrete("calendario")}
+        </div>
+        <div class="lembrete-label-row">
+          <label for="textoLembreteCotacao">${iconeLembrete("documento")}Mensagem sugerida</label>
+          <button type="button" class="btn-secondary" id="btnModeloLembrete">${iconeLembrete("documento")}Usar modelo padrão</button>
+        </div>
+        <textarea class="field-input--plain field-textarea lembrete-mensagem" id="textoLembreteCotacao" rows="7">${escHtml(mensagem)}</textarea>
+        <div class="lembrete-contador" id="contadorLembrete" aria-live="polite"></div>
+        ${!numeroWhats ? '<p class="lembrete-alerta">Este orçamento não tem telefone cadastrado. Adicione o número para abrir o WhatsApp do cliente.</p>' : ""}
+        <label class="lembrete-label" for="tipoLembreteCotacao">${iconeLembrete("chat")}Tipo de contato</label>
+        <select class="field-input--plain lembrete-select" id="tipoLembreteCotacao">
+          <option value="WhatsApp">WhatsApp</option>
+          <option value="Telefone">Telefone</option>
+          <option value="E-mail">E-mail</option>
+          <option value="Presencial">Presencial</option>
+        </select>
+        <label class="lembrete-label" for="resultadoLembreteCotacao">${iconeLembrete("resultado")}Resultado do contato</label>
+        <select class="field-input--plain lembrete-select" id="resultadoLembreteCotacao" required>
+          <option value="">Selecione um resultado</option>
+          <option value="enviado">Mensagem enviada</option>
+          <option value="conversei">Conversei com o cliente</option>
+          <option value="confirmou">Cliente confirmou</option>
+          <option value="sem_retorno">Sem retorno</option>
+        </select>
+        ${historicoHtml}
+      </section>
+      <aside class="lembrete-imagem-painel">
+        <h4>${iconeLembrete("imagem")}Imagem que será enviada</h4>
+        <img src="./img/lembrete-equipe-orcamentos-v3.png" alt="Equipe de orçamentos da Papelaria Futura do Centro" class="lembrete-imagem" />
+        <p id="statusImagemLembrete" role="status" class="lembrete-instrucao">Preparando imagem...</p>
+      </aside>
+    </div>`;
   const footer = `
-    <button class="btn-ghost" id="btnFecharLembrete">Fechar</button>
-    <button class="btn-secondary" id="btnCopiarLembrete">Copiar Mensagem</button>
-    <button class="btn-secondary" id="btnBaixarImagemLembrete" disabled>Baixar imagem</button>
-    ${numeroWhats ? `<button class="btn-primary" id="btnEnviarWhatsapp" disabled>WhatsApp + imagem</button>` : ""}
-    <button class="btn-primary" id="btnConfirmarTipoLembrete">Confirmar</button>
-  `;
-
+    <button class="btn-ghost" id="btnFecharLembrete">${iconeLembrete("fechar")}Fechar</button>
+    <button class="btn-secondary" id="btnCopiarLembrete">${iconeLembrete("copiar")}Copiar mensagem</button>
+    <button class="btn-secondary" id="btnBaixarImagemLembrete" disabled>${iconeLembrete("baixar")}Baixar imagem</button>
+    <button class="btn-secondary lembrete-whatsapp" id="btnWhatsappTexto" ${!numeroWhats ? "disabled" : ""}>${iconeLembrete("chat")}WhatsApp</button>
+    <button class="btn-primary" id="btnEnviarWhatsapp" disabled>${iconeLembrete("chat")}WhatsApp + imagem</button>
+    <button class="btn-primary" id="btnConfirmarTipoLembrete">Confirmar</button>`;
   window.abrirModal(`Lembrete — ${c.cliente || "Cliente"}`, body, footer);
-
+  const campoMensagem = document.getElementById("textoLembreteCotacao");
+  const atualizarContador = () => { document.getElementById("contadorLembrete").textContent = `${campoMensagem.value.length} caracteres`; };
+  campoMensagem.addEventListener("input", atualizarContador);
+  atualizarContador();
+  document.getElementById("btnModeloLembrete").onclick = () => {
+    campoMensagem.value = mensagem;
+    atualizarContador();
+    campoMensagem.focus();
+  };
+  document.getElementById("btnWhatsappTexto").onclick = () => {
+    if (!numeroWhats) return;
+    window.open(`https://wa.me/${numeroWhats}?text=${encodeURIComponent(campoMensagem.value)}`, "_blank", "noopener,noreferrer");
+  };
   document.getElementById("btnFecharLembrete").onclick = () => window.fecharModal();
 
   document.getElementById("btnCopiarLembrete").onclick = () => {
@@ -687,9 +724,9 @@ async function abrirLembreteCotacao(id) {
       imagemLembrete = new File([blob], "Papelaria-Futura-Orcamentos.png", { type: "image/png" });
       if (!statusImagem.isConnected) return;
       statusImagem.textContent = "Para enviar imagem e texto em uma única mensagem: clique em WhatsApp + imagem, anexe a imagem baixada e cole a mensagem no campo Adicionar legenda da imagem. Depois de enviar, confirme o contato aqui.";
-      btnImagem.textContent = "Baixar imagem";
+      btnImagem.innerHTML = `${iconeLembrete("baixar")}Baixar imagem`;
       btnImagem.onclick = baixarImagem;
-      if (btnWhats) btnWhats.disabled = false;
+      if (btnWhats) btnWhats.disabled = !numeroWhats;
     } catch (erro) {
       if (!statusImagem.isConnected) return;
       statusImagem.textContent = "Não foi possível carregar a imagem. Clique em Tentar novamente.";
@@ -726,6 +763,7 @@ async function abrirLembreteCotacao(id) {
     const tipo = document.getElementById("tipoLembreteCotacao")?.value;
     const resultadoContato = document.getElementById("resultadoLembreteCotacao")?.value;
     const texto = document.getElementById("textoLembreteCotacao")?.value || "";
+    if (!resultadoContato) { document.getElementById("resultadoLembreteCotacao").reportValidity(); return; }
     const salvo = await registrarLembreteCotacao(id, {
       etapa, tipo, mensagem: texto, resultado: resultadoContato,
       atendente: nomeFuncionarioLogado()
@@ -1484,6 +1522,7 @@ function formatarCampoMoeda(valor) {
     style: "currency", currency: "BRL"
   }).format(Number(valor) || 0);
 }
+
 
 
 
