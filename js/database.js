@@ -1,3 +1,4 @@
+import { compararRegistrosComissao } from "./comissao-ordem.js";
 // ============================================================
 // database.js
 // Operações CRUD no Firestore — Cotações e Usuários
@@ -883,18 +884,23 @@ export async function adicionarRegistroComissao(comissaoId, dados) {
 
 export async function listarRegistrosComissao(comissaoId, { limitQtd = 50, cursor = null } = {}) {
   try {
-    const restricoes = [orderBy("ordem", "asc"), limit(limitQtd + 1)];
-    if (cursor) restricoes.push(startAfter(cursor));
+    // Ordena antes de paginar para reunir datas iguais mesmo entre páginas.
+    // Usa o índice existente, sem exigir publicação de novos índices no Firebase.
     const snap = await getDocs(query(
       collection(db, COLECAO_COMISSOES, comissaoId, "registros"),
-      ...restricoes
+      orderBy("ordem", "asc")
     ));
-    const docs = snap.docs.slice(0, limitQtd);
+    const registros = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort(compararRegistrosComissao);
+    const inicio = cursor ? Math.max(0, registros.findIndex(r => r.id === cursor.id) + 1) : 0;
+    const pagina = registros.slice(inicio, inicio + limitQtd);
+    const temMais = inicio + pagina.length < registros.length;
     return {
       sucesso: true,
-      registros: docs.map(d => ({ id: d.id, ...d.data() })),
-      proximoCursor: snap.docs.length > limitQtd ? docs[docs.length - 1] : null,
-      temMais: snap.docs.length > limitQtd
+      registros: pagina,
+      proximoCursor: temMais ? { id: pagina[pagina.length - 1].id } : null,
+      temMais
     };
   } catch (erro) {
     return { sucesso: false, erro: erro.message };
@@ -923,3 +929,4 @@ export async function excluirRegistroComissao(comissaoId, registroId) {
     return { sucesso: false, erro: erro.message };
   }
 }
+

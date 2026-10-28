@@ -3,7 +3,7 @@
 // ============================================================
 // Sobe a versão do cache sempre que alterar arquivos estáticos
 // para forçar os usuários a receberem a versão nova.
-const CACHE_VERSION = "pf-v8";
+const CACHE_VERSION = "pf-v9";
 const CACHE_NAME = `papelaria-futura-${CACHE_VERSION}`;
 
 const APP_SHELL = [
@@ -35,6 +35,7 @@ const APP_SHELL = [
   "./js/caixa.js",
   "./js/admin.js",
   "./js/comissao.js",
+  "./js/comissao-ordem.js",
   "./js/produtos.js",
   "./js/promissoria.js",
   "./js/servicos.js",
@@ -122,3 +123,5 @@ self.addEventListener("fetch", (event) => {
       ))
   );
 });
+
+
