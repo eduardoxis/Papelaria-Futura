@@ -18,8 +18,9 @@ async function carregarImagemBase64(caminho) {
 
 // Faz o download pelo navegador com um Blob. É mais confiável que doc.save()
 // em telas que mantêm o PDF gerado, mas não acionam o download automaticamente.
-function baixarPdf(doc, nomeArquivo) {
+function baixarPdf(doc, nomeArquivo, retornarArquivo = false) {
   const blob = doc.output("blob");
+  if (retornarArquivo) return new File([blob], nomeArquivo, { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
 
@@ -33,13 +34,13 @@ function baixarPdf(doc, nomeArquivo) {
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-export async function gerarPDF(cotacao, modelo = "original") {
-  if (modelo === "fw3") return gerarPDFFW3(cotacao);
-  if (modelo === "avenida") return gerarPDFAvenida(cotacao);
-  return gerarPDFOriginal(cotacao);
+export async function gerarPDF(cotacao, modelo = "original", retornarArquivo = false) {
+  if (modelo === "fw3") return gerarPDFFW3(cotacao, retornarArquivo);
+  if (modelo === "avenida") return gerarPDFAvenida(cotacao, retornarArquivo);
+  return gerarPDFOriginal(cotacao, retornarArquivo);
 }
 
-async function gerarPDFOriginal(cotacao) {
+async function gerarPDFOriginal(cotacao, retornarArquivo = false) {
   try {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
@@ -585,7 +586,7 @@ async function gerarPDFOriginal(cotacao) {
     }
 
     // Download
-    baixarPdf(doc, `Cotacao_${sanitize(cotacao.cliente)}_${new Date().toISOString().split("T")[0]}.pdf`);
+    return baixarPdf(doc, `Cotacao_${sanitize(cotacao.cliente)}_${new Date().toISOString().split("T")[0]}.pdf`, retornarArquivo);
     window.mostrarToast?.("PDF gerado com sucesso!", "success");
 
   } catch (err) {
@@ -599,7 +600,7 @@ async function gerarPDFOriginal(cotacao) {
 // Mantém o modelo recebido: cabeçalho FM3, tabela azul e no máximo 20 itens
 // por página. Cada página é montada separadamente para nunca cortar uma linha.
 // ============================================================
-async function gerarPDFFW3(cotacao) {
+async function gerarPDFFW3(cotacao, retornarArquivo = false) {
   try {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
@@ -676,7 +677,7 @@ async function gerarPDFFW3(cotacao) {
         }
       }
     });
-    baixarPdf(doc, `Orcamento_FM3_${nomeSeguroPdf(cotacao.cliente)}.pdf`);
+    return baixarPdf(doc, `Orcamento_FM3_${nomeSeguroPdf(cotacao.cliente)}.pdf`, retornarArquivo);
     window.mostrarToast?.("PDF FM3 gerado com sucesso!", "success");
   } catch (erro) {
     console.error("Erro ao gerar PDF FM3:", erro);
@@ -689,7 +690,7 @@ async function gerarPDFFW3(cotacao) {
 // Reproduz o modelo enviado: cabeçalho azul, Times New Roman, tabela cinza
 // e no máximo 16 itens por página.
 // ============================================================
-async function gerarPDFAvenida(cotacao) {
+async function gerarPDFAvenida(cotacao, retornarArquivo = false) {
   try {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
@@ -775,7 +776,7 @@ async function gerarPDFAvenida(cotacao) {
         }
       }
     });
-    baixarPdf(doc, `Orcamento_HTL_${nomeSeguroPdf(cotacao.cliente)}.pdf`);
+    return baixarPdf(doc, `Orcamento_HTL_${nomeSeguroPdf(cotacao.cliente)}.pdf`, retornarArquivo);
     window.mostrarToast?.("PDF HTL gerado com sucesso!", "success");
   } catch (erro) {
     console.error("Erro ao gerar PDF HTL:", erro);
@@ -1019,3 +1020,4 @@ export function gerarPdfFechamentoCaixa(relatorio, vendedor = null) {
     window.mostrarToast?.("Erro ao gerar PDF. Tente novamente.", "error");
   }
 }
+

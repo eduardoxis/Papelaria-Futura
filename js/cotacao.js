@@ -1073,6 +1073,70 @@ function coletarDadosCotacao() {
 // ================================================================
 // SALVAR COTAÇÃO
 // ================================================================
+async function oferecerEnvioCotacao(cotacao) {
+  const hora = new Date().getHours();
+  const saudacao = hora < 12 ? "bom dia" : hora < 18 ? "boa tarde" : "boa noite";
+  const mensagem = `Oi, ${saudacao}, ${cotacao.cliente}! Tudo bem?\n\nSegue a cotação em PDF para você conferir. Qualquer dúvida ou ajuste, estamos à disposição!`;
+  window.abrirModal("Cotação salva — enviar ao cliente",
+    `<p>Prepare a mensagem e envie a cotação salva com o PDF.</p>
+     <label class="field-label" for="envioCotacaoTexto">Mensagem</label>
+     <textarea id="envioCotacaoTexto" class="field-input--plain field-textarea" rows="6" style="width:100%">${escHtml(mensagem)}</textarea>
+     <label class="field-label" for="envioCotacaoTelefone">WhatsApp do cliente</label>
+     <input id="envioCotacaoTelefone" class="field-input--plain" style="width:100%" value="${escHtml(cotacao.telefone || "")}" />
+     <label class="field-label" for="envioCotacaoEmail">E-mail do cliente</label>
+     <input id="envioCotacaoEmail" type="email" required class="field-input--plain" style="width:100%" value="${escHtml(cotacao.email || "")}" />
+     <p id="envioCotacaoStatus" role="status" style="margin-top:12px">Preparando PDF...</p>`,
+    `<button class="btn-ghost" id="envioCotacaoFechar">Fechar</button>
+     <button class="btn-secondary" id="envioCotacaoBaixar" disabled>Baixar PDF</button>
+     <button class="btn-primary" id="envioCotacaoWhats" disabled>WhatsApp + PDF</button>
+     <button class="btn-primary" id="envioCotacaoMail" disabled>E-mail + PDF</button>`);
+  document.getElementById("envioCotacaoFechar").onclick = () => window.fecharModal();
+  const status = document.getElementById("envioCotacaoStatus");
+  try {
+    const arquivo = await gerarPDF(cotacao, normalizarTipoOrcamento(cotacao.tipoOrcamento), true);
+    if (!arquivo) throw new Error("Não foi possível preparar o PDF. Tente salvar novamente.");
+    if (!status.isConnected) return;
+    const compartilha = !!navigator.canShare?.({ files: [arquivo] });
+    status.textContent = compartilha
+      ? "Na tela de compartilhamento, escolha WhatsApp ou e-mail e confirme o destinatário. O PDF vai junto."
+      : "Neste navegador, o PDF será baixado e a mensagem aberta. Anexe o PDF baixado antes de enviar.";
+    const baixar = () => {
+      const url = URL.createObjectURL(arquivo);
+      const a = document.createElement("a");
+      a.href = url; a.download = arquivo.name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    };
+    document.getElementById("envioCotacaoBaixar").onclick = baixar;
+    const enviar = async canal => {
+      const texto = document.getElementById("envioCotacaoTexto").value;
+      const email = document.getElementById("envioCotacaoEmail");
+      const telefone = document.getElementById("envioCotacaoTelefone").value;
+      if (canal === "mail" && (!email.value.trim() || !email.checkValidity())) { email.reportValidity(); email.focus(); return; }
+      if (canal === "whats" && !/^\d{10,15}$/.test(telefone.replace(/\D/g, ""))) {
+        window.mostrarToast?.("Informe o WhatsApp do cliente com DDD.", "warning"); return;
+      }
+      if (compartilha) {
+        try {
+          await navigator.share({ files: [arquivo], title: `Cotação — ${cotacao.cliente}`, text: texto });
+        } catch (erro) {
+          if (erro.name !== "AbortError") window.mostrarToast?.("Não foi possível compartilhar. Use Baixar PDF para anexar manualmente.", "warning");
+        }
+        return;
+      }
+      baixar();
+      if (canal === "whats") {
+        window.open(`https://wa.me/${_telefoneParaWhatsapp(telefone)}?text=${encodeURIComponent(texto)}`, "_blank", "noopener,noreferrer");
+      } else {
+        window.location.href = `mailto:${encodeURIComponent(email.value.trim())}?subject=${encodeURIComponent(`Cotação — ${cotacao.cliente}`)}&body=${encodeURIComponent(texto)}`;
+      }
+    };
+    document.getElementById("envioCotacaoWhats").onclick = () => enviar("whats");
+    document.getElementById("envioCotacaoMail").onclick = () => enviar("mail");
+    ["envioCotacaoWhats", "envioCotacaoMail", "envioCotacaoBaixar"].forEach(id => { document.getElementById(id).disabled = false; });
+  } catch (erro) {
+    if (status.isConnected) status.textContent = erro.message || "Não foi possível gerar o PDF.";
+  }
+}
 async function salvarCotacao() {
   const dados = coletarDadosCotacao();
 
@@ -1119,6 +1183,7 @@ async function salvarCotacao() {
 
   if (resultado.sucesso) {
     window.mostrarToast?.("Cotação salva com sucesso!", "success");
+    oferecerEnvioCotacao({ ...dados, id: idEditando || resultado.id });
     if (!idEditando && resultado.id) {
       document.getElementById("cotacaoEditandoId").value = resultado.id;
       document.getElementById("titleFormCotacao").textContent = "Editar Cotação";
@@ -1334,3 +1399,5 @@ function formatarCampoMoeda(valor) {
     style: "currency", currency: "BRL"
   }).format(Number(valor) || 0);
 }
+
+
