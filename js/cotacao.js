@@ -686,9 +686,7 @@ async function abrirLembreteCotacao(id) {
       if (!blob.type.startsWith("image/") || !blob.size) throw new Error("Imagem inválida");
       imagemLembrete = new File([blob], "Papelaria-Futura-Orcamentos.png", { type: "image/png" });
       if (!statusImagem.isConnected) return;
-      statusImagem.textContent = navigator.canShare?.({ files: [imagemLembrete] })
-        ? "Ao compartilhar, escolha WhatsApp e confirme o cliente. A imagem acompanha a mensagem. Depois de enviar, confirme o contato aqui."
-        : "A imagem será baixada e o WhatsApp aberto com a mensagem. Anexe a imagem baixada antes de enviar e confirme o contato aqui.";
+      statusImagem.textContent = "Para enviar imagem e texto em uma única mensagem: clique em WhatsApp + imagem, anexe a imagem baixada e cole a mensagem no campo Adicionar legenda da imagem. Depois de enviar, confirme o contato aqui.";
       btnImagem.textContent = "Baixar imagem";
       btnImagem.onclick = baixarImagem;
       if (btnWhats) btnWhats.disabled = false;
@@ -704,20 +702,24 @@ async function abrirLembreteCotacao(id) {
   prepararImagem();
   btnWhats?.addEventListener("click", async () => {
     if (!imagemLembrete) return;
-    const texto = document.getElementById("textoLembreteCotacao").value;
-    if (navigator.canShare?.({ files: [imagemLembrete] })) {
-      btnWhats.disabled = true;
-      try {
-        await navigator.share({ files: [imagemLembrete], text: texto, title: "Papelaria Futura — Orçamentos" });
-      } catch (erro) {
-        if (erro.name !== "AbortError") window.mostrarToast?.("Não foi possível compartilhar. Baixe a imagem e anexe no WhatsApp.", "warning");
-      } finally {
-        if (btnWhats.isConnected) btnWhats.disabled = false;
-      }
-    } else {
-      baixarImagem();
-      window.open(`https://wa.me/${numeroWhats}?text=${encodeURIComponent(texto)}`, "_blank", "noopener,noreferrer");
-      window.mostrarToast?.("Anexe a imagem baixada no WhatsApp antes de enviar. Depois confirme o contato aqui.", "warning", 8000);
+    const campoTexto = document.getElementById("textoLembreteCotacao");
+    btnWhats.disabled = true;
+    // Abre o contato sem texto no chat; a mensagem deve ser colada na legenda.
+    let copia;
+    try { copia = navigator.clipboard?.writeText(campoTexto.value); } catch { /* cópia manual abaixo */ }
+    baixarImagem();
+    window.open(`https://wa.me/${numeroWhats}`, "_blank", "noopener,noreferrer");
+    try {
+      if (!copia) throw new Error("Cópia indisponível");
+      await copia;
+      if (statusImagem.isConnected) statusImagem.textContent = "Mensagem copiada! No WhatsApp, anexe a imagem baixada, cole o texto em Adicionar legenda e envie. Assim, imagem e mensagem ficam no mesmo balão.";
+      window.mostrarToast?.("Imagem baixada e mensagem copiada. Cole o texto na legenda da imagem no WhatsApp.", "success", 10000);
+    } catch {
+      if (campoTexto.isConnected) { campoTexto.focus(); campoTexto.select(); }
+      if (statusImagem.isConnected) statusImagem.textContent = "Copie a mensagem manualmente. No WhatsApp, anexe a imagem baixada e cole a mensagem em Adicionar legenda antes de enviar.";
+      window.mostrarToast?.("Copie o texto manualmente e cole na legenda da imagem.", "warning", 10000);
+    } finally {
+      if (btnWhats.isConnected) btnWhats.disabled = false;
     }
   });
   document.getElementById("btnConfirmarTipoLembrete").onclick = async () => {
@@ -1482,6 +1484,7 @@ function formatarCampoMoeda(valor) {
     style: "currency", currency: "BRL"
   }).format(Number(valor) || 0);
 }
+
 
 
 
