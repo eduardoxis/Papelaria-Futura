@@ -32,6 +32,12 @@ function normalizarTipoOrcamento(tipo) {
 function configurarTipoOrcamento(tipo) {
   _tipoOrcamentoAtual = normalizarTipoOrcamento(tipo);
   const config = TIPOS_ORCAMENTO[_tipoOrcamentoAtual];
+  const semEntrega = _tipoOrcamentoAtual === "original";
+  const tabela = document.getElementById("tabelaItens");
+  tabela?.classList.toggle("cotacao-sem-entrega", semEntrega);
+  const fimTotal = tabela?.querySelector(".total-row-acao");
+  if (fimTotal) fimTotal.colSpan = semEntrega ? 1 : 2;
+  tabela?.querySelectorAll("#tbodyItens td[colspan]").forEach(td => { td.colSpan = semEntrega ? 8 : 9; });
   document.querySelectorAll("[data-titulo-orcamento]").forEach(el => { el.textContent = config.titulo; });
   document.querySelectorAll("[data-subtitulo-orcamento]").forEach(el => {
     el.textContent = _tipoOrcamentoAtual === "original"
@@ -969,7 +975,7 @@ async function importarItensJson(evento) {
 function mostrarVazio() {
   document.getElementById("tbodyItens").innerHTML = `
     <tr class="excel-empty-row">
-      <td colspan="9" class="excel-empty">
+      <td colspan="${_tipoOrcamentoAtual === 'original' ? 8 : 9}" class="excel-empty">
         <div class="excel-empty-icon">📋</div>
         Nenhum item adicionado. Clique em <strong>Adicionar Item</strong> para começar.
       </td>
@@ -1240,7 +1246,7 @@ async function abrirCotacaoSomenteLeitura(id) {
   const itens = ordenarItensPorDescricao(c.itens || []);
   if (itens.length === 0) {
     document.getElementById("tbodyItens").innerHTML =
-      `<tr><td colspan="9" class="empty-cell">Nenhum item nesta cotação.</td></tr>`;
+      `<tr><td colspan="${_tipoOrcamentoAtual === 'original' ? 8 : 9}" class="empty-cell">Nenhum item nesta cotação.</td></tr>`;
   } else {
     itens.forEach(item => adicionarLinha(item));
   }
@@ -1399,5 +1405,6 @@ function formatarCampoMoeda(valor) {
     style: "currency", currency: "BRL"
   }).format(Number(valor) || 0);
 }
+
 
 
