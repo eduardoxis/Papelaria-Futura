@@ -474,14 +474,14 @@
 #modal:has(.lembrete-layout) .modal-header {
   flex: 0 0 auto;
   align-items: flex-start;
-  padding: 24px 30px;
+  padding: 18px 24px;
 }
-#modal:has(.lembrete-layout) .modal-title { font-size: 26px; line-height: 1.25; }
+#modal:has(.lembrete-layout) .modal-title { font-size: 18px; line-height: 1.25; }
 #modal:has(.lembrete-layout) .modal-title::after {
   content: "Envie um follow-up personalizado para o cliente";
   display: block;
   margin-top: 7px;
-  font: 400 15px/1.5 var(--font-body, sans-serif);
+  font: 400 12px/1.5 var(--font-body, sans-serif);
   color: var(--gray-500);
 }
 #modal:has(.lembrete-layout) .modal-close { flex-shrink: 0; margin-left: 16px; }
@@ -489,25 +489,25 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  padding: 20px 30px;
+  padding: 18px 24px;
 }
 .lembrete-layout { display: grid; grid-template-columns: 1.14fr 1fr; gap: 28px; align-items: start; }
 .lembrete-formulario, .lembrete-imagem-painel { min-width: 0; }
-.lembrete-layout svg, #modal:has(.lembrete-layout) .modal-footer svg { width: 22px; height: 22px; flex-shrink: 0; }
-.lembrete-etapa { display: flex; gap: 16px; align-items: center; background: #edf7ff; border-radius: 12px; padding: 16px; color: #0039bd; margin-bottom: 24px; }
-.lembrete-etapa > svg:first-child { width: 27px; height: 27px; }
+.lembrete-layout svg, #modal:has(.lembrete-layout) .modal-footer svg { width: 18px; height: 18px; flex-shrink: 0; }
+.lembrete-etapa { display: flex; gap: 16px; align-items: center; background: #edf7ff; border-radius: 12px; padding: 16px; color: #0039bd; margin-bottom: 18px; }
+.lembrete-etapa > svg:first-child { width: 22px; height: 22px; }
 .lembrete-etapa > svg:last-child { margin-left: auto; }
-.lembrete-etapa strong { font-size: 16px; }
+.lembrete-etapa strong { font-size: 13px; }
 .lembrete-etapa p { margin: 4px 0 0; color: #5e7197; font-size: 13px; line-height: 1.5; }
 .lembrete-label-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
-.lembrete-label-row label, .lembrete-label { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 700; color: #0b1730; }
+.lembrete-label-row label, .lembrete-label { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; color: #0b1730; }
 .lembrete-label-row button { display: inline-flex; align-items: center; gap: 8px; padding: 9px 12px; font-size: 12px; white-space: normal; }
-.lembrete-mensagem { width: 100%; min-height: 190px; resize: vertical; padding: 16px; line-height: 1.6; box-sizing: border-box; border-radius: 12px; }
+.lembrete-mensagem { width: 100%; min-height: 170px; resize: vertical; padding: 12px; font-size: var(--text-sm); line-height: 1.6; box-sizing: border-box; border-radius: 12px; }
 .lembrete-contador { text-align: right; color: #6a7e9d; margin-top: 5px; font-size: 12px; }
 .lembrete-label { margin: 20px 0 9px; }
-.lembrete-select { width: 100%; min-height: 48px; border-radius: 12px; padding: 12px 16px; box-sizing: border-box; }
+.lembrete-select { font-size: var(--text-sm); width: 100%; min-height: 42px; border-radius: 12px; padding: 12px 16px; box-sizing: border-box; }
 .lembrete-imagem-painel { background: #f7f9fc; border-radius: 14px; padding: 16px; }
-.lembrete-imagem-painel h4 { display: flex; align-items: center; gap: 10px; margin: 3px 0 20px; font-size: 16px; color: #0b1730; }
+.lembrete-imagem-painel h4 { display: flex; align-items: center; gap: 10px; margin: 3px 0 20px; font-size: 13px; color: #0b1730; }
 .lembrete-imagem { display: block; width: 100%; height: auto; border-radius: 12px; }
 .lembrete-instrucao { color: #5e7197; font-size: 12px; line-height: 1.5; margin: 12px 0 0; }
 .lembrete-alerta { color: #a45a00; font-size: 13px; margin-top: 12px; }
@@ -515,13 +515,13 @@
   display: grid;
   grid-template-columns: .8fr 1.25fr 1.1fr 1fr 1.35fr .85fr;
   gap: 12px;
-  padding: 20px 26px;
+  padding: 16px 24px;
   flex: 0 0 auto;
   border-top: 1px solid var(--gray-100);
 }
 #modal:has(.lembrete-layout) .modal-footer > button {
   min-width: 0;
-  min-height: 50px;
+  min-height: 42px;
   max-width: 100%;
   white-space: normal;
   padding: 10px 12px;
@@ -540,7 +540,7 @@
 @media (max-width: 800px) {
   #modal:has(.lembrete-layout) { width: 100%; max-height: 90dvh; }
   #modal:has(.lembrete-layout) .modal-header { padding: 18px; }
-  #modal:has(.lembrete-layout) .modal-title { font-size: 20px; }
+  #modal:has(.lembrete-layout) .modal-title { font-size: 18px; }
   #modal:has(.lembrete-layout) .modal-title::after { font-size: 13px; }
   #modal:has(.lembrete-layout) .modal-body { padding: 18px; }
   .lembrete-layout { grid-template-columns: minmax(0, 1fr); gap: 20px; }
@@ -560,41 +560,41 @@
   overflow: hidden;
   min-width: 0;
 }
-#modal:has(.envio-orcamento-form) .modal-header { padding: 26px 32px; align-items: flex-start; flex: 0 0 auto; }
-#modal:has(.envio-orcamento-form) .modal-title { font-size: 27px; line-height: 1.25; }
+#modal:has(.envio-orcamento-form) .modal-header { padding: 18px 24px; align-items: flex-start; flex: 0 0 auto; }
+#modal:has(.envio-orcamento-form) .modal-title { font-size: 18px; line-height: 1.25; }
 #modal:has(.envio-orcamento-form) .modal-title::after {
   content: "Prepare a mensagem e envie o orçamento em PDF.";
   display: block;
-  font: 400 17px/1.5 var(--font-body);
+  font: 400 12px/1.5 var(--font-body);
   color: #72809b;
   margin-top: 8px;
 }
 #modal:has(.envio-orcamento-form) .modal-close { flex-shrink: 0; margin-left: 15px; }
-#modal:has(.envio-orcamento-form) .modal-body { min-height: 0; overflow-y: auto; flex: 1 1 auto; padding: 22px 32px 8px; }
-.envio-orcamento-form svg, #modal:has(.envio-orcamento-form) .modal-footer svg { width: 25px; height: 25px; flex-shrink: 0; }
+#modal:has(.envio-orcamento-form) .modal-body { min-height: 0; overflow-y: auto; flex: 1 1 auto; padding: 18px 24px 8px; }
+.envio-orcamento-form svg, #modal:has(.envio-orcamento-form) .modal-footer svg { width: 18px; height: 18px; flex-shrink: 0; }
 .envio-orcamento-label-row { display: flex; gap: 15px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.envio-orcamento-form label { display: block; font-size: 18px; font-weight: 600; color: #101c38; }
-.envio-orcamento-label-row button { display: flex; align-items: center; gap: 10px; padding: 10px 15px; font-size: 14px; }
-#envioCotacaoTexto { display: block; width: 100%; min-height: 210px; padding: 18px 22px; line-height: 1.6; resize: vertical; border-radius: 13px; box-sizing: border-box; background: #f8fafc; }
+.envio-orcamento-form label { display: block; font-size: 13px; font-weight: 600; color: #101c38; }
+.envio-orcamento-label-row button { display: flex; align-items: center; gap: 10px; padding: 10px 15px; font-size: 13px; }
+#envioCotacaoTexto { display: block; width: 100%; min-height: 170px; padding: 12px 14px; font-size: var(--text-sm); line-height: 1.6; resize: vertical; border-radius: 13px; box-sizing: border-box; background: #f8fafc; }
 .envio-orcamento-contador { color: #72809b; text-align: right; font-size: 13px; margin-top: 5px; margin-bottom: 22px; }
 .envio-orcamento-form > label { margin: 14px 0 8px; }
-#envioCotacaoTelefone, #envioCotacaoEmail { display: block; width: 100%; min-height: 54px; border-radius: 12px; padding: 14px 20px; box-sizing: border-box; background: #f8fafc; }
+#envioCotacaoTelefone, #envioCotacaoEmail { font-size: var(--text-sm); display: block; width: 100%; min-height: 44px; border-radius: 12px; padding: 10px 14px; box-sizing: border-box; background: #f8fafc; }
 #envioCotacaoEmail::placeholder { color: #9aa5b9; }
-.envio-orcamento-aviso { display: flex; gap: 16px; align-items: center; border: 1px solid #b8d6ff; background: #eff6ff; border-radius: 12px; padding: 17px 20px; margin-top: 24px; }
-.envio-orcamento-aviso svg { color: #004bd8; width: 30px; height: 30px; }
-.envio-orcamento-aviso p { margin: 0; line-height: 1.5; color: #455d85; font-size: 14px; }
-#modal:has(.envio-orcamento-form) .modal-footer { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px 12px; padding: 16px 32px 28px; flex: 0 0 auto; }
-#modal:has(.envio-orcamento-form) .modal-footer > button { grid-column: span 2; display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 56px; min-width: 0; max-width: 100%; white-space: normal; border-radius: 12px; padding: 12px; font-size: 15px; }
+.envio-orcamento-aviso { display: flex; gap: 16px; align-items: center; border: 1px solid #b8d6ff; background: #eff6ff; border-radius: 12px; padding: 12px 14px; margin-top: 18px; }
+.envio-orcamento-aviso svg { color: #004bd8; width: 22px; height: 22px; }
+.envio-orcamento-aviso p { margin: 0; line-height: 1.5; color: #455d85; font-size: 13px; }
+#modal:has(.envio-orcamento-form) .modal-footer { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px 12px; padding: 14px 24px 20px; flex: 0 0 auto; }
+#modal:has(.envio-orcamento-form) .modal-footer > button { grid-column: span 2; display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 44px; min-width: 0; max-width: 100%; white-space: normal; border-radius: 12px; padding: 12px; font-size: 13px; }
 #modal:has(.envio-orcamento-form) #envioCotacaoCopiar, #modal:has(.envio-orcamento-form) #envioCotacaoWhatsTexto { grid-column: span 3; }
 #modal:has(.envio-orcamento-form) .envio-orcamento-whatsapp { color: #00ad56; border-color: #00b95d; }
 @media (max-width: 640px) {
   #modal:has(.envio-orcamento-form) { width: 100%; max-height: 90dvh; }
   #modal:has(.envio-orcamento-form) .modal-header { padding: 18px; }
-  #modal:has(.envio-orcamento-form) .modal-title { font-size: 21px; }
+  #modal:has(.envio-orcamento-form) .modal-title { font-size: 18px; }
   #modal:has(.envio-orcamento-form) .modal-title::after { font-size: 13px; }
   #modal:has(.envio-orcamento-form) .modal-body { padding: 18px 18px 8px; }
   .envio-orcamento-label-row { flex-wrap: wrap; }
-  .envio-orcamento-form label { font-size: 16px; }
+  .envio-orcamento-form label { font-size: 13px; }
   #envioCotacaoTexto { min-height: 180px; padding: 12px; }
   .envio-orcamento-aviso { gap: 10px; padding: 12px; }
   #modal:has(.envio-orcamento-form) .modal-footer { padding: 12px 18px 18px; gap: 9px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -602,3 +602,4 @@
   #modal:has(.envio-orcamento-form) #envioCotacaoMail { grid-column: 1 / -1; }
   #modal:has(.envio-orcamento-form) .modal-footer svg { width: 20px; height: 20px; }
 }
+
