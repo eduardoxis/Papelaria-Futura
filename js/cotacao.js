@@ -494,7 +494,7 @@ function linhaCotacaoHtml(c) {
       <td class="td-status-actions-row">
         ${badgeStatus(c.status)}
         ${podeGerenciar ? `
-          <button class="btn-lembrete" data-action="enviar-cliente" data-id="${escHtml(c.id)}" title="Enviar cotação e PDF ao cliente">
+          <button class="btn-lembrete" data-action="enviar-cliente" data-id="${escHtml(c.id)}" title="Enviar orçamento e PDF ao cliente">
             <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v.5l-8 5-8-5V5zm0 2.85V15a2 2 0 002 2h12a2 2 0 002-2V7.85l-7.47 4.67a1 1 0 01-1.06 0L2 7.85z"/></svg>
             Enviar ao cliente
           </button>` : ""}
@@ -577,9 +577,9 @@ function gerarMensagemLembrete(etapa) {
   const nomeAtendente = nomeFuncionarioLogado();
 
   const mensagens = {
-    1: `Oi, tudo bem? ${saudacao}! Me chamo ${nomeAtendente}, sou o responsável pelo setor de cotações aqui da Papelaria Futura do Centro, e queria saber se restou alguma dúvida sobre a cotação que te enviamos. Ficamos à disposição para fechar quando for melhor pra você.`,
-    2: `Oi, tudo bem? ${saudacao}! Aqui é ${nomeAtendente}, da Papelaria Futura do Centro. Estou retomando nossa cotação para saber se você precisa ajustar quantidades, produtos ou condições. Posso ajudar?`,
-    3: `Oi, tudo bem? ${saudacao}! Aqui é ${nomeAtendente}, da Papelaria Futura do Centro. Este é nosso último retorno sobre a cotação. Se precisar retomar ou atualizar qualquer item, estaremos à disposição.`
+    1: `Oi, tudo bem? ${saudacao}! Me chamo ${nomeAtendente}, sou o responsável pelo setor de orçamentos aqui da Papelaria Futura do Centro, e queria saber se restou alguma dúvida sobre o orçamento que te enviamos. Ficamos à disposição para fechar quando for melhor pra você.`,
+    2: `Oi, tudo bem? ${saudacao}! Aqui é ${nomeAtendente}, da Papelaria Futura do Centro. Estou retomando nosso orçamento para saber se você precisa ajustar quantidades, produtos ou condições. Posso ajudar?`,
+    3: `Oi, tudo bem? ${saudacao}! Aqui é ${nomeAtendente}, da Papelaria Futura do Centro. Este é nosso último retorno sobre o orçamento. Se precisar retomar ou atualizar qualquer item, estaremos à disposição.`
   };
   return mensagens[etapa] || mensagens[1];
 }
@@ -1092,12 +1092,12 @@ async function abrirEnvioCotacaoById(id) {
   try {
     const resultado = await buscarCotacao(id);
     if (!resultado.sucesso) {
-      window.mostrarToast?.("Não foi possível carregar a cotação. Tente novamente.", "error");
+      window.mostrarToast?.("Não foi possível carregar o orçamento. Tente novamente.", "error");
       return;
     }
     const cotacao = { ...resultado.dados, id };
     if (!podeGerenciarCotacao(cotacao)) {
-      window.mostrarToast?.("Você não tem permissão para enviar esta cotação.", "warning");
+      window.mostrarToast?.("Você não tem permissão para enviar este orçamento.", "warning");
       return;
     }
     await oferecerEnvioCotacao(cotacao);
@@ -1109,9 +1109,9 @@ async function abrirEnvioCotacaoById(id) {
 async function oferecerEnvioCotacao(cotacao) {
   const hora = new Date().getHours();
   const saudacao = hora < 12 ? "bom dia" : hora < 18 ? "boa tarde" : "boa noite";
-  const mensagem = `Oi, ${saudacao}, ${cotacao.cliente}! Tudo bem?\n\nSegue a cotação em PDF para você conferir. Qualquer dúvida ou ajuste, estamos à disposição!`;
-  window.abrirModal("Cotação salva — enviar ao cliente",
-    `<p>Prepare a mensagem e envie a cotação salva com o PDF.</p>
+  const mensagem = `Oi, ${saudacao}, ${cotacao.cliente}! Tudo bem?\n\nSegue o orçamento em PDF para você conferir. Qualquer dúvida ou ajuste, estamos à disposição!`;
+  window.abrirModal("Orçamento salvo — enviar ao cliente",
+    `<p>Prepare a mensagem e envie o orçamento salvo com o PDF.</p>
      <label class="field-label" for="envioCotacaoTexto">Mensagem</label>
      <textarea id="envioCotacaoTexto" class="field-input--plain field-textarea" rows="6" style="width:100%">${escHtml(mensagem)}</textarea>
      <label class="field-label" for="envioCotacaoTelefone">WhatsApp do cliente</label>
@@ -1149,7 +1149,7 @@ async function oferecerEnvioCotacao(cotacao) {
       }
       if (compartilha) {
         try {
-          await navigator.share({ files: [arquivo], title: `Cotação — ${cotacao.cliente}`, text: texto });
+          await navigator.share({ files: [arquivo], title: `Orçamento — ${cotacao.cliente}`, text: texto });
         } catch (erro) {
           if (erro.name !== "AbortError") window.mostrarToast?.("Não foi possível compartilhar. Use Baixar PDF para anexar manualmente.", "warning");
         }
@@ -1159,7 +1159,7 @@ async function oferecerEnvioCotacao(cotacao) {
       if (canal === "whats") {
         window.open(`https://wa.me/${_telefoneParaWhatsapp(telefone)}?text=${encodeURIComponent(texto)}`, "_blank", "noopener,noreferrer");
       } else {
-        window.location.href = `mailto:${encodeURIComponent(email.value.trim())}?subject=${encodeURIComponent(`Cotação — ${cotacao.cliente}`)}&body=${encodeURIComponent(texto)}`;
+        window.location.href = `mailto:${encodeURIComponent(email.value.trim())}?subject=${encodeURIComponent(`Orçamento — ${cotacao.cliente}`)}&body=${encodeURIComponent(texto)}`;
       }
     };
     document.getElementById("envioCotacaoWhats").onclick = () => enviar("whats");
@@ -1214,7 +1214,7 @@ async function salvarCotacao() {
   if (btnSalvarMobile) { btnSalvarMobile.disabled = false; btnSalvarMobile.textContent = "Salvar"; }
 
   if (resultado.sucesso) {
-    window.mostrarToast?.("Cotação salva com sucesso!", "success");
+    window.mostrarToast?.("Orçamento salvo com sucesso!", "success");
     oferecerEnvioCotacao({ ...dados, id: idEditando || resultado.id });
     if (!idEditando && resultado.id) {
       document.getElementById("cotacaoEditandoId").value = resultado.id;
@@ -1431,6 +1431,7 @@ function formatarCampoMoeda(valor) {
     style: "currency", currency: "BRL"
   }).format(Number(valor) || 0);
 }
+
 
 
 
