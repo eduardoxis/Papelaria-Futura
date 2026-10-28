@@ -1201,19 +1201,62 @@ async function oferecerEnvioCotacao(cotacao) {
   const hora = new Date().getHours();
   const saudacao = hora < 12 ? "bom dia" : hora < 18 ? "boa tarde" : "boa noite";
   const mensagem = `Oi, ${saudacao}, ${cotacao.cliente}! Tudo bem?\n\nSegue o orçamento em PDF para você conferir. Qualquer dúvida ou ajuste, estamos à disposição!`;
+  const iconeEnvio = nome => {
+    const paths = {
+      documento: '<path d="M14 3H5v18h14V8zM14 3v5h5M8 12h8m-8 4h5"/>',
+      copiar: '<rect x="8" y="5" width="12" height="16" rx="2"/><path d="M16 5V3H4v15h4"/>',
+      baixar: '<path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/>',
+      email: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/>',
+      info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10h.01"/>',
+      whats: '<path d="M21 11a9 9 0 0 1-13 8L3 21l2-5A9 9 0 1 1 21 11Z"/><path d="M8 7c0 5 4 9 8 9l1-3-3-1-1 1-3-3 1-1-1-3z"/>'
+    };
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[nome]}</svg>`;
+  };
   window.abrirModal("Orçamento salvo — enviar ao cliente",
-    `<p>Prepare a mensagem e envie o orçamento salvo com o PDF.</p>
-     <label class="field-label" for="envioCotacaoTexto">Mensagem</label>
-     <textarea id="envioCotacaoTexto" class="field-input--plain field-textarea" rows="6" style="width:100%">${escHtml(mensagem)}</textarea>
-     <label class="field-label" for="envioCotacaoTelefone">WhatsApp do cliente</label>
-     <input id="envioCotacaoTelefone" class="field-input--plain" style="width:100%" value="${escHtml(cotacao.telefone || "")}" />
-     <label class="field-label" for="envioCotacaoEmail">E-mail do cliente</label>
-     <input id="envioCotacaoEmail" type="email" required class="field-input--plain" style="width:100%" value="${escHtml(cotacao.email || "")}" />
-     <p id="envioCotacaoStatus" role="status" style="margin-top:12px">Preparando PDF...</p>`,
-    `
-     <button class="btn-secondary" id="envioCotacaoBaixar" disabled>Baixar PDF</button>
-     <button class="btn-primary" id="envioCotacaoWhats" disabled>WhatsApp + PDF</button>
-     <button class="btn-primary" id="envioCotacaoMail" disabled>E-mail + PDF</button>`);
+    `<div class="envio-orcamento-form">
+       <div class="envio-orcamento-label-row">
+         <label for="envioCotacaoTexto">Mensagem</label>
+         <button class="btn-secondary" id="envioCotacaoModelo" type="button">${iconeEnvio("documento")}Usar modelo padrão</button>
+       </div>
+       <textarea id="envioCotacaoTexto" class="field-input--plain field-textarea" rows="6" maxlength="2000">${escHtml(mensagem)}</textarea>
+       <div class="envio-orcamento-contador" id="envioCotacaoContador" aria-live="polite"></div>
+       <label for="envioCotacaoTelefone">WhatsApp do cliente</label>
+       <input id="envioCotacaoTelefone" type="tel" autocomplete="tel" class="field-input--plain" value="${escHtml(cotacao.telefone || "")}" />
+       <label for="envioCotacaoEmail">E-mail do cliente</label>
+       <input id="envioCotacaoEmail" type="email" autocomplete="email" required class="field-input--plain" placeholder="Ex.: cliente@email.com" value="${escHtml(cotacao.email || "")}" />
+       <div class="envio-orcamento-aviso">${iconeEnvio("info")}<p id="envioCotacaoStatus" role="status">Preparando PDF...</p></div>
+     </div>`,
+    `<button class="btn-secondary" id="envioCotacaoCopiar" type="button">${iconeEnvio("copiar")}Copiar mensagem</button>
+     <button class="btn-secondary envio-orcamento-whatsapp" id="envioCotacaoWhatsTexto" type="button">${iconeEnvio("whats")}WhatsApp (só mensagem)</button>
+     <button class="btn-secondary" id="envioCotacaoBaixar" disabled>${iconeEnvio("baixar")}Baixar PDF</button>
+     <button class="btn-primary" id="envioCotacaoWhats" disabled>${iconeEnvio("whats")}WhatsApp + PDF</button>
+     <button class="btn-primary" id="envioCotacaoMail" disabled>${iconeEnvio("email")}E-mail + PDF</button>`);
+  const campoTextoEnvio = document.getElementById("envioCotacaoTexto");
+  const atualizarContadorEnvio = () => { document.getElementById("envioCotacaoContador").textContent = `${campoTextoEnvio.value.length}/2000`; };
+  campoTextoEnvio.addEventListener("input", atualizarContadorEnvio);
+  atualizarContadorEnvio();
+  document.getElementById("envioCotacaoModelo").onclick = () => {
+    campoTextoEnvio.value = mensagem.slice(0, 2000);
+    atualizarContadorEnvio();
+    campoTextoEnvio.focus();
+  };
+  document.getElementById("envioCotacaoCopiar").onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(campoTextoEnvio.value);
+      window.mostrarToast?.("Mensagem copiada!", "success");
+    } catch {
+      campoTextoEnvio.focus(); campoTextoEnvio.select();
+      window.mostrarToast?.("Selecione e copie a mensagem manualmente.", "warning");
+    }
+  };
+  document.getElementById("envioCotacaoWhatsTexto").onclick = () => {
+    const telefone = document.getElementById("envioCotacaoTelefone").value;
+    if (!/^\d{10,15}$/.test(telefone.replace(/\D/g, ""))) {
+      window.mostrarToast?.("Informe o WhatsApp do cliente com DDD.", "warning");
+      document.getElementById("envioCotacaoTelefone").focus(); return;
+    }
+    window.open(`https://wa.me/${_telefoneParaWhatsapp(telefone)}?text=${encodeURIComponent(campoTextoEnvio.value)}`, "_blank", "noopener,noreferrer");
+  };
   const status = document.getElementById("envioCotacaoStatus");
   try {
     const arquivo = await gerarPDF(cotacao, normalizarTipoOrcamento(cotacao.tipoOrcamento), true);
@@ -1522,6 +1565,7 @@ function formatarCampoMoeda(valor) {
     style: "currency", currency: "BRL"
   }).format(Number(valor) || 0);
 }
+
 
 
 

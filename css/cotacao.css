@@ -549,3 +549,56 @@
   #modal:has(.lembrete-layout) .modal-footer { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 14px; }
   #modal:has(.lembrete-layout) .modal-footer > button { font-size: 12px; min-height: 42px; gap: 6px; }
 }
+
+/* Envio do orçamento salvo. Estilos restritos a esta janela. */
+#modal:has(.envio-orcamento-form) {
+  width: calc(100vw - 48px);
+  max-width: 900px;
+  max-height: calc(100dvh - 48px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+#modal:has(.envio-orcamento-form) .modal-header { padding: 26px 32px; align-items: flex-start; flex: 0 0 auto; }
+#modal:has(.envio-orcamento-form) .modal-title { font-size: 27px; line-height: 1.25; }
+#modal:has(.envio-orcamento-form) .modal-title::after {
+  content: "Prepare a mensagem e envie o orçamento em PDF.";
+  display: block;
+  font: 400 17px/1.5 var(--font-body);
+  color: #72809b;
+  margin-top: 8px;
+}
+#modal:has(.envio-orcamento-form) .modal-close { flex-shrink: 0; margin-left: 15px; }
+#modal:has(.envio-orcamento-form) .modal-body { min-height: 0; overflow-y: auto; flex: 1 1 auto; padding: 22px 32px 8px; }
+.envio-orcamento-form svg, #modal:has(.envio-orcamento-form) .modal-footer svg { width: 25px; height: 25px; flex-shrink: 0; }
+.envio-orcamento-label-row { display: flex; gap: 15px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.envio-orcamento-form label { display: block; font-size: 18px; font-weight: 600; color: #101c38; }
+.envio-orcamento-label-row button { display: flex; align-items: center; gap: 10px; padding: 10px 15px; font-size: 14px; }
+#envioCotacaoTexto { display: block; width: 100%; min-height: 210px; padding: 18px 22px; line-height: 1.6; resize: vertical; border-radius: 13px; box-sizing: border-box; background: #f8fafc; }
+.envio-orcamento-contador { color: #72809b; text-align: right; font-size: 13px; margin-top: 5px; margin-bottom: 22px; }
+.envio-orcamento-form > label { margin: 14px 0 8px; }
+#envioCotacaoTelefone, #envioCotacaoEmail { display: block; width: 100%; min-height: 54px; border-radius: 12px; padding: 14px 20px; box-sizing: border-box; background: #f8fafc; }
+#envioCotacaoEmail::placeholder { color: #9aa5b9; }
+.envio-orcamento-aviso { display: flex; gap: 16px; align-items: center; border: 1px solid #b8d6ff; background: #eff6ff; border-radius: 12px; padding: 17px 20px; margin-top: 24px; }
+.envio-orcamento-aviso svg { color: #004bd8; width: 30px; height: 30px; }
+.envio-orcamento-aviso p { margin: 0; line-height: 1.5; color: #455d85; font-size: 14px; }
+#modal:has(.envio-orcamento-form) .modal-footer { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px 12px; padding: 16px 32px 28px; flex: 0 0 auto; }
+#modal:has(.envio-orcamento-form) .modal-footer > button { grid-column: span 2; display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 56px; min-width: 0; max-width: 100%; white-space: normal; border-radius: 12px; padding: 12px; font-size: 15px; }
+#modal:has(.envio-orcamento-form) #envioCotacaoCopiar, #modal:has(.envio-orcamento-form) #envioCotacaoWhatsTexto { grid-column: span 3; }
+#modal:has(.envio-orcamento-form) .envio-orcamento-whatsapp { color: #00ad56; border-color: #00b95d; }
+@media (max-width: 640px) {
+  #modal:has(.envio-orcamento-form) { width: 100%; max-height: 90dvh; }
+  #modal:has(.envio-orcamento-form) .modal-header { padding: 18px; }
+  #modal:has(.envio-orcamento-form) .modal-title { font-size: 21px; }
+  #modal:has(.envio-orcamento-form) .modal-title::after { font-size: 13px; }
+  #modal:has(.envio-orcamento-form) .modal-body { padding: 18px 18px 8px; }
+  .envio-orcamento-label-row { flex-wrap: wrap; }
+  .envio-orcamento-form label { font-size: 16px; }
+  #envioCotacaoTexto { min-height: 180px; padding: 12px; }
+  .envio-orcamento-aviso { gap: 10px; padding: 12px; }
+  #modal:has(.envio-orcamento-form) .modal-footer { padding: 12px 18px 18px; gap: 9px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #modal:has(.envio-orcamento-form) .modal-footer > button, #modal:has(.envio-orcamento-form) #envioCotacaoCopiar, #modal:has(.envio-orcamento-form) #envioCotacaoWhatsTexto { grid-column: span 1; font-size: 12px; padding: 9px; gap: 6px; min-height: 45px; }
+  #modal:has(.envio-orcamento-form) #envioCotacaoMail { grid-column: 1 / -1; }
+  #modal:has(.envio-orcamento-form) .modal-footer svg { width: 20px; height: 20px; }
+}
