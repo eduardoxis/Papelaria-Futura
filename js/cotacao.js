@@ -623,6 +623,8 @@ async function abrirLembreteCotacao(id) {
     </p>
     <label class="field-label">Mensagem sugerida</label>
     <textarea class="field-input--plain field-textarea" id="textoLembreteCotacao" rows="5" style="width:100%">${escHtml(mensagem)}</textarea>
+    <img src="./img/lembrete-orcamento.png" alt="Equipe de orçamentos da Papelaria Futura do Centro" style="display:block;width:100%;max-height:180px;object-fit:contain;margin-top:12px;border-radius:8px" />
+    <p id="statusImagemLembrete" role="status" style="font-size:13px;margin-top:8px">Preparando imagem...</p>
     ${!numeroWhats ? `<p style="color:#B45309;font-size:13px;margin-top:8px">Essa cotação não tem telefone cadastrado — copie a mensagem e envie manualmente, ou edite a cotação para adicionar o número.</p>` : ""}
     <label class="field-label" style="margin-top:12px">Tipo de contato</label>
     <select class="field-input--plain" id="tipoLembreteCotacao" style="width:100%">
@@ -644,7 +646,8 @@ async function abrirLembreteCotacao(id) {
   const footer = `
     <button class="btn-ghost" id="btnFecharLembrete">Fechar</button>
     <button class="btn-secondary" id="btnCopiarLembrete">Copiar Mensagem</button>
-    ${numeroWhats ? `<button class="btn-primary" id="btnEnviarWhatsapp">Enviar pelo WhatsApp</button>` : ""}
+    <button class="btn-secondary" id="btnBaixarImagemLembrete" disabled>Baixar imagem</button>
+    ${numeroWhats ? `<button class="btn-primary" id="btnEnviarWhatsapp" disabled>WhatsApp + imagem</button>` : ""}
     <button class="btn-primary" id="btnConfirmarTipoLembrete">Confirmar</button>
   `;
 
@@ -662,13 +665,61 @@ async function abrirLembreteCotacao(id) {
     });
   };
 
-  document.getElementById("btnEnviarWhatsapp")?.addEventListener("click", async () => {
+  const statusImagem = document.getElementById("statusImagemLembrete");
+  const btnImagem = document.getElementById("btnBaixarImagemLembrete");
+  const btnWhats = document.getElementById("btnEnviarWhatsapp");
+  let imagemLembrete = null;
+  const baixarImagem = () => {
+    const url = URL.createObjectURL(imagemLembrete);
+    const link = document.createElement("a");
+    link.href = url; link.download = imagemLembrete.name;
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  };
+  const prepararImagem = async () => {
+    btnImagem.disabled = true;
+    statusImagem.textContent = "Preparando imagem...";
+    try {
+      const resposta = await fetch("./img/lembrete-orcamento.png");
+      if (!resposta.ok) throw new Error("Imagem indisponível");
+      const blob = await resposta.blob();
+      if (!blob.type.startsWith("image/") || !blob.size) throw new Error("Imagem inválida");
+      imagemLembrete = new File([blob], "Papelaria-Futura-Orcamentos.png", { type: "image/png" });
+      if (!statusImagem.isConnected) return;
+      statusImagem.textContent = navigator.canShare?.({ files: [imagemLembrete] })
+        ? "Ao compartilhar, escolha WhatsApp e confirme o cliente. A imagem acompanha a mensagem. Depois de enviar, confirme o contato aqui."
+        : "A imagem será baixada e o WhatsApp aberto com a mensagem. Anexe a imagem baixada antes de enviar e confirme o contato aqui.";
+      btnImagem.textContent = "Baixar imagem";
+      btnImagem.onclick = baixarImagem;
+      if (btnWhats) btnWhats.disabled = false;
+    } catch (erro) {
+      if (!statusImagem.isConnected) return;
+      statusImagem.textContent = "Não foi possível carregar a imagem. Clique em Tentar novamente.";
+      btnImagem.textContent = "Tentar novamente";
+      btnImagem.onclick = prepararImagem;
+    } finally {
+      if (btnImagem.isConnected) btnImagem.disabled = false;
+    }
+  };
+  prepararImagem();
+  btnWhats?.addEventListener("click", async () => {
+    if (!imagemLembrete) return;
     const texto = document.getElementById("textoLembreteCotacao").value;
-    const url = `https://wa.me/${numeroWhats}?text=${encodeURIComponent(texto)}`;
-    window.open(url, "_blank");
-    window.mostrarToast?.("WhatsApp aberto. Confirme o contato após enviar a mensagem.", "success");
+    if (navigator.canShare?.({ files: [imagemLembrete] })) {
+      btnWhats.disabled = true;
+      try {
+        await navigator.share({ files: [imagemLembrete], text: texto, title: "Papelaria Futura — Orçamentos" });
+      } catch (erro) {
+        if (erro.name !== "AbortError") window.mostrarToast?.("Não foi possível compartilhar. Baixe a imagem e anexe no WhatsApp.", "warning");
+      } finally {
+        if (btnWhats.isConnected) btnWhats.disabled = false;
+      }
+    } else {
+      baixarImagem();
+      window.open(`https://wa.me/${numeroWhats}?text=${encodeURIComponent(texto)}`, "_blank", "noopener,noreferrer");
+      window.mostrarToast?.("Anexe a imagem baixada no WhatsApp antes de enviar. Depois confirme o contato aqui.", "warning", 8000);
+    }
   });
-
   document.getElementById("btnConfirmarTipoLembrete").onclick = async () => {
     const tipo = document.getElementById("tipoLembreteCotacao")?.value;
     const resultadoContato = document.getElementById("resultadoLembreteCotacao")?.value;
@@ -1431,6 +1482,7 @@ function formatarCampoMoeda(valor) {
     style: "currency", currency: "BRL"
   }).format(Number(valor) || 0);
 }
+
 
 
 

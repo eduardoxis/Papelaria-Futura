@@ -3,7 +3,7 @@
 // ============================================================
 // Sobe a versão do cache sempre que alterar arquivos estáticos
 // para forçar os usuários a receberem a versão nova.
-const CACHE_VERSION = "pf-msg-orcamento-v1";
+const CACHE_VERSION = "pf-lembrete-imagem-v1";
 const CACHE_NAME = `papelaria-futura-${CACHE_VERSION}`;
 
 const APP_SHELL = [
@@ -12,6 +12,7 @@ const APP_SHELL = [
   "./login.html",
   "./manifest.json",
   "./img/logo.png",
+  "./img/lembrete-orcamento.png",
   "./img/favicon.png",
   "./img/icon-192_1.png",
   "./img/icon-512_1.png",
@@ -123,6 +124,7 @@ self.addEventListener("fetch", (event) => {
       ))
   );
 });
+
 
 
 
