@@ -19,7 +19,7 @@ import {
   exportarExcelMultiplasAbas, exportarExcel, buscarUltimoBackup, salvarUltimoBackup
 } from "./database.js";
 import { cargosDoUsuario, temCargo } from "./auth.js";
-import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { collection, getDocs, query, orderBy, limit, startAfter, documentId } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 import { gerarPdfFechamentoCaixa, gerarPdfComissaoCriador } from "./pdf.js";
 
@@ -539,109 +539,71 @@ function _linhaCsvData(ts) {
   return d.toLocaleString("pt-BR");
 }
 
-async function gerarBackupExcel() {
-  const btn = document.getElementById("btnGerarBackup");
-  btn.disabled = true;
-  btn.textContent = "Gerando backup...";
-
-  try {
-    const [
-      resCotacoes, resVendas, resUsuarios,
-      cliSnap, compSnap, pagSnap, prodSnap
-    ] = await Promise.all([
-      listarCotacoes({ limitQtd: 10000 }),
-      listarVendas({ limitQtd: 10000 }),
-      listarUsuarios(),
-      getDocs(collection(db, "prom_clientes")),
-      getDocs(collection(db, "prom_compras")),
-      getDocs(collection(db, "prom_pagamentos")),
-      getDocs(collection(db, "pf_produtos"))
-    ]);
-
-    const abas = [];
-
-    // Cotações
-    const cotacoes = resCotacoes.sucesso ? resCotacoes.cotacoes : [];
-    abas.push({
-      nome: "Cotações",
-      linhas: [
-        ["Cliente", "CNPJ", "Status", "Valor Total", "Criada em", "Funcionário"],
-        ...cotacoes.map(c => [c.cliente || "", c.cnpj || "", c.status || "", c.valorTotal || 0, _linhaCsvData(c.dataCriacao), c.funcionario || ""])
-      ]
-    });
-
-    // Vendas do Caixa
-    const vendas = resVendas.sucesso ? resVendas.vendas : [];
-    abas.push({
-      nome: "Vendas Caixa",
-      linhas: [
-        ["Data", "Vendedor", "Nº Venda", "Forma Pagto.", "Total"],
-        ...vendas.map(v => [_linhaCsvData(v.criadoEm), v.vendedorNome || "", v.numero || "", v.formaPagamento || "", v.total || 0])
-      ]
-    });
-
-    // Usuários
-    const usuarios = resUsuarios.sucesso ? resUsuarios.usuarios : [];
-    abas.push({
-      nome: "Usuários",
-      linhas: [
-        ["Nome", "E-mail", "Cargos"],
-        ...usuarios.map(u => [u.nome || "", u.email || "", (cargosDoUsuario(u) || []).join(", ")])
-      ]
-    });
-
-    // Promissórias — Clientes
-    const clientesLinhas = [["Nome", "Telefone", "CPF/CNPJ"]];
-    cliSnap.forEach(d => {
-      const c = d.data();
-      clientesLinhas.push([c.nome || "", c.telefone || "", c.documento || ""]);
-    });
-    abas.push({ nome: "Promissórias - Clientes", linhas: clientesLinhas });
-
-    // Promissórias — Compras
-    const comprasLinhas = [["Cliente ID", "Valor", "Data da Compra", "Vencimento", "Observações"]];
-    compSnap.forEach(d => {
-      const c = d.data();
-      comprasLinhas.push([c.clienteId || "", c.valor || 0, _linhaCsvData(c.dataCompra), _linhaCsvData(c.vencimento), c.observacoes || ""]);
-    });
-    abas.push({ nome: "Promissórias - Compras", linhas: comprasLinhas });
-
-    // Promissórias — Pagamentos
-    const pagamentosLinhas = [["Cliente ID", "Valor", "Data do Pagamento", "Forma", "Observações"]];
-    pagSnap.forEach(d => {
-      const p = d.data();
-      pagamentosLinhas.push([p.clienteId || "", p.valor || 0, _linhaCsvData(p.dataPagamento), p.forma || "", p.observacoes || ""]);
-    });
-    abas.push({ nome: "Promissórias - Pagamentos", linhas: pagamentosLinhas });
-
-    // Produtos
-    const produtosLinhas = [["Nome", "Código", "Categoria", "Preço", "Preço Custo", "Estoque", "Estoque Mínimo"]];
-    prodSnap.forEach(d => {
-      const p = d.data();
-      produtosLinhas.push([p.nome || "", p.codigo || "", p.categoria || "", p.preco || 0, p.precoCusto || 0, p.estoque || 0, p.estoqueMinimo || 0]);
-    });
-    abas.push({ nome: "Produtos", linhas: produtosLinhas });
-
-    const agora = new Date();
-    const nomeArquivo = `Backup_Papelaria_Futura_${agora.toISOString().split("T")[0]}.xlsx`;
-    const ok = exportarExcelMultiplasAbas(nomeArquivo, abas);
-
-    if (ok) {
-      await salvarUltimoBackup();
-      window.mostrarToast?.("Backup gerado e baixado com sucesso!", "success");
-      carregarStatusBackup();
-    } else {
-      window.mostrarToast?.("Erro ao gerar o arquivo de backup.", "error");
-    }
-  } catch (err) {
-    console.error(err);
-    window.mostrarToast?.("Erro ao gerar backup. Tente novamente.", "error");
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = `<svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg> Baixar Backup Agora`;
+async function buscarColecaoCompletaBackup(nomeColecao) {
+  const tamanhoPagina = 500;
+  const registros = [];
+  let cursor = null;
+  while (true) {
+    const restricoes = [orderBy(documentId()), limit(tamanhoPagina)];
+    if (cursor) restricoes.push(startAfter(cursor));
+    const pagina = await getDocs(query(collection(db, nomeColecao), ...restricoes));
+    registros.push(...pagina.docs.map(d => ({ id: d.id, ...d.data() })));
+    if (pagina.docs.length < tamanhoPagina) return registros;
+    cursor = pagina.docs[pagina.docs.length - 1];
   }
 }
 
+async function gerarBackupExcel() {
+  const btn = document.getElementById("btnGerarBackup");
+  if (!btn || btn.disabled) return;
+  const textoOriginal = btn.innerHTML;
+  btn.disabled = true;
+  btn.textContent = "Lendo dados do sistema...";
+
+  try {
+    const colecoes = [
+      ["Cotações", "cotacoes"],
+      ["Vendas Caixa", "pf_vendas"],
+      ["Usuários", "usuarios"],
+      ["Promissórias - Clientes", "prom_clientes"],
+      ["Promissórias - Compras", "prom_compras"],
+      ["Promissórias - Pagamentos", "prom_pagamentos"],
+      ["Produtos", "pf_produtos"]
+    ];
+    const resultados = await Promise.all(colecoes.map(async ([nome, colecao]) => {
+      btn.textContent = `Lendo ${nome}...`;
+      return [nome, await buscarColecaoCompletaBackup(colecao)];
+    }));
+    const dados = Object.fromEntries(resultados);
+    const agora = new Date();
+    const linhasInfo = [["Planilha", "Registros exportados"], ...resultados.map(([nome, registros]) => [nome, registros.length]), ["Gerado em", agora.toLocaleString("pt-BR")]];
+    const abas = [
+      { nome: "Resumo", linhas: linhasInfo },
+      { nome: "Cotações", linhas: [["ID", "Cliente", "CNPJ", "Status", "Valor Total", "Criada em", "Funcionário"], ...dados["Cotações"].map(c => [c.id, c.cliente || "", c.cnpj || "", c.status || "", Number(c.valorTotal) || 0, _linhaCsvData(c.dataCriacao), c.funcionario || ""])] },
+      { nome: "Vendas Caixa", linhas: [["ID", "Data", "Vendedor", "Nº Venda", "Forma Pagto.", "Total"], ...dados["Vendas Caixa"].map(v => [v.id, _linhaCsvData(v.criadoEm), v.vendedorNome || "", v.numero || "", v.formaPagamento || "", Number(v.total) || 0])] },
+      { nome: "Usuários", linhas: [["ID", "Nome", "E-mail", "Cargos"], ...dados["Usuários"].map(u => [u.id, u.nome || "", u.email || "", (cargosDoUsuario(u) || []).join(", ")])] },
+      { nome: "Promissórias - Clientes", linhas: [["ID", "Nome", "Telefone", "CPF/CNPJ"], ...dados["Promissórias - Clientes"].map(c => [c.id, c.nome || "", c.telefone || "", c.documento || ""])] },
+      { nome: "Promissórias - Compras", linhas: [["ID", "Cliente ID", "Valor", "Data da Compra", "Vencimento", "Observações"], ...dados["Promissórias - Compras"].map(c => [c.id, c.clienteId || "", Number(c.valor) || 0, _linhaCsvData(c.dataCompra), _linhaCsvData(c.vencimento), c.observacoes || ""])] },
+      { nome: "Promissórias - Pagamentos", linhas: [["ID", "Cliente ID", "Valor", "Data do Pagamento", "Forma", "Observações"], ...dados["Promissórias - Pagamentos"].map(p => [p.id, p.clienteId || "", Number(p.valor) || 0, _linhaCsvData(p.dataPagamento), p.forma || "", p.observacoes || ""])] },
+      { nome: "Produtos", linhas: [["ID", "Nome", "Código", "Categoria", "Preço", "Preço Custo", "Estoque", "Estoque Mínimo"], ...dados.Produtos.map(p => [p.id, p.nome || "", p.codigo || "", p.categoria || "", Number(p.preco) || 0, Number(p.precoCusto) || 0, Number(p.estoque) || 0, Number(p.estoqueMinimo) || 0])] }
+    ];
+
+    btn.textContent = "Preparando Excel...";
+    const nomeArquivo = `Backup_Papelaria_Futura_${agora.toISOString().split("T")[0]}.xlsx`;
+    if (!exportarExcelMultiplasAbas(nomeArquivo, abas)) {
+      throw new Error("O arquivo Excel não foi criado. Confira se a biblioteca de exportação carregou e tente novamente.");
+    }
+    await salvarUltimoBackup();
+    window.mostrarToast?.(`Backup baixado. Registros: ${resultados.map(([nome, itens]) => `${nome}: ${itens.length}`).join(" · ")}`, "success", 9000);
+    carregarStatusBackup();
+  } catch (err) {
+    console.error("Erro ao gerar backup:", err);
+    window.mostrarToast?.(`Backup não concluído: ${err.message || "falha ao ler os dados"}. Nenhum Excel parcial foi marcado como backup.`, "error", 10000);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = textoOriginal;
+  }
+}
 async function carregarCardSenhaCotacao() {
   const container = document.getElementById("cardSenhaCotacao");
   if (!container) return;
@@ -1528,3 +1490,4 @@ function abrirModalHistorico(cliente, historico) {
     `<button class="btn-ghost" onclick="window.fecharModal()">Fechar</button>`
   );
 }
+

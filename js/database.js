@@ -483,6 +483,7 @@ export function exportarExcel(nomeArquivo, linhas) {
     const ws = window.XLSX.utils.aoa_to_sheet(linhas);
     const wb = window.XLSX.utils.book_new();
     window.XLSX.utils.book_append_sheet(wb, ws, "Dados");
+    if (!wb.SheetNames.length) throw new Error("O arquivo não contém planilhas válidas.");
     window.XLSX.writeFile(wb, nomeArquivo);
     return true;
   } catch (erro) {
@@ -499,14 +500,16 @@ export function exportarExcelMultiplasAbas(nomeArquivo, abas) {
       console.error("Biblioteca XLSX não carregada.");
       return false;
     }
+    if (!Array.isArray(abas) || abas.length === 0) throw new Error("Nenhuma aba foi fornecida para o Excel.");
     const wb = window.XLSX.utils.book_new();
     abas.forEach(aba => {
-      if (!aba.linhas || aba.linhas.length === 0) return;
+      if (!aba?.nome || !Array.isArray(aba.linhas) || aba.linhas.length === 0) return;
       const ws = window.XLSX.utils.aoa_to_sheet(aba.linhas);
       // Nome da aba no Excel tem limite de 31 caracteres e não pode ter alguns símbolos
       const nomeAba = aba.nome.replace(/[\\/*?:\[\]]/g, "").substring(0, 31);
       window.XLSX.utils.book_append_sheet(wb, ws, nomeAba);
     });
+    if (!wb.SheetNames.length) throw new Error("O arquivo não contém planilhas válidas.");
     window.XLSX.writeFile(wb, nomeArquivo);
     return true;
   } catch (erro) {
@@ -929,4 +932,6 @@ export async function excluirRegistroComissao(comissaoId, registroId) {
     return { sucesso: false, erro: erro.message };
   }
 }
+
+
 
