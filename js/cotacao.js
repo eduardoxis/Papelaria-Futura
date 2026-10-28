@@ -375,6 +375,10 @@ export function iniciarCotacao(usuario, dadosUsuario) {
     if (action === "pdf")     gerarPDFById(id);
     if (action === "excluir") excluirCotacaoById(id, cliente);
     if (action === "lembrete") abrirLembreteCotacao(id);
+    if (action === "enviar-cliente") {
+      btn.disabled = true;
+      abrirEnvioCotacaoById(id).finally(() => { btn.disabled = false; });
+    }
   });
 
   // Expor globais para o index.js usar via window.*
@@ -489,6 +493,11 @@ function linhaCotacaoHtml(c) {
       <td class="col-right td-valor-col"><strong class="valor-protegido">${formatarMoeda(c.valorTotal)}</strong></td>
       <td class="td-status-actions-row">
         ${badgeStatus(c.status)}
+        ${podeGerenciar ? `
+          <button class="btn-lembrete" data-action="enviar-cliente" data-id="${escHtml(c.id)}" title="Enviar cotação e PDF ao cliente">
+            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v.5l-8 5-8-5V5zm0 2.85V15a2 2 0 002 2h12a2 2 0 002-2V7.85l-7.47 4.67a1 1 0 01-1.06 0L2 7.85z"/></svg>
+            Enviar ao cliente
+          </button>` : ""}
         ${podeGerenciar && diasParado ? `
           <button class="btn-lembrete" data-action="lembrete" data-id="${escHtml(c.id)}" title="Cotação parada há ${diasParado} dias — enviar lembrete">
             <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 00-6 6c0 1.887.87 3.4 2.026 4.474.66.614 1.05 1.155 1.208 1.526h5.532c.158-.371.548-.912 1.208-1.526A5.99 5.99 0 0016 8a6 6 0 00-6-6zM8.5 17a.5.5 0 000 1h3a.5.5 0 000-1h-3z"/></svg>
@@ -1079,6 +1088,24 @@ function coletarDadosCotacao() {
 // ================================================================
 // SALVAR COTAÇÃO
 // ================================================================
+async function abrirEnvioCotacaoById(id) {
+  try {
+    const resultado = await buscarCotacao(id);
+    if (!resultado.sucesso) {
+      window.mostrarToast?.("Não foi possível carregar a cotação. Tente novamente.", "error");
+      return;
+    }
+    const cotacao = { ...resultado.dados, id };
+    if (!podeGerenciarCotacao(cotacao)) {
+      window.mostrarToast?.("Você não tem permissão para enviar esta cotação.", "warning");
+      return;
+    }
+    await oferecerEnvioCotacao(cotacao);
+  } catch (erro) {
+    console.error("Erro ao preparar envio da cotação:", erro);
+    window.mostrarToast?.("Não foi possível preparar o envio. Tente novamente.", "error");
+  }
+}
 async function oferecerEnvioCotacao(cotacao) {
   const hora = new Date().getHours();
   const saudacao = hora < 12 ? "bom dia" : hora < 18 ? "boa tarde" : "boa noite";
@@ -1404,6 +1431,7 @@ function formatarCampoMoeda(valor) {
     style: "currency", currency: "BRL"
   }).format(Number(valor) || 0);
 }
+
 
 
 

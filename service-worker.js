@@ -3,7 +3,7 @@
 // ============================================================
 // Sobe a versão do cache sempre que alterar arquivos estáticos
 // para forçar os usuários a receberem a versão nova.
-const CACHE_VERSION = "pf-envio-sem-fechar-v1";
+const CACHE_VERSION = "pf-enviar-cliente-lista-v1";
 const CACHE_NAME = `papelaria-futura-${CACHE_VERSION}`;
 
 const APP_SHELL = [
@@ -123,6 +123,7 @@ self.addEventListener("fetch", (event) => {
       ))
   );
 });
+
 
 
 
