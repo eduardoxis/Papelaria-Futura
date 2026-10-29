@@ -723,7 +723,11 @@ async function abrirLembreteCotacao(id) {
       if (!blob.type.startsWith("image/") || !blob.size) throw new Error("Imagem inválida");
       imagemLembrete = new File([blob], "Papelaria-Futura-Orcamentos.png", { type: "image/png" });
       if (!statusImagem.isConnected) return;
-      statusImagem.textContent = "Para enviar imagem e texto em uma única mensagem: clique em WhatsApp + imagem, anexe a imagem baixada e cole a mensagem no campo Adicionar legenda da imagem. Depois de enviar, confirme o contato aqui.";
+      const podeCompartilhar = typeof navigator.share === "function" && !!navigator.canShare?.({ files: [imagemLembrete] });
+      statusImagem.textContent = podeCompartilhar
+        ? "Clique em WhatsApp + imagem e escolha WhatsApp na tela de compartilhamento. Confira o cliente, a foto e a legenda antes de enviar. Se o WhatsApp separar o texto, copie a mensagem e cole na legenda da foto."
+        : "Este navegador não anexa imagens ao WhatsApp. Clique em Preparar imagem e legenda: a imagem será baixada e a mensagem copiada. Na conversa, clique em + > Fotos e vídeos, escolha a imagem baixada e cole a mensagem no campo de legenda. Só então envie.";
+      if (btnWhats) btnWhats.innerHTML = `${iconeLembrete("chat")}${podeCompartilhar ? "WhatsApp + imagem" : "Preparar imagem e legenda"}`;
       btnImagem.innerHTML = `${iconeLembrete("baixar")}Baixar imagem`;
       btnImagem.onclick = baixarImagem;
       if (btnWhats) btnWhats.disabled = !numeroWhats;
@@ -738,23 +742,40 @@ async function abrirLembreteCotacao(id) {
   };
   prepararImagem();
   btnWhats?.addEventListener("click", async () => {
-    if (!imagemLembrete) return;
+    if (!imagemLembrete || btnWhats.disabled) return;
     const campoTexto = document.getElementById("textoLembreteCotacao");
+    const texto = campoTexto.value;
     btnWhats.disabled = true;
-    // Abre o contato sem texto no chat; a mensagem deve ser colada na legenda.
+    const dadosCompartilhamento = { files: [imagemLembrete], text: texto };
+    const podeCompartilhar = typeof navigator.share === "function" && !!navigator.canShare?.({ files: [imagemLembrete] });
+    if (podeCompartilhar) {
+      try {
+        // Chamada direta no clique: preserva a autorização do navegador para compartilhar.
+        await navigator.share(dadosCompartilhamento);
+        if (statusImagem.isConnected) statusImagem.textContent = "Compartilhamento concluído no aplicativo escolhido. Confira no WhatsApp se a imagem e a legenda foram enviadas antes de confirmar o contato aqui.";
+      } catch (erro) {
+        if (erro.name !== "AbortError") {
+          if (statusImagem.isConnected) statusImagem.textContent = "O aplicativo não aceitou o compartilhamento. Use Baixar imagem e Copiar mensagem, anexe a foto no WhatsApp e cole o texto na legenda.";
+          window.mostrarToast?.("Não foi possível compartilhar a imagem. Use o envio manual indicado na janela.", "warning", 9000);
+        }
+      } finally {
+        if (btnWhats.isConnected) btnWhats.disabled = false;
+      }
+      return;
+    }
     let copia;
-    try { copia = navigator.clipboard?.writeText(campoTexto.value); } catch { /* cópia manual abaixo */ }
+    try { copia = navigator.clipboard?.writeText(texto); } catch { /* cópia manual abaixo */ }
     baixarImagem();
     window.open(`https://wa.me/${numeroWhats}`, "_blank", "noopener,noreferrer");
     try {
       if (!copia) throw new Error("Cópia indisponível");
       await copia;
-      if (statusImagem.isConnected) statusImagem.textContent = "Mensagem copiada! No WhatsApp, anexe a imagem baixada, cole o texto em Adicionar legenda e envie. Assim, imagem e mensagem ficam no mesmo balão.";
-      window.mostrarToast?.("Imagem baixada e mensagem copiada. Cole o texto na legenda da imagem no WhatsApp.", "success", 10000);
+      if (statusImagem.isConnected) statusImagem.textContent = "Imagem baixada e texto copiado. Ainda não foi enviado nada. No WhatsApp: 1. Clique em + > Fotos e vídeos. 2. Escolha Papelaria-Futura-Orcamentos.png em Downloads. 3. Cole a mensagem na legenda da foto. 4. Confira o cliente e envie.";
+      window.mostrarToast?.("Preparado para envio manual: anexe a foto baixada e cole a legenda no WhatsApp.", "warning", 12000);
     } catch {
       if (campoTexto.isConnected) { campoTexto.focus(); campoTexto.select(); }
-      if (statusImagem.isConnected) statusImagem.textContent = "Copie a mensagem manualmente. No WhatsApp, anexe a imagem baixada e cole a mensagem em Adicionar legenda antes de enviar.";
-      window.mostrarToast?.("Copie o texto manualmente e cole na legenda da imagem.", "warning", 10000);
+      if (statusImagem.isConnected) statusImagem.textContent = "A imagem foi baixada, mas o texto não foi copiado. Copie a mensagem manualmente, anexe a foto no WhatsApp e cole o texto na legenda antes de enviar.";
+      window.mostrarToast?.("Copie o texto manualmente e cole na legenda da foto.", "warning", 10000);
     } finally {
       if (btnWhats.isConnected) btnWhats.disabled = false;
     }
@@ -1565,6 +1586,7 @@ function formatarCampoMoeda(valor) {
     style: "currency", currency: "BRL"
   }).format(Number(valor) || 0);
 }
+
 
 
 
