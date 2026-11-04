@@ -34,6 +34,16 @@ function baixarPdf(doc, nomeArquivo, retornarArquivo = false) {
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
+function textoValidadeOrcamento(validade, hoje = new Date()) {
+  if (!validade) return "Não informada";
+  const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(validade);
+  if (!partes) return "Não informada";
+  const [, ano, mes, dia] = partes.map(Number);
+  const dias = Math.round((Date.UTC(ano, mes - 1, dia) - Date.UTC(hoje.getFullYear(), hoje.getMonth(), hoje.getDate())) / 86400000);
+  if (dias < 0) return 'Vencido em ' + String(dia).padStart(2, '0') + '/' + String(mes).padStart(2, '0') + '/' + ano;
+  return dias + (dias === 1 ? ' dia' : ' dias');
+}
+
 export async function gerarPDF(cotacao, modelo = "original", retornarArquivo = false) {
   if (modelo === "fw3") return gerarPDFFW3(cotacao, retornarArquivo);
   if (modelo === "avenida") return gerarPDFAvenida(cotacao, retornarArquivo);
@@ -334,13 +344,7 @@ async function gerarPDFOriginal(cotacao, retornarArquivo = false) {
     const MESES = ["","JANEIRO","FEVEREIRO","MARÇO","ABRIL","MAIO","JUNHO",
                    "JULHO","AGOSTO","SETEMBRO","OUTUBRO","NOVEMBRO","DEZEMBRO"];
 
-    let validadeTexto = "30 dias";
-    if (cotacao.validade) {
-      const hoje = new Date();
-      const valid = new Date(cotacao.validade + "T12:00:00");
-      const diff = Math.ceil((valid - hoje) / 86400000);
-      validadeTexto = diff > 0 ? `${diff} dias` : valid.toLocaleDateString("pt-BR");
-    }
+    const validadeTexto = textoValidadeOrcamento(cotacao.validade);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(6.5);
@@ -663,7 +667,7 @@ async function gerarPDFFW3(cotacao, retornarArquivo = false) {
         const rodapeY = y + 17;
         const dataEmissao = new Intl.DateTimeFormat("pt-BR").format(new Date());
         doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(0, 0, 0);
-        doc.text(`VALIDADE DO ORÇAMENTO 30 DIAS • ENTREGA: IMEDIATO • LUZIÂNIA-GO ${dataEmissao}`, MX, rodapeY);
+        doc.text(`VALIDADE DO ORÇAMENTO ${textoValidadeOrcamento(cotacao.validade).toUpperCase()} • ENTREGA: IMEDIATO • LUZIÂNIA-GO ${dataEmissao}`, MX, rodapeY);
 
         const descricaoY = rodapeY + 4;
         doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.35); doc.line(MX, descricaoY, MX + CW, descricaoY);
@@ -761,7 +765,7 @@ async function gerarPDFAvenida(cotacao, retornarArquivo = false) {
         }).format(new Date()).toUpperCase();
         const rodapeY = (doc.lastAutoTable?.finalY || 96) + 9;
         doc.setFont("times", "bold"); doc.setFontSize(9); doc.setTextColor(0, 0, 0);
-        doc.text("Válido por 30 dias", MX, rodapeY);
+        doc.text(`Validade: ${textoValidadeOrcamento(cotacao.validade)}`, MX, rodapeY);
         doc.text(`Luziânia-GO ${dataEmissao}.`, MX, rodapeY + 6);
 
         const observacoesY = rodapeY + 9;
