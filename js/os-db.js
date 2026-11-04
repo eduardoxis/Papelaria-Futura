@@ -298,6 +298,8 @@ export function observarFilaOs(
   sucesso,
   erro,
 ) {
+  // A fila já carrega todas as OS ativas. Ordenar o snapshot mantém a posição
+  // manual sem exigir o índice composto ativo + posicaoFila no Firestore.
   const filtros = painel
     ? [where("ativo", "==", true)]
     : [

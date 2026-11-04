@@ -18,7 +18,8 @@ let itens = [],
   pagina = 0,
   paginas = [[]],
   desligar = null,
-  conexaoServidor = false;
+  conexaoServidor = false,
+  erroFila = null;
 function card(o) {
   const prazo = prazoOs(o);
   const previsao = Number.isFinite(milisOs(o.previsaoConclusao))
@@ -72,7 +73,15 @@ function render(recalcular = false) {
   pagina = Math.min(pagina, paginas.length - 1);
   lista.innerHTML = itens.length
     ? paginas[pagina].map(card).join("")
-    : '<p class="os-painel-login">Nenhum serviço ativo na fila no momento.</p>';
+    : '<p class="os-painel-login">' +
+      esc(
+        erroFila
+          ? "Fila indisponível. Confira o aviso acima."
+          : conexaoServidor
+            ? "Nenhum serviço ativo na fila no momento."
+            : "Consultando a fila de serviços…",
+      ) +
+      "</p>";
   $("osPainelPagina").textContent =
     "Página " + (pagina + 1) + " de " + paginas.length;
 }
@@ -113,6 +122,7 @@ async function iniciar(usuario, perfil) {
   desligar = observarFilaOs(
     { painel: true },
     (dados, meta) => {
+      erroFila = null;
       itens = dados;
       conexaoServidor = !meta.fromCache;
       $("osPainelConexao").textContent = conexaoServidor
@@ -121,9 +131,10 @@ async function iniciar(usuario, perfil) {
       render(true);
     },
     (erro) => {
+      erroFila = erroConsultaOs(erro).mensagem;
       itens = [];
       render(true);
-      $("osPainelConexao").textContent = erroConsultaOs(erro).mensagem;
+      $("osPainelConexao").textContent = erroFila;
     },
   );
 }

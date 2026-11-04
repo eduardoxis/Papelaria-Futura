@@ -62,7 +62,11 @@ async function fazer(b, fn) {
     if (aviso.indice) {
       $("osConexao").textContent = aviso.mensagem;
       if (admin) {
-        const link=document.createElement('a');link.href=aviso.indice;link.target='_blank';link.rel='noopener noreferrer';link.textContent=' Criar índice no Firebase';
+        const link = document.createElement("a");
+        link.href = aviso.indice;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = " Criar índice no Firebase";
         $("osConexao").append(link);
       }
     }
@@ -132,10 +136,16 @@ function render() {
   const lista = filtrarOs(modo === "fila" ? ordens : historico, filtros());
   $("osModoTitulo").textContent =
     modo === "fila" ? "Fila de execução" : "Histórico de OS";
-  if (modo === 'fila' && estadoFila !== 'pronta' && !ordens.length) {
-    const mensagem = estadoFila === 'erro' ? 'Fila indisponível. Confira o aviso acima e clique em Atualizar.' : 'Carregando ordens de serviço…';
-    $("osResumo").textContent = estadoFila === 'erro' ? 'Não foi possível consultar as ordens.' : 'Consultando a fila…';
-    $("osLista").innerHTML = '<p>'+esc(mensagem)+'</p>';
+  if (modo === "fila" && estadoFila !== "pronta" && !ordens.length) {
+    const mensagem =
+      estadoFila === "erro"
+        ? "Fila indisponível. Confira o aviso acima e clique em Atualizar."
+        : "Carregando ordens de serviço…";
+    $("osResumo").textContent =
+      estadoFila === "erro"
+        ? "Não foi possível consultar as ordens."
+        : "Consultando a fila…";
+    $("osLista").innerHTML = "<p>" + esc(mensagem) + "</p>";
     $("osMais").hidden = true;
     return;
   }
@@ -251,7 +261,7 @@ function conectar() {
   desligar = observarFilaOs(
     { admin, uid: usuario.uid },
     (itens, m) => {
-      estadoFila = m.fromCache ? 'carregando' : 'pronta';
+      estadoFila = m.fromCache ? "carregando" : "pronta";
       ordens = itens;
       $("osConexao").textContent = m.fromCache
         ? "Sem confirmação do servidor. As informações podem estar desatualizadas."
@@ -263,11 +273,16 @@ function conectar() {
     },
     (e) => {
       const aviso = erroConsultaOs(e);
-      estadoFila = 'erro';
-      if (['permission-denied','unauthenticated'].includes(e.code))ordens=[];
+      estadoFila = "erro";
+      if (["permission-denied", "unauthenticated"].includes(e.code))
+        ordens = [];
       $("osConexao").textContent = aviso.mensagem;
       if (aviso.indice && admin) {
-        const link=document.createElement('a');link.href=aviso.indice;link.target='_blank';link.rel='noopener noreferrer';link.textContent=' Criar índice no Firebase';
+        const link = document.createElement("a");
+        link.href = aviso.indice;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = " Criar índice no Firebase";
         $("osConexao").append(link);
       }
       $("osConexao").classList.add("erro");

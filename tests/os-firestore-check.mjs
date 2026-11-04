@@ -21,7 +21,6 @@ const {
   query,
   where,
   orderBy,
-  onSnapshot,
   Timestamp,
   setLogLevel,
 } = await import(sdk);
@@ -78,14 +77,14 @@ const dados = {
   dimensao: "A4",
   acabamento: "Recorte",
 };
-async function snapshotEsperado(q, predicado) {
+async function snapshotEsperado(opcoes, predicado) {
   return new Promise((resolve, reject) => {
     const t = setTimeout(() => {
       off();
       reject(Error("Atualização em tempo real não recebida"));
     }, 6000);
-    const off = onSnapshot(
-      q,
+    const off = api.observarFilaOs(
+      opcoes,
       (s) => {
         if (predicado(s)) {
           clearTimeout(t);
@@ -174,16 +173,15 @@ try {
   assert.equal(a.revisao, 2);
   await assert.rejects(() => api.salvarOs(dados, { id: "a", revisao: 1 }));
   const verAtualizacao = snapshotEsperado(
-    query(
-      collection(admin, "pf_os_painel"),
-      where("ativo", "==", true),
-      orderBy("posicaoFila"),
-    ),
-    (s) =>
-      s.docs.find((d) => d.id === "a")?.data().posicaoFila === b.posicaoFila,
+    { painel: true },
+    (itens) => itens.find((d) => d.id === "a")?.posicaoFila === b.posicaoFila,
   );
   await api.moverOs("a", "b", a.revisao, b.revisao, { eventoId: "mover-ab" });
-  await verAtualizacao;
+  const filaAtualizada = await verAtualizacao;
+  assert.deepEqual(
+    filaAtualizada,
+    [...filaAtualizada].sort(core.compararFilaOs),
+  );
   a = await api.buscarOs("a");
   b = await api.buscarOs("b");
   assert.equal(b.posicaoFila, 1);
@@ -203,6 +201,11 @@ try {
   ).docs.map((d) => d.data());
   assert.equal(new Set(fila.map((o) => o.posicaoFila)).size, 3);
   usar("ana");
+  const minhasOrdens = await snapshotEsperado(
+    { uid: "ana" },
+    (itens) => itens.length === 2,
+  );
+  assert.ok(minhasOrdens.every((o) => o.responsavelId === "ana" && o.ativo));
   await assert.rejects(() => api.buscarOs("a"));
   await assertFails(
     updateDoc(doc(bancos.ana, "pf_os", "b"), { responsavelId: "pedro" }),

@@ -3,6 +3,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  getDocsFromServer,
   query,
   where,
   orderBy,
@@ -75,21 +76,18 @@ export async function salvarConfiguracaoPdv(dados) {
   });
 }
 export async function sessaoAtual() {
-  const ponteiro = await getDoc(ref(COL_PDV.operadores, uid()));
-  if (ponteiro.exists() && ponteiro.data().sessaoId) {
-    const ss = await getDoc(ref("pf_caixa_sessoes", ponteiro.data().sessaoId));
-    if (ss.exists() && ss.data().status === "aberto")
-      return { ...ss.data(), id: ss.id };
-  }
-  const legados = await getDocs(
+  // Consulta a sessão efetiva do operador no servidor, sem confundir cache,
+  // falha de leitura ou um controle antigo ausente com caixa fechado.
+  const sessoes = await getDocsFromServer(
     query(
       collection(db, "pf_caixa_sessoes"),
       where("operadorAberturaUid", "==", uid()),
       where("status", "==", "aberto"),
-      limit(1),
+      limit(2),
     ),
   );
-  const ss = legados.docs[0];
+  if (sessoes.size > 1) throw Error("Há mais de um caixa aberto para este usuário. Peça ao administrador para conferir as sessões antes de continuar.");
+  const ss = sessoes.docs[0];
   return ss
     ? { ...ss.data(), id: ss.id, legado: ss.data().versaoPdv !== 2 }
     : null;

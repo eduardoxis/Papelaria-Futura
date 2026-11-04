@@ -277,6 +277,8 @@ O painel exige login autorizado. Administradores, operadores de OS e usuários c
 
 O painel utiliza uma projeção separada, atualizada na mesma transação da OS, com número, nome abreviado do cliente, serviço, funcionário, previsão, status e prioridade. Telefone, documentos, valores, descrição e observações internas não são enviados a essa página. Usuários somente de painel não podem ler a coleção privada das OS.
 
+A fila ativa usa filtros de igualdade e ordena as ordens recebidas pela posição salva. Assim, Gerenciar fila e o painel não dependem dos índices compostos ativo + posicaoFila. Os índices dessa combinação podem ser mantidos para compatibilidade. As consultas paginadas do histórico continuam utilizando os índices listados acima.
+
 A fila é atualizada em tempo real. A paginação se adapta ao espaço disponível, preserva a ordem e alterna a cada 15 segundos. O botão Tela cheia usa o recurso do navegador. Não há corte intencional de nomes ou serviços. Em telas muito pequenas, o conteúdo continua disponível por rolagem.
 
 Sem conexão, o painel informa que os dados podem estar desatualizados. Não apresenta os dados locais como confirmação de gravação no servidor. Se o acesso for revogado, a lista é retirada da tela.

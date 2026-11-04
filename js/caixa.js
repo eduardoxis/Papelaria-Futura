@@ -54,6 +54,10 @@ let _vendedorSelecionadoId = null;
 let _comissaoSelecionadaId = null;
 let _vendaPersistenciaId = null;
 let _sessaoCaixa = null; // { id, abertoEm, operadorAberturaNome, ... } | null se fechado
+let _estadoSessaoCaixa = "verificando";
+let _consultaSessaoCaixa = null;
+let _preparandoFinalizacao = false;
+let _sessaoFinalizacaoId = null;
 
 // ----------------------------------------------------------------
 // Inicialização
@@ -70,9 +74,12 @@ export function iniciarCaixa(usuario, dadosUsuario) {
 
   document.addEventListener("navegacao", (e) => {
     if (e.detail.page === "caixa") {
+      atualizarStatusCaixa();
       document.getElementById("caixaTerminalInput")?.focus();
     }
   });
+  window.addEventListener("focus", () => { if (!document.getElementById("page-caixa")?.hidden) atualizarStatusCaixa(); });
+  window.addEventListener("online", () => atualizarStatusCaixa());
 
   const terminal = document.getElementById("caixaTerminalInput");
   terminal?.addEventListener("keydown", onTerminalKeydown);
@@ -122,16 +129,43 @@ export function iniciarCaixa(usuario, dadosUsuario) {
 // ----------------------------------------------------------------
 // Abrir / Fechar Caixa
 // ----------------------------------------------------------------
-async function atualizarStatusCaixa() {
-  try { _sessaoCaixa = await sessaoAtual(); } catch(e) { _sessaoCaixa = null; window.mostrarToast?.(e.message, 'error'); }
+async function atualizarStatusCaixa(forcar = false) {
+  while (_consultaSessaoCaixa) {
+    const resultado = await _consultaSessaoCaixa;
+    if (!forcar) return resultado;
+  }
+  _estadoSessaoCaixa = "verificando";
+  renderStatusCaixa();
+  const consulta = (async () => {
+    try {
+      _sessaoCaixa = await sessaoAtual();
+      _estadoSessaoCaixa = "confirmado";
+      return true;
+    } catch(e) {
+      _estadoSessaoCaixa = "erro";
+      const mensagem = e.code === 'permission-denied' ? 'Não foi possível consultar seu caixa. Peça ao administrador para conferir seu acesso e as regras do sistema.' : e.message || 'Não foi possível verificar o caixa. Confira a conexão e tente novamente.';
+      window.mostrarToast?.(mensagem, 'error');
+      return false;
+    } finally { renderStatusCaixa(); }
+  })();
+  _consultaSessaoCaixa = consulta;
+  try { return await consulta; }
+  finally { if (_consultaSessaoCaixa === consulta) _consultaSessaoCaixa = null; }
+}
 
+function renderStatusCaixa() {
   const elDot   = document.getElementById("caixaStatusDot");
   const elTexto = document.getElementById("caixaStatusTexto");
   const elNome  = document.getElementById("caixaOperadorNome");
   const elHora  = document.getElementById("caixaHoraAbertura");
   const btnAbrir  = document.getElementById("btnAbrirCaixa");
   const btnFechar = document.getElementById("btnFecharCaixa");
-
+  if (_estadoSessaoCaixa !== "confirmado") {
+    if (elTexto) elTexto.textContent = _estadoSessaoCaixa === "erro" ? "Não foi possível verificar o caixa" : "Verificando caixa…";
+    if (btnAbrir) btnAbrir.style.display = "none";
+    if (btnFechar) btnFechar.style.display = "none";
+    return;
+  }
   if (_sessaoCaixa) {
     elDot?.classList.remove("caixa-status-dot--fechado");
     if (elTexto) elTexto.textContent = "Aberto";
@@ -149,8 +183,9 @@ async function atualizarStatusCaixa() {
   }
 }
 
-function abrirCaixaFluxo() {
+function abrirCaixaFluxo(aposAbrir = null) {
   const body = `
+    ${typeof aposAbrir === 'function' ? '<p>Abra o caixa para continuar esta venda. Os itens e o pagamento informado serão preservados.</p>' : ''}
     <p>Informe o valor inicial (fundo de troco) e o identificador do caixa.</p><label class="field-label">Número do caixa<input id="pdvNumeroCaixa" class="field-input--plain" value="CX-01" maxlength="24"></label>
     <div class="field" style="margin-top:12px">
       <label class="field-label" for="mAbrirCaixaValor">Valor de abertura (opcional)</label>
@@ -166,6 +201,7 @@ function abrirCaixaFluxo() {
   document.getElementById("btnConfirmarAbrirCaixa").onclick = async () => {
     const valorAbertura = parseFloat(document.getElementById("mAbrirCaixaValor")?.value) || 0;
     const btn = document.getElementById("btnConfirmarAbrirCaixa");
+    if (btn.disabled) return;
     btn.disabled = true;
     btn.textContent = "Abrindo...";
 
@@ -175,7 +211,8 @@ function abrirCaixaFluxo() {
     if (resultado.sucesso) {
       window.fecharModal();
       window.mostrarToast?.("Caixa aberto com sucesso!", "success");
-      await atualizarStatusCaixa();
+      const confirmado = await atualizarStatusCaixa(true);
+      if (confirmado && _sessaoCaixa?.id === resultado.id && typeof aposAbrir === 'function') await aposAbrir();
     } else {
       window.mostrarToast?.(resultado.erro || "Erro ao abrir o caixa. Tente novamente.", "error");
       btn.disabled = false;
@@ -185,6 +222,7 @@ function abrirCaixaFluxo() {
 }
 
 async function fecharCaixaFluxo() {
+  if (!await atualizarStatusCaixa(true)) return;
   if (!_sessaoCaixa) return;
   try { await fecharPdv(_sessaoCaixa.id,_dadosUsuario?.nome || _usuario.email,atualizarStatusCaixa); }
   catch(e) { window.mostrarToast?.(e.message,'error'); }
@@ -714,13 +752,21 @@ function resetarTerminal() {
 // Finalizar venda → modal Selecionar Vendedor (+ planilha comissão)
 // ----------------------------------------------------------------
 async function iniciarFinalizacaoVenda() {
-  await atualizarStatusCaixa();
-  if (!_sessaoCaixa) { window.mostrarToast?.('Abra seu caixa antes de finalizar a venda.','warning'); return; }
-  if (_sessaoCaixa.legado) {window.mostrarToast?.('Encerre a sessão anterior em Fechar Caixa e abra uma nova sessão para vincular as vendas.','warning');return;}
+  if (_preparandoFinalizacao) return;
+  _preparandoFinalizacao = true;
+  try { await prepararFinalizacaoVenda(); }
+  finally { _preparandoFinalizacao = false; }
+}
+
+async function prepararFinalizacaoVenda() {
   if (_itens.length === 0) {
     window.mostrarToast?.("Adicione ao menos um item para finalizar a venda.", "warning");
     return;
   }
+  if (!await atualizarStatusCaixa(true)) return;
+  if (!_sessaoCaixa) { abrirCaixaFluxo(() => iniciarFinalizacaoVenda()); return; }
+  if (_sessaoCaixa.legado) {window.mostrarToast?.('Encerre a sessão anterior em Fechar Caixa e abra uma nova sessão para vincular as vendas.','warning');return;}
+  _sessaoFinalizacaoId = _sessaoCaixa.id;
 
   _vendedorSelecionadoId = null;
   _comissaoSelecionadaId = null;
