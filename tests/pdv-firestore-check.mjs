@@ -53,7 +53,12 @@ const preparar = (s) =>
     .replaceAll("./firebase-config.js", cfg)
     .replaceAll("./vendas-comissoes-core.js", vcCore)
     .replaceAll("./pdv-core.js", pdvCore);
-const pdvUrl = url(preparar(ler("pdv-db.js"))),
+const prepararComLimite = (s) =>
+  preparar(s).replaceAll(
+    "./firebase-limites.js",
+    url(ler("firebase-limites.js")),
+  );
+const pdvUrl = url(prepararComLimite(ler("pdv-db.js"))),
   vcUrl = url(
     preparar(ler("vendas-comissoes-db.js")).replaceAll("./pdv-db.js", pdvUrl),
   );

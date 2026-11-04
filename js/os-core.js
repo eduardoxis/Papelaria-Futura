@@ -168,6 +168,7 @@ export function compararFilaOs(a, b) {
 export function erroConsultaOs(erro) {
   const codigo = String(erro?.code || "").replace(/^firestore\//, "");
   const texto = String(erro?.message || "");
+  if(codigo==='resource-exhausted')return {mensagem:'O Firebase atingiu a cota de operações do projeto. Aguarde a liberação da cota antes de tentar novamente.',indice:null};
   if (codigo === "failed-precondition" && /index|índice/i.test(texto)) {
     const encontrado = texto.match(
       /https:\/\/console\.firebase\.google\.com\/[^\s<>"')]+/,

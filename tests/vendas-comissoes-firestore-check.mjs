@@ -76,7 +76,11 @@ try {
       )
       .replaceAll("./firebase-config.js", configUrl)
       .replaceAll("./vendas-comissoes-core.js", coreUrl)
-      .replaceAll("./pdv-core.js", pdvCoreUrl),
+      .replaceAll("./pdv-core.js", pdvCoreUrl)
+      .replaceAll(
+        "./firebase-limites.js",
+        new URL("../js/firebase-limites.js", import.meta.url).href,
+      ),
   );
   source = source.replaceAll("./pdv-db.js", pdvDbUrl);
   source = source

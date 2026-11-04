@@ -4,9 +4,12 @@
 
 import { buscarEstatisticas, listarCotacoes, formatarMoeda, formatarData } from "./database.js";
 import { temCargo } from "./auth.js";
+import {firebaseEmPausa, registrarCotaFirebase, ehCotaFirebase, MENSAGEM_COTA_FIREBASE} from './firebase-limites.js';
 
 let _usuario = null;
 let _dadosUsuario = null;
+let _dashboardEmCarregamento = false;
+let _dashboardAtualizadoEm = 0;
 
 export function iniciarDashboard(usuario, dadosUsuario) {
   _usuario      = usuario;
@@ -18,7 +21,7 @@ export function iniciarDashboard(usuario, dadosUsuario) {
   });
 
   // Botão atualizar
-  document.getElementById("btnAtualizarDash")?.addEventListener("click", carregarDashboard);
+  document.getElementById("btnAtualizarDash")?.addEventListener("click", () => carregarDashboard(true));
 
   // Links "Ver todas"
   document.querySelectorAll(".link-ver-todas").forEach(el => {
@@ -45,7 +48,16 @@ export function iniciarDashboard(usuario, dadosUsuario) {
   carregarDashboard();
 }
 
-async function carregarDashboard() {
+async function carregarDashboard(forcar=false) {
+  if(_dashboardEmCarregamento)return;
+  if(firebaseEmPausa()){window.mostrarToast?.(MENSAGEM_COTA_FIREBASE,'error');return;}
+  if(!forcar&&_dashboardAtualizadoEm>0&&Date.now()-_dashboardAtualizadoEm<30000)return;
+  _dashboardEmCarregamento=true;
+  try {await carregarDadosDashboard();}
+  finally {_dashboardEmCarregamento=false;}
+}
+
+async function carregarDadosDashboard() {
   // Skeleton
   definirEstatisticas("—", "—", "—", "—");
   document.getElementById("tbodyUltimas").innerHTML =
@@ -57,6 +69,8 @@ async function carregarDashboard() {
   ]);
 
   if (!resultado.sucesso || !resumo.sucesso) {
+    const cota=[resultado,resumo].some(r=>ehCotaFirebase({message:r.erro}));
+    if(cota){registrarCotaFirebase({code:'resource-exhausted'});window.mostrarToast?.(MENSAGEM_COTA_FIREBASE,'error');document.getElementById('tbodyUltimas').innerHTML='<tr><td colspan="5" class="empty-cell">Firebase com cota excedida. Aguarde a liberação do serviço.</td></tr>';return;}
     window.mostrarToast?.("Erro ao carregar dados.", "error");
     document.getElementById("tbodyUltimas").innerHTML =
       `<tr><td colspan="5" class="empty-cell">Erro ao carregar cotações.</td></tr>`;
@@ -73,6 +87,7 @@ async function carregarDashboard() {
   );
 
   renderizarUltimas(ultimas);
+  _dashboardAtualizadoEm=Date.now();
 }
 
 function definirEstatisticas(total, valor, mes, acesso) {

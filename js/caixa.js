@@ -1,6 +1,7 @@
 import {sessaoAtual,abrirSessaoPdv} from './pdv-db.js';
 import {mostrarComprovante,fecharPdv,movimentarPdv,historicoVendasPdv,iniciarPdvUi} from './pdv-ui.js';
 import {centavos} from './vendas-comissoes-core.js';
+import {ehCotaFirebase, MENSAGEM_COTA_FIREBASE} from './firebase-limites.js';
 import { salvarVendaComComissao } from "./vendas-comissoes-db.js";
 // ============================================================
 // caixa.js — Módulo Caixa (PDV) — Papelaria Futura
@@ -58,6 +59,7 @@ let _estadoSessaoCaixa = "verificando";
 let _consultaSessaoCaixa = null;
 let _preparandoFinalizacao = false;
 let _sessaoFinalizacaoId = null;
+let _ultimaConsultaSessaoCaixa = 0;
 
 // ----------------------------------------------------------------
 // Inicialização
@@ -131,6 +133,7 @@ export function iniciarCaixa(usuario, dadosUsuario) {
 // Abrir / Fechar Caixa
 // ----------------------------------------------------------------
 async function atualizarStatusCaixa(forcar = false) {
+  if (!forcar && _estadoSessaoCaixa === 'confirmado' && Date.now()-_ultimaConsultaSessaoCaixa < 15000) return true;
   while (_consultaSessaoCaixa) {
     const resultado = await _consultaSessaoCaixa;
     if (!forcar) return resultado;
@@ -140,11 +143,12 @@ async function atualizarStatusCaixa(forcar = false) {
   const consulta = (async () => {
     try {
       _sessaoCaixa = await sessaoAtual();
+      _ultimaConsultaSessaoCaixa = Date.now();
       _estadoSessaoCaixa = "confirmado";
       return true;
     } catch(e) {
-      _estadoSessaoCaixa = "erro";
-      const mensagem = e.code === 'permission-denied' ? 'Não foi possível consultar seu caixa. Peça ao administrador para conferir seu acesso e as regras do sistema.' : ['unavailable','deadline-exceeded'].includes(e.code) ? 'Não foi possível consultar o caixa no servidor. Confira a conexão e tente novamente.' : e.message || 'Não foi possível verificar o caixa. Confira a conexão e tente novamente.';
+      _estadoSessaoCaixa = ehCotaFirebase(e) ? "cota" : "erro";
+      const mensagem = ehCotaFirebase(e) ? MENSAGEM_COTA_FIREBASE : e.code === 'permission-denied' ? 'Não foi possível consultar seu caixa. Peça ao administrador para conferir seu acesso e as regras do sistema.' : ['unavailable','deadline-exceeded'].includes(e.code) ? 'Não foi possível consultar o caixa no servidor. Confira a conexão e tente novamente.' : e.message || 'Não foi possível verificar o caixa. Confira a conexão e tente novamente.';
       window.mostrarToast?.(mensagem, 'error');
       return false;
     } finally { renderStatusCaixa(); }
@@ -162,12 +166,12 @@ function renderStatusCaixa() {
   const btnAbrir  = document.getElementById("btnAbrirCaixa");
   const btnFechar = document.getElementById("btnFecharCaixa");
   const btnAtualizar = document.getElementById("btnAtualizarSessaoCaixa");
-  if (btnAtualizar) btnAtualizar.style.display = _estadoSessaoCaixa === 'erro' ? '' : 'none';
+  if (btnAtualizar) btnAtualizar.style.display = ['erro','cota'].includes(_estadoSessaoCaixa) ? '' : 'none';
   if (_estadoSessaoCaixa !== "confirmado") {
     elDot?.classList.add("caixa-status-dot--fechado");
     if (elNome) elNome.textContent = "—";
     if (elHora) elHora.textContent = "—";
-    if (elTexto) elTexto.textContent = _estadoSessaoCaixa === "erro" ? "Não foi possível verificar o caixa" : "Verificando caixa…";
+    if (elTexto) elTexto.textContent = _estadoSessaoCaixa === 'cota' ? 'Firebase com cota excedida' : _estadoSessaoCaixa === "erro" ? "Não foi possível verificar o caixa" : "Verificando caixa…";
     if (btnAbrir) btnAbrir.style.display = "none";
     if (btnFechar) btnFechar.style.display = "none";
     return;
@@ -197,6 +201,7 @@ function abrirCaixaFluxo(aposAbrir = null) {
       <label class="field-label" for="mAbrirCaixaValor">Valor de abertura (opcional)</label>
       <input type="number" step="0.01" min="0" class="field-input--plain" id="mAbrirCaixaValor" placeholder="0,00" autocomplete="off" />
     </div>
+    <p id="mAbrirCaixaErro" role="alert" hidden style="margin-top:12px;color:#b91c1c"></p>
   `;
   window.abrirModal("Abrir Caixa", body, `
     <button class="btn-ghost" id="btnCancelarAbrirCaixa">Cancelar</button>
@@ -212,7 +217,7 @@ function abrirCaixaFluxo(aposAbrir = null) {
     btn.textContent = "Abrindo...";
 
     const nome = _dadosUsuario?.nome || _usuario?.email?.split("@")[0] || "—";
-    let resultado;try { const id = await abrirSessaoPdv({numero:document.getElementById('pdvNumeroCaixa').value,inicial:centavos(valorAbertura),nome});resultado={sucesso:true,id}; } catch(e) {resultado={sucesso:false,erro:e.message};}
+    let resultado;try { const id = await abrirSessaoPdv({numero:document.getElementById('pdvNumeroCaixa').value,inicial:centavos(valorAbertura),nome});resultado={sucesso:true,id}; } catch(e) {resultado={sucesso:false,erro:ehCotaFirebase(e) ? MENSAGEM_COTA_FIREBASE : e.message,cota:ehCotaFirebase(e)};}
 
     if (resultado.sucesso) {
       window.fecharModal();
@@ -220,9 +225,12 @@ function abrirCaixaFluxo(aposAbrir = null) {
       const confirmado = await atualizarStatusCaixa(true);
       if (confirmado && _sessaoCaixa?.id === resultado.id && typeof aposAbrir === 'function') await aposAbrir();
     } else {
+      const erroModal=document.getElementById('mAbrirCaixaErro');
+      if(erroModal){erroModal.hidden=false;erroModal.textContent=resultado.erro || 'Não foi possível abrir o caixa.';}
       window.mostrarToast?.(resultado.erro || "Erro ao abrir o caixa. Tente novamente.", "error");
-      btn.disabled = false;
-      btn.textContent = "Abrir Caixa";
+      btn.disabled = !!resultado.cota;
+      btn.textContent = resultado.cota ? "Cota do Firebase excedida" : "Abrir Caixa";
+      if(resultado.cota){_estadoSessaoCaixa="cota";renderStatusCaixa();}
     }
   };
 }
@@ -862,6 +870,9 @@ async function prepararFinalizacaoVenda() {
     } catch (err) {
       console.error(err);
       window.mostrarToast?.(err.message || "Erro ao finalizar a venda. Tente novamente.", "error");
+      if(ehCotaFirebase(err)){
+        _estadoSessaoCaixa='cota';renderStatusCaixa();
+      }
       btnConfirmar.disabled = false;
       btnConfirmar.textContent = "Confirmar";
     }

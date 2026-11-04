@@ -147,6 +147,7 @@ export function protegerRota(callbackAutenticado) {
         "position:fixed;inset:0;z-index:100000;background:#f8fafc;display:grid;place-content:center;gap:18px;padding:24px;text-align:center;color:#123c70;font:16px Arial,sans-serif";
       aviso.innerHTML =
         '<h2>Não foi possível carregar seu acesso</h2><p>Confira sua conexão e tente novamente.</p><button type="button" style="padding:12px;cursor:pointer">Tentar novamente</button>';
+      if(erro.code==='resource-exhausted')aviso.innerHTML='<h2>Firebase com cota excedida</h2><p>O banco atingiu o limite de operações do projeto. Aguarde a liberação da cota para continuar.</p><button type="button" style="padding:12px;cursor:pointer">Consultar novamente</button>';
       aviso.querySelector("button").onclick = () => window.location.reload();
       document.body.append(aviso);
     });

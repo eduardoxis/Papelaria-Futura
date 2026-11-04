@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
+const limites = await import("../js/firebase-limites.js");
 const s = fs.readFileSync(new URL("../js/caixa.js", import.meta.url), "utf8");
 const estado = s.slice(
   s.indexOf("let _sessaoCaixa ="),
@@ -30,6 +31,7 @@ const persistencia = s.slice(
 function ambiente({
   sessao = null,
   erro = null,
+  erroAbertura = null,
   itens = [{ nome: "Serviço", qtd: 1, unitario: 10 }],
 } = {}) {
   const campos = new Map(),
@@ -55,6 +57,8 @@ function ambiente({
   campo("selCaixaFormaPagto").value = "Convênio";
   campo("inputValorRecebido").value = "1";
   const ctx = {
+    ehCotaFirebase: limites.ehCotaFirebase,
+    MENSAGEM_COTA_FIREBASE: limites.MENSAGEM_COTA_FIREBASE,
     document: { getElementById: campo, querySelectorAll: () => [] },
     window: {
       mostrarToast: (...args) => avisos.push(args),
@@ -73,6 +77,7 @@ function ambiente({
     },
     abrirSessaoPdv: async (d) => {
       aberturas++;
+      if (erroAbertura) throw erroAbertura;
       atual = {
         id: "s1",
         caixaNumero: d.numero,
@@ -94,7 +99,7 @@ function ambiente({
     console,
   };
   vm.createContext(ctx);
-  vm.runInContext([estado,status,finalizacao,persistencia].join('\n'), ctx);
+  vm.runInContext([estado, status, finalizacao, persistencia].join("\n"), ctx);
   return {
     ctx,
     campos,
@@ -172,6 +177,30 @@ function ambiente({
     () => a.ctx.finalizarVenda({ id: "vendedor" }),
     /fechado ou alterado/,
   );
+}
+{
+  const a = ambiente({ sessao: { id: "s1", status: "aberto" } });
+  await a.ctx.atualizarStatusCaixa();
+  await a.ctx.atualizarStatusCaixa();
+  await a.ctx.atualizarStatusCaixa();
+  assert.equal(a.contagens().consultas, 1);
+  await a.ctx.atualizarStatusCaixa(true);
+  assert.equal(a.contagens().consultas, 2);
+}
+{
+  const a = ambiente({
+    erroAbertura: Object.assign(Error("Quota exceeded."), {
+      code: "resource-exhausted",
+    }),
+  });
+  await a.ctx.iniciarFinalizacaoVenda();
+  await a.campos.get("btnConfirmarAbrirCaixa").onclick();
+  assert.equal(a.estado().estado, "cota");
+  assert.equal(a.campos.get("btnConfirmarAbrirCaixa").disabled, true);
+  assert.ok(a.campos.get("mAbrirCaixaErro").textContent.includes("cota"));
+  await a.campos.get("btnConfirmarAbrirCaixa").onclick();
+  assert.equal(a.contagens().aberturas, 1);
+  assert.equal(a.ctx._itens.length, 1);
 }
 console.log(
   "OK CAIXA/SESSÃO: falha de consulta não vira caixa fechado; abertura solicitada ao finalizar, retomada da venda, itens e pagamento preservados, sessão existente reconhecida e clique duplo protegido.",

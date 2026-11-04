@@ -9,11 +9,13 @@ import {
   orderBy,
   limit,
   startAfter,
-  runTransaction,
+  runTransaction as transacaoFirestore,
   serverTimestamp,
   Timestamp,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db, auth } from "./firebase-config.js";
+import { executarFirebaseComLimite } from "./firebase-limites.js";
+const runTransaction = (banco, acao, opcoes) => executarFirebaseComLimite(() => transacaoFirestore(banco, acao, opcoes));
 import {
   COL_COM,
   centavos,
@@ -78,14 +80,14 @@ export async function salvarConfiguracaoPdv(dados) {
 export async function sessaoAtual() {
   // Consulta a sessão efetiva do operador no servidor, sem confundir cache,
   // falha de leitura ou um controle antigo ausente com caixa fechado.
-  const sessoes = await getDocsFromServer(
+  const sessoes = await executarFirebaseComLimite(() => getDocsFromServer(
     query(
       collection(db, "pf_caixa_sessoes"),
       where("operadorAberturaUid", "==", uid()),
       where("status", "==", "aberto"),
       limit(2),
     ),
-  );
+  ));
   if (sessoes.size > 1)
     throw Error(
       "Há mais de um caixa aberto para este usuário. Peça ao administrador para conferir as sessões antes de continuar.",
@@ -106,7 +108,8 @@ export async function abrirSessaoPdv({ numero = "CX-01", inicial = 0, nome }) {
   return runTransaction(db, async (tx) => {
     const controle = ref(COL_PDV.controle, numero),
       operador = ref(COL_PDV.operadores, autor);
-    const [c, o] = await Promise.all([tx.get(controle), tx.get(operador)]);
+    const c = await tx.get(controle);
+    const o = await tx.get(operador);
     if (c.exists() && c.data().sessaoId)
       throw Error("Este caixa já está aberto.");
     if (o.exists() && o.data().sessaoId)

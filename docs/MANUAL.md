@@ -3,6 +3,7 @@
 Este manual reúne as orientações de operação, publicação e recuperação do projeto.
 
 - [Publicação](#publicacao)
+- [Cota de operações do Firebase](#cota)
 - [Backup e recuperação](#backup)
 - [Vendas e comissões](#comissoes)
 - [Caixa e comprovantes](#caixa)
@@ -364,3 +365,18 @@ tests/sessao-check.mjs cobre restauração inicial, troca de conta durante a lei
 tests/sessao-firebase-check.mjs utiliza o SDK real com emuladores locais de Authentication e Firestore: criação isolada, gravação do perfil com a conta administrativa, limpeza do acesso temporário, falha no cadastro, nova tentativa de gravação sem criar outro login, bloqueios de alteração de cargos e saída acompanhada.
 
 Os testes não utilizam credenciais ou contas de produção. O teste de Firebase precisa das dependências firebase, firebase-tools e @firebase/rules-unit-testing, além do emulador Firestore. As verificações de regressão de OS, PDV, comissões e backup também devem permanecer aprovadas.
+
+<a id="cota"></a>
+## Cota de operações do Firebase
+
+O erro resource-exhausted / HTTP 429 / Quota exceeded significa que o Firebase recusou a operação por um limite de recursos do projeto. O código não pode restaurar uma cota esgotada nem confirmar uma venda que o servidor não salvou.
+
+Confira Firestore Database → Uso no Firebase Console para identificar o limite atingido. Se for a cota gratuita diária, a renovação ocorre em torno de meia-noite do horário do Pacífico. A conversão para o horário de Brasília varia com o horário de verão do Pacífico. Consulte a [documentação oficial de cotas](https://firebase.google.com/docs/firestore/quotas).
+
+A aplicação pausa novas operações do PDV por 60 segundos ao receber esse erro, compartilhando somente o prazo da pausa entre abas do mesmo navegador. Não tenta reabrir o caixa automaticamente nem transforma o erro em venda concluída. Os itens e o pagamento permanecem na tela. Depois que a cota estiver disponível, feche o aviso de abertura e use Atualizar caixa para consultar novamente.
+
+Consultas do estado do caixa disparadas apenas por foco/navegação reutilizam a confirmação recente por até 15 segundos. A finalização mantém a conferência no servidor. As notificações respeitam o intervalo de cinco minutos também ao alternar abas e preservam os dados anteriores em caso de falha. O Dashboard evita cargas simultâneas e reutiliza sua consulta recente por até 30 segundos; o botão de atualização permite uma consulta explícita.
+
+Essa redução evita leituras repetidas desnecessárias, mas não garante que o projeto sempre fique dentro da cota: o consumo inclui todos os usuários, abas e demais acessos ao banco. Enquanto o Firebase continuar recusando gravações, as vendas não poderão ser concluídas.
+
+Verificações: tests/firebase-limites-check.mjs, tests/caixa-sessao-check.mjs e os testes de persistência de PDV e comissões.

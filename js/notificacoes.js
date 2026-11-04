@@ -4,11 +4,13 @@
 // clientes de Promissórias em atraso.
 // ============================================================
 import {
-  collection, getDocs, query, where, orderBy, limit, Timestamp
+  collection, getDocs as lerDocumentosFirestore, query, where, orderBy, limit, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 import { formatarMoeda } from "./database.js";
 import { temCargo } from "./auth.js";
+import { executarFirebaseComLimite, ehCotaFirebase, firebaseEmPausa } from "./firebase-limites.js";
+const getDocs = (...args) => executarFirebaseComLimite(() => lerDocumentosFirestore(...args));
 
 const COL_COTACOES   = "cotacoes";
 const COL_PRODUTOS   = "pf_produtos";
@@ -18,6 +20,7 @@ const COL_PROM_PAG   = "prom_pagamentos";
 
 let _cache = [];
 let _carregando = false;
+let _ultimaAtualizacao = 0;
 let _usuario = null;
 let _dadosUsuario = null;
 
@@ -66,6 +69,7 @@ async function calcularNotificacoes() {
       }
     });
   } catch (err) {
+    if(ehCotaFirebase(err))throw err;
     console.error("Notificações — erro ao checar cotações:", err);
   }
 
@@ -90,6 +94,7 @@ async function calcularNotificacoes() {
       }
     });
   } catch (err) {
+    if(ehCotaFirebase(err))throw err;
     console.error("Notificações — erro ao checar estoque:", err);
   }
 
@@ -139,6 +144,7 @@ async function calcularNotificacoes() {
       });
     });
   } catch (err) {
+    if(ehCotaFirebase(err))throw err;
     console.error("Notificações — erro ao checar promissórias:", err);
   }
 
@@ -153,10 +159,14 @@ const ICONES = {
 };
 
 async function atualizarBadgeNotificacoes() {
-  if (_carregando || document.hidden) return;
+  if (_carregando || document.hidden || firebaseEmPausa() || (_ultimaAtualizacao > 0 && Date.now()-_ultimaAtualizacao < 5*60*1000)) return;
   _carregando = true;
   try {
     _cache = await calcularNotificacoes();
+    _ultimaAtualizacao = Date.now();
+  } catch (erro) {
+    console.warn("Notificações não atualizadas; dados anteriores preservados.",erro.code || 'indisponível');
+    return;
   } finally {
     _carregando = false;
   }
