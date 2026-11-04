@@ -1,6 +1,6 @@
 import { temCargo, protegerRota } from "./auth.js";
 import { observarFilaOs } from "./os-db.js";
-import { STATUS_OS, prazoOs, milisOs } from "./os-core.js";
+import { STATUS_OS, prazoOs, milisOs, erroConsultaOs } from "./os-core.js";
 const $ = (id) => document.getElementById(id),
   esc = (v) =>
     String(v ?? "").replace(
@@ -120,11 +120,10 @@ async function iniciar(usuario, perfil) {
         : "Sem confirmação do servidor. As informações podem estar desatualizadas.";
       render(true);
     },
-    () => {
+    (erro) => {
       itens = [];
       render(true);
-      $("osPainelConexao").textContent =
-        "Não foi possível consultar a fila. Confira seu acesso e atualize esta página.";
+      $("osPainelConexao").textContent = erroConsultaOs(erro).mensagem;
     },
   );
 }

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const rulesPath = resolve(process.cwd(), "firestore.rules");
+const rulesPath = resolve(process.cwd(), "firebase/firestore.rules");
 const rules = readFileSync(rulesPath, "utf8");
 
 function blocoDaColecao(caminho) {

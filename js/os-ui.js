@@ -7,6 +7,7 @@ import {
   milisOs,
   filtrarOs,
   normalizarOs,
+  erroConsultaOs,
 } from "./os-core.js";
 import {
   novoIdOs,
@@ -42,6 +43,7 @@ let usuario,
   cursor = null,
   mais = false,
   modo = "fila",
+  estadoFila = "carregando",
   desligar = null,
   timer = null,
   consultaHistorico = 0,
@@ -56,11 +58,15 @@ async function fazer(b, fn) {
     await fn();
   } catch (e) {
     console.error(e);
-    toast(
-      e.code === "permission-denied"
-        ? "Você não tem permissão para esta operação."
-        : e.message || "Não foi possível concluir.",
-    );
+    const aviso = erroConsultaOs(e);
+    if (aviso.indice) {
+      $("osConexao").textContent = aviso.mensagem;
+      if (admin) {
+        const link=document.createElement('a');link.href=aviso.indice;link.target='_blank';link.rel='noopener noreferrer';link.textContent=' Criar índice no Firebase';
+        $("osConexao").append(link);
+      }
+    }
+    toast(aviso.mensagem);
   } finally {
     if (b?.isConnected) b.disabled = false;
   }
@@ -126,6 +132,13 @@ function render() {
   const lista = filtrarOs(modo === "fila" ? ordens : historico, filtros());
   $("osModoTitulo").textContent =
     modo === "fila" ? "Fila de execução" : "Histórico de OS";
+  if (modo === 'fila' && estadoFila !== 'pronta' && !ordens.length) {
+    const mensagem = estadoFila === 'erro' ? 'Fila indisponível. Confira o aviso acima e clique em Atualizar.' : 'Carregando ordens de serviço…';
+    $("osResumo").textContent = estadoFila === 'erro' ? 'Não foi possível consultar as ordens.' : 'Consultando a fila…';
+    $("osLista").innerHTML = '<p>'+esc(mensagem)+'</p>';
+    $("osMais").hidden = true;
+    return;
+  }
   $("osResumo").textContent =
     lista.length +
     " ordens exibidas" +
@@ -238,6 +251,7 @@ function conectar() {
   desligar = observarFilaOs(
     { admin, uid: usuario.uid },
     (itens, m) => {
+      estadoFila = m.fromCache ? 'carregando' : 'pronta';
       ordens = itens;
       $("osConexao").textContent = m.fromCache
         ? "Sem confirmação do servidor. As informações podem estar desatualizadas."
@@ -248,12 +262,22 @@ function conectar() {
       renderEntregas();
     },
     (e) => {
-      $("osConexao").textContent =
-        "Não foi possível atualizar a fila. Confira a conexão e tente novamente.";
+      const aviso = erroConsultaOs(e);
+      estadoFila = 'erro';
+      if (['permission-denied','unauthenticated'].includes(e.code))ordens=[];
+      $("osConexao").textContent = aviso.mensagem;
+      if (aviso.indice && admin) {
+        const link=document.createElement('a');link.href=aviso.indice;link.target='_blank';link.rel='noopener noreferrer';link.textContent=' Criar índice no Firebase';
+        $("osConexao").append(link);
+      }
       $("osConexao").classList.add("erro");
-      toast(e.message);
+      render();
+      renderEntregas();
+      toast(aviso.mensagem);
       desligar?.();
       desligar = null;
+      clearInterval(timer);
+      timer = null;
     },
   );
   timer = setInterval(() => {

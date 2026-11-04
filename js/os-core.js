@@ -152,3 +152,23 @@ export function projecaoOs(id, o) {
     revisao: o.revisao,
   };
 }
+
+export function compararFilaOs(a, b) {
+  const posicao = o => Number.isFinite(Number(o.posicaoFila)) ? Number(o.posicaoFila) : Number.MAX_SAFE_INTEGER;
+  const diferenca = posicao(a) - posicao(b);
+  if (diferenca) return diferenca;
+  const x = String(a.id || a.osId || ''), y = String(b.id || b.osId || '');
+  return x < y ? -1 : x > y ? 1 : 0;
+}
+
+export function erroConsultaOs(erro) {
+  const codigo = String(erro?.code || '').replace(/^firestore\//, '');
+  const texto = String(erro?.message || '');
+  if (codigo === 'failed-precondition' && /index|índice/i.test(texto)) {
+    const encontrado = texto.match(/https:\/\/console\.firebase\.google\.com\/[^\s<>"')]+/);
+    return { mensagem:'Esta consulta precisa de um índice no Firebase. O administrador deve criá-lo e aguardar a ativação.', indice:encontrado?.[0] || null };
+  }
+  if (codigo === 'permission-denied' || codigo === 'unauthenticated') return {mensagem:'Seu usuário não tem permissão para consultar estes dados. Peça ao administrador para conferir seu acesso.',indice:null};
+  if (codigo === 'unavailable' || codigo === 'deadline-exceeded') return {mensagem:'Não foi possível conectar ao servidor. Confira a conexão e tente novamente.',indice:null};
+  return {mensagem: texto || 'Não foi possível concluir a consulta. Tente novamente.',indice:null};
+}

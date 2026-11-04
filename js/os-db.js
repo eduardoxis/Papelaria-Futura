@@ -23,6 +23,7 @@ import {
   transicaoOs,
   projecaoOs,
   filtrarOs,
+  compararFilaOs,
 } from "./os-core.js";
 const r = (c, id) => doc(db, c, id),
   stamp = () => serverTimestamp(),
@@ -298,18 +299,17 @@ export function observarFilaOs(
   erro,
 ) {
   const filtros = painel
-    ? [where("ativo", "==", true), orderBy("posicaoFila")]
+    ? [where("ativo", "==", true)]
     : [
         where("ativo", "==", true),
         ...(!admin ? [where("responsavelId", "==", uid)] : []),
-        orderBy("posicaoFila"),
       ];
   return onSnapshot(
     query(collection(db, painel ? COL_OS.painel : COL_OS.ordens), ...filtros),
     { includeMetadataChanges: true },
     (s) =>
       sucesso(
-        s.docs.map((d) => ({ ...d.data(), id: d.id })),
+        s.docs.map((d) => ({ ...d.data(), id: d.id })).sort(compararFilaOs),
         s.metadata,
       ),
     erro,

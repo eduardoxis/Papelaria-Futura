@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 const { setLogLevel, writeBatch, deleteDoc } = await import(firestoreUrl);
 setLogLevel("silent");
 const rules = fs.readFileSync(
-  new URL("../firestore.rules", import.meta.url),
+  new URL("../firebase/firestore.rules", import.meta.url),
   "utf8",
 );
 const env = await initializeTestEnvironment({
