@@ -86,7 +86,10 @@ export async function sessaoAtual() {
       limit(2),
     ),
   );
-  if (sessoes.size > 1) throw Error("Há mais de um caixa aberto para este usuário. Peça ao administrador para conferir as sessões antes de continuar.");
+  if (sessoes.size > 1)
+    throw Error(
+      "Há mais de um caixa aberto para este usuário. Peça ao administrador para conferir as sessões antes de continuar.",
+    );
   const ss = sessoes.docs[0];
   return ss
     ? { ...ss.data(), id: ss.id, legado: ss.data().versaoPdv !== 2 }

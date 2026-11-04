@@ -179,7 +179,7 @@ Comissões são calculadas com o percentual vigente na venda e permanecem congel
 
 ### Uso diário
 
-Abra o caixa identificando-o e informando o troco inicial. Cada venda nova fica vinculada àquela sessão. A numeração inclui o caixa e um identificador único; números antigos permanecem preservados.
+Abra o caixa identificando-o e informando o troco inicial. Se clicar em Finalizar Venda com itens no carrinho e o caixa estiver fechado, a tela de abertura será oferecida; após confirmar, a seleção do vendedor e da planilha continua com os itens e o pagamento preservados. A sessão é consultada diretamente no servidor e revalidada antes de salvar. Falha de conexão ou permissão não é tratada como caixa fechado; use Atualizar caixa para tentar novamente. Se a sessão mudar ou for fechada em outra aba durante a escolha do vendedor, a venda não será vinculada automaticamente a outro caixa. Cada venda nova fica vinculada àquela sessão. A numeração inclui o caixa e um identificador único; números antigos permanecem preservados.
 
 Dinheiro, PIX, débito, crédito, outras formas e fiado/convênio são separados. No pagamento misto, informe quanto cabe a cada forma; a soma deve fechar o valor da venda. Troco só se aplica ao dinheiro. Fiado/convênio é mostrado separadamente e não entra como dinheiro físico.
 

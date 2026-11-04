@@ -95,7 +95,33 @@ try {
     pdv.abrirSessaoPdv({ numero: "CX-01", inicial: 20000, nome: "Operador 1" }),
   );
   assert.equal((await pdv.sessaoAtual()).id, sid);
+  await env.withSecurityRulesDisabled(async (contexto) => {
+    const db = contexto.firestore();
+    await deleteDoc(doc(db, "pf_caixa_operadores", "op1"));
+  });
+  assert.equal(
+    (await pdv.sessaoAtual()).id,
+    sid,
+    "sessão real continua sendo encontrada sem o controle antigo",
+  );
+  await env.withSecurityRulesDisabled(async (contexto) => {
+    const db = contexto.firestore();
+    await setDoc(doc(db, "pf_caixa_operadores", "op1"), { sessaoId: sid });
+    const s = (await getDoc(doc(db, "pf_caixa_sessoes", sid))).data();
+    await setDoc(doc(db, "pf_caixa_sessoes", "sessao-duplicada-teste"), s);
+  });
+  await assert.rejects(() => pdv.sessaoAtual(), /mais de um caixa/);
+  await env.withSecurityRulesDisabled((contexto) =>
+    deleteDoc(
+      doc(contexto.firestore(), "pf_caixa_sessoes", "sessao-duplicada-teste"),
+    ),
+  );
   usar(op2, "op2");
+  assert.equal(
+    await pdv.sessaoAtual(),
+    null,
+    "não utiliza a sessão de outro operador",
+  );
   await assert.rejects(() =>
     pdv.abrirSessaoPdv({ numero: "CX-01", inicial: 0, nome: "Operador 2" }),
   );
@@ -324,9 +350,25 @@ try {
       updateDoc(doc(banco, "pf_caixa_sessoes", sid), { status: "fechado" }),
     );
   }
-  usar(admin,'admin');
-  await pdv.registrarMovimento({sessaoId:sid2,tipo:'suprimento',valor:5000,motivo:'Administrador suprindo gaveta de outro operador'},'admin-sup');
-  await pdv.registrarMovimento({sessaoId:sid2,tipo:'sangria',valor:5000,motivo:'Administrador retirando valor de outra gaveta'},'admin-sang');
+  usar(admin, "admin");
+  await pdv.registrarMovimento(
+    {
+      sessaoId: sid2,
+      tipo: "suprimento",
+      valor: 5000,
+      motivo: "Administrador suprindo gaveta de outro operador",
+    },
+    "admin-sup",
+  );
+  await pdv.registrarMovimento(
+    {
+      sessaoId: sid2,
+      tipo: "sangria",
+      valor: 5000,
+      motivo: "Administrador retirando valor de outra gaveta",
+    },
+    "admin-sang",
+  );
   usar(op2, "op2");
   sessao = await pdv.conferirSessao(sid2);
   await pdv.confirmarFechamento(sid2, sessao.revisao, 89900, "Operador 2");

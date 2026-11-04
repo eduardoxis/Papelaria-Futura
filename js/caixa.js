@@ -71,6 +71,7 @@ export function iniciarCaixa(usuario, dadosUsuario) {
 
   document.getElementById("btnAbrirCaixa")?.addEventListener("click", abrirCaixaFluxo);
   document.getElementById("btnFecharCaixa")?.addEventListener("click", fecharCaixaFluxo);
+  document.getElementById("btnAtualizarSessaoCaixa")?.addEventListener("click", () => atualizarStatusCaixa(true));
 
   document.addEventListener("navegacao", (e) => {
     if (e.detail.page === "caixa") {
@@ -143,7 +144,7 @@ async function atualizarStatusCaixa(forcar = false) {
       return true;
     } catch(e) {
       _estadoSessaoCaixa = "erro";
-      const mensagem = e.code === 'permission-denied' ? 'Não foi possível consultar seu caixa. Peça ao administrador para conferir seu acesso e as regras do sistema.' : e.message || 'Não foi possível verificar o caixa. Confira a conexão e tente novamente.';
+      const mensagem = e.code === 'permission-denied' ? 'Não foi possível consultar seu caixa. Peça ao administrador para conferir seu acesso e as regras do sistema.' : ['unavailable','deadline-exceeded'].includes(e.code) ? 'Não foi possível consultar o caixa no servidor. Confira a conexão e tente novamente.' : e.message || 'Não foi possível verificar o caixa. Confira a conexão e tente novamente.';
       window.mostrarToast?.(mensagem, 'error');
       return false;
     } finally { renderStatusCaixa(); }
@@ -160,7 +161,12 @@ function renderStatusCaixa() {
   const elHora  = document.getElementById("caixaHoraAbertura");
   const btnAbrir  = document.getElementById("btnAbrirCaixa");
   const btnFechar = document.getElementById("btnFecharCaixa");
+  const btnAtualizar = document.getElementById("btnAtualizarSessaoCaixa");
+  if (btnAtualizar) btnAtualizar.style.display = _estadoSessaoCaixa === 'erro' ? '' : 'none';
   if (_estadoSessaoCaixa !== "confirmado") {
+    elDot?.classList.add("caixa-status-dot--fechado");
+    if (elNome) elNome.textContent = "—";
+    if (elHora) elHora.textContent = "—";
     if (elTexto) elTexto.textContent = _estadoSessaoCaixa === "erro" ? "Não foi possível verificar o caixa" : "Verificando caixa…";
     if (btnAbrir) btnAbrir.style.display = "none";
     if (btnFechar) btnFechar.style.display = "none";
@@ -866,6 +872,8 @@ async function prepararFinalizacaoVenda() {
 // Persistência: venda + baixa de estoque + registro de comissão
 // ----------------------------------------------------------------
 async function finalizarVenda(vendedor, nomeCliente = "") {
+  if (!await atualizarStatusCaixa(true)) throw Error("Não foi possível confirmar o caixa. Os itens da venda foram preservados. Tente novamente após conferir a conexão e o acesso.");
+  if (!_sessaoCaixa || _sessaoCaixa.id !== _sessaoFinalizacaoId) throw Error("O caixa foi fechado ou alterado em outra aba. Confira a sessão e inicie a finalização novamente. Os itens foram preservados.");
   if (!_vendaPersistenciaId) _vendaPersistenciaId = doc(collection(db, COL_VENDAS)).id;
   const { subtotalBruto, descontoItens, descontoTotal, acrescimo, total } = calcularTotais();
   const formaPagamento = document.getElementById("selCaixaFormaPagto")?.value || "Dinheiro";
@@ -875,7 +883,7 @@ async function finalizarVenda(vendedor, nomeCliente = "") {
   const numeroVenda = _contadorVenda++;
 
   const vendaDoc = {
-    sessaoId: _sessaoCaixa.id,
+    sessaoId: _sessaoFinalizacaoId,
     clienteNome: nomeCliente,
     numero: numeroVenda,
     itens: _itens.map(i => ({
