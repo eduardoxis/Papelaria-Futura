@@ -877,7 +877,7 @@ export async function adicionarRegistroComissao(comissaoId, dados) {
   try {
     const ref = await addDoc(
       collection(db, COLECAO_COMISSOES, comissaoId, "registros"),
-      { ...dados, dataCriacao: serverTimestamp(), updatedAt: serverTimestamp() }
+      { ...dados, ordem: Number(dados.ordem) || 0, dataCriacao: serverTimestamp(), updatedAt: serverTimestamp() }
     );
     return { sucesso: true, id: ref.id };
   } catch (erro) {
@@ -887,12 +887,11 @@ export async function adicionarRegistroComissao(comissaoId, dados) {
 
 export async function listarRegistrosComissao(comissaoId, { limitQtd = 50, cursor = null } = {}) {
   try {
-    // Ordena antes de paginar para reunir datas iguais mesmo entre páginas.
-    // Usa o índice existente, sem exigir publicação de novos índices no Firebase.
-    const snap = await getDocs(query(
-      collection(db, COLECAO_COMISSOES, comissaoId, "registros"),
-      orderBy("ordem", "asc")
-    ));
+    // Inclui também lançamentos antigos do caixa sem o campo ordem.
+    // orderBy excluiria esses documentos; a ordenação ocorre abaixo, antes de paginar.
+    const snap = await getDocs(
+      collection(db, COLECAO_COMISSOES, comissaoId, "registros")
+    );
     const registros = snap.docs
       .map(d => ({ id: d.id, ...d.data() }))
       .sort(compararRegistrosComissao);
