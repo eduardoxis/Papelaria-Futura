@@ -1,0 +1,69 @@
+.pdv-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  margin: 14px 0;
+}
+.pdv-form label {
+  flex: 1 1 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+.pdv-form input,
+.pdv-form select {
+  min-width: 0;
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px;
+  font: inherit;
+}
+.pdv-tabela {
+  min-width: 900px;
+}
+.pdv-tabela thead {
+  display: table-header-group;
+}
+.pdv-tabela tbody tr {
+  display: table-row;
+}
+.pdv-tabela td {
+  display: table-cell;
+  padding: 10px;
+  white-space: normal;
+}
+.pdv-form[hidden],
+#pdvMaisFechamentos[hidden] {
+  display: none !important;
+}
+#pdvHistoricoCaixas {
+  max-width: 100%;
+  min-width: 0;
+}
+.pdv-previa {
+  max-width: 100%;
+}
+#pdvListaFechamentos .table-wrap {
+  max-width: 100%;
+}
+@media (max-width: 600px) {
+  #modal:has(.pdv-previa) .modal-footer {
+    flex-wrap: wrap;
+    justify-content: stretch;
+  }
+  #modal:has(.pdv-previa) .modal-footer > button {
+    flex: 1 1 130px;
+    min-width: 0;
+    white-space: normal;
+  }
+  .pdv-form label {
+    flex-basis: 100%;
+  }
+  .pdv-form button {
+    width: 100%;
+  }
+}

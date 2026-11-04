@@ -65,7 +65,7 @@ As regras do Firestore são a validação no servidor, inclusive cálculos e sal
 
 ## Backup
 
-As 5 novas coleções foram incluídas no backup completo: configurações dos vendedores, base de cálculo, comissões por venda, pagamentos e auditoria. O inventário agora contém 23 coleções do projeto, além das subcoleções. Veja BACKUP.md.
+As 5 novas coleções foram incluídas no backup completo: configurações dos vendedores, base de cálculo, comissões por venda, pagamentos e auditoria. O inventário agora contém 28 coleções do projeto, além das subcoleções. Veja BACKUP.md.
 
 ## Testes
 
@@ -74,3 +74,6 @@ As 5 novas coleções foram incluídas no backup completo: configurações dos v
 - `node tests/vendas-comissoes-firestore-check.mjs`: integra o módulo real de persistência com o emulador do Firestore em 127.0.0.1:8089, projeto demo-futura-test. Requer firebase e @firebase/rules-unit-testing instalados para teste e o emulador iniciado. A variável VC_TEST_DEPENDENCIES pode apontar para o package.json dessas dependências instaladas fora do repositório. Não usa credenciais do projeto de produção.
 
 Foram verificados no emulador: regras compiladas, acesso de administrador/vendedor/anônimo, gravação atômica, preservação de percentuais históricos, repetição de operações, pagamentos parciais e concorrentes, excesso de pagamento e adulteração bloqueados, lote de 3 comissões, fiado, retroativas, cancelamentos após pagamentos e estornos parciais. A interface foi conferida no navegador com dados de teste, inclusive em 390px, e gerou arquivos PDF e Excel reais. A validação final com o site publicado depende da publicação das regras e índices e de uma conferência no seu projeto.
+
+
+A integração atual com sessões, comprovantes A4/58/80 e fechamentos está descrita em PDV_FECHAMENTOS.md. O pagamento das comissões permanece no ADM e não movimenta automaticamente a gaveta. O registro opcional da venda na planilha é atômico e dispensa senha somente para essa inclusão.

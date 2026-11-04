@@ -1,3 +1,6 @@
+import {sessaoAtual,abrirSessaoPdv} from './pdv-db.js';
+import {mostrarComprovante,fecharPdv,movimentarPdv,historicoVendasPdv,iniciarPdvUi} from './pdv-ui.js';
+import {centavos} from './vendas-comissoes-core.js';
 import { salvarVendaComComissao } from "./vendas-comissoes-db.js";
 // ============================================================
 // caixa.js — Módulo Caixa (PDV) — Papelaria Futura
@@ -6,11 +9,11 @@ import { salvarVendaComComissao } from "./vendas-comissoes-db.js";
 // ============================================================
 import {
   collection, doc, addDoc, getDoc, getDocs,
-  updateDoc, query, orderBy, limit, serverTimestamp
+  updateDoc, query, where, orderBy, limit, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 import {
-  formatarMoeda, formatarDataHora, listarComissoes, adicionarRegistroComissao, listarUsuarios, verificarSenhaComissao,
+  formatarMoeda, formatarDataHora, listarComissoes, adicionarRegistroComissao, listarUsuarios,
   buscarSessaoCaixaAberta, abrirCaixaSessao, fecharCaixaSessao, listarVendasDesde
 } from "./database.js";
 import { gerarPdfFechamentoCaixa } from "./pdf.js";
@@ -58,6 +61,7 @@ let _sessaoCaixa = null; // { id, abertoEm, operadorAberturaNome, ... } | null s
 export function iniciarCaixa(usuario, dadosUsuario) {
   _usuario = usuario;
   _dadosUsuario = dadosUsuario;
+  iniciarPdvUi(dadosUsuario);
 
   atualizarStatusCaixa();
 
@@ -84,7 +88,8 @@ export function iniciarCaixa(usuario, dadosUsuario) {
   document.getElementById("btnFinalizarVenda")?.addEventListener("click", () => executarAtalho("F", null));
   document.getElementById("btnLimparTudoCaixa")?.addEventListener("click", () => confirmarLimparTudo());
 
-  document.getElementById("selCaixaFormaPagto")?.addEventListener("change", atualizarTroco);
+  document.getElementById("selCaixaFormaPagto")?.addEventListener("change", () => {document.getElementById('pdvPagamentosMistos').hidden=document.getElementById('selCaixaFormaPagto').value!=='Misto';atualizarTroco();});
+  document.getElementById('pdvMovimentar')?.addEventListener('click',async()=>{try{await movimentarPdv();}catch(e){window.mostrarToast?.(e.message,'error');}});
   document.getElementById("inputValorRecebido")?.addEventListener("input", atualizarTroco);
   document.getElementById("inputCaixaCpfCnpj")?.addEventListener("input", (e) => _cpfCnpj = e.target.value);
   document.getElementById("inputCaixaObservacao")?.addEventListener("input", (e) => _observacao = e.target.value);
@@ -118,8 +123,7 @@ export function iniciarCaixa(usuario, dadosUsuario) {
 // Abrir / Fechar Caixa
 // ----------------------------------------------------------------
 async function atualizarStatusCaixa() {
-  const resultado = await buscarSessaoCaixaAberta();
-  _sessaoCaixa = resultado.sucesso ? resultado.sessao : null;
+  try { _sessaoCaixa = await sessaoAtual(); } catch(e) { _sessaoCaixa = null; window.mostrarToast?.(e.message, 'error'); }
 
   const elDot   = document.getElementById("caixaStatusDot");
   const elTexto = document.getElementById("caixaStatusTexto");
@@ -147,7 +151,7 @@ async function atualizarStatusCaixa() {
 
 function abrirCaixaFluxo() {
   const body = `
-    <p>Informe o valor inicial (fundo de troco) que está no caixa, se houver.</p>
+    <p>Informe o valor inicial (fundo de troco) e o identificador do caixa.</p><label class="field-label">Número do caixa<input id="pdvNumeroCaixa" class="field-input--plain" value="CX-01" maxlength="24"></label>
     <div class="field" style="margin-top:12px">
       <label class="field-label" for="mAbrirCaixaValor">Valor de abertura (opcional)</label>
       <input type="number" step="0.01" min="0" class="field-input--plain" id="mAbrirCaixaValor" placeholder="0,00" autocomplete="off" />
@@ -166,14 +170,14 @@ function abrirCaixaFluxo() {
     btn.textContent = "Abrindo...";
 
     const nome = _dadosUsuario?.nome || _usuario?.email?.split("@")[0] || "—";
-    const resultado = await abrirCaixaSessao({ operadorUid: _usuario?.uid, operadorNome: nome, valorAbertura });
+    let resultado;try { const id = await abrirSessaoPdv({numero:document.getElementById('pdvNumeroCaixa').value,inicial:centavos(valorAbertura),nome});resultado={sucesso:true,id}; } catch(e) {resultado={sucesso:false,erro:e.message};}
 
     if (resultado.sucesso) {
       window.fecharModal();
       window.mostrarToast?.("Caixa aberto com sucesso!", "success");
       await atualizarStatusCaixa();
     } else {
-      window.mostrarToast?.("Erro ao abrir o caixa. Tente novamente.", "error");
+      window.mostrarToast?.(resultado.erro || "Erro ao abrir o caixa. Tente novamente.", "error");
       btn.disabled = false;
       btn.textContent = "Abrir Caixa";
     }
@@ -182,200 +186,10 @@ function abrirCaixaFluxo() {
 
 async function fecharCaixaFluxo() {
   if (!_sessaoCaixa) return;
-
-  window.abrirModal("Fechar Caixa", `<p class="loading-cell">Calculando o relatório de fechamento...</p>`, "");
-
-  const abertoEmDate = _sessaoCaixa.abertoEm?.toDate ? _sessaoCaixa.abertoEm.toDate() : new Date(_sessaoCaixa.abertoEm);
-  const resultado = await listarVendasDesde(abertoEmDate);
-
-  if (!resultado.sucesso) {
-    window.mostrarToast?.("Erro ao calcular o relatório de fechamento.", "error");
-    window.fecharModal();
-    return;
-  }
-
-  const relatorio = montarRelatorioFechamento(resultado.vendas, abertoEmDate);
-  mostrarModalRelatorioFechamento(relatorio);
+  try { await fecharPdv(_sessaoCaixa.id,_dadosUsuario?.nome || _usuario.email,atualizarStatusCaixa); }
+  catch(e) { window.mostrarToast?.(e.message,'error'); }
 }
 
-// Monta o relatório: totais gerais + quebra por vendedor
-function montarRelatorioFechamento(vendas, abertoEmDate) {
-  const porFormaPagamento = {};
-  let totalGeral = 0;
-
-  const porVendedorMap = new Map(); // uid -> { nome, vendas: [], total, qtdVendas }
-
-  vendas.forEach(v => {
-    totalGeral += Number(v.total) || 0;
-    const forma = v.formaPagamento || "—";
-    porFormaPagamento[forma] = (porFormaPagamento[forma] || 0) + (Number(v.total) || 0);
-
-    const uid  = v.vendedorId || "sem-vendedor";
-    const nome = v.vendedorNome || "Sem vendedor";
-    if (!porVendedorMap.has(uid)) {
-      porVendedorMap.set(uid, { uid, nome, vendas: [], total: 0 });
-    }
-    const bucket = porVendedorMap.get(uid);
-    bucket.vendas.push(v);
-    bucket.total += Number(v.total) || 0;
-  });
-
-  return {
-    abertoEm: abertoEmDate,
-    fechadoEm: new Date(),
-    operadorFechamento: _dadosUsuario?.nome || _usuario?.email?.split("@")[0] || "—",
-    totalGeral,
-    qtdVendasGeral: vendas.length,
-    porFormaPagamento,
-    porVendedor: Array.from(porVendedorMap.values()).sort((a, b) => b.total - a.total),
-    vendas
-  };
-}
-
-function mostrarModalRelatorioFechamento(relatorio) {
-  const abas = [{ id: "geral", label: "Geral" }, ...relatorio.porVendedor.map(v => ({ id: v.uid, label: v.nome }))];
-
-  const abasHTML = abas.map((a, i) => `
-    <button type="button" class="caixa-relatorio-tab ${i === 0 ? "caixa-relatorio-tab--ativa" : ""}" data-tab="${a.id}">
-      ${escHtml(a.label)}
-    </button>
-  `).join("");
-
-  const body = `
-    <div class="caixa-relatorio-tabs">${abasHTML}</div>
-    <div id="caixaRelatorioConteudo"></div>
-  `;
-
-  window.abrirModal("Fechamento de Caixa", body, `
-    <button class="btn-ghost" id="btnImprimirRelatorio">Imprimir</button>
-    <button class="btn-secondary" id="btnPdfRelatorio">Baixar PDF</button>
-    <button class="btn-primary" id="btnConfirmarFechamento">Confirmar Fechamento</button>
-  `);
-
-  let abaAtiva = "geral";
-  const renderAba = () => {
-    document.getElementById("caixaRelatorioConteudo").innerHTML = renderConteudoRelatorio(relatorio, abaAtiva);
-  };
-  renderAba();
-
-  document.querySelectorAll(".caixa-relatorio-tab").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".caixa-relatorio-tab").forEach(b => b.classList.remove("caixa-relatorio-tab--ativa"));
-      btn.classList.add("caixa-relatorio-tab--ativa");
-      abaAtiva = btn.dataset.tab;
-      renderAba();
-    });
-  });
-
-  document.getElementById("btnPdfRelatorio").onclick = () => {
-    gerarPdfFechamentoCaixa(relatorio, abaAtiva === "geral" ? null : relatorio.porVendedor.find(v => v.uid === abaAtiva));
-  };
-
-  document.getElementById("btnImprimirRelatorio").onclick = () => {
-    const janela = window.open("", "_blank");
-    janela.document.write(`
-      <html><head><title>Fechamento de Caixa</title>
-      <style>body{font-family:Arial,sans-serif;padding:24px;color:#111} table{width:100%;border-collapse:collapse;margin-top:12px}
-      th,td{border:1px solid #ddd;padding:10px 14px;text-align:left;font-size:13px} th{background:#f3f4f6}
-      table tr > *:first-child{width:auto} table tr > *:not(:first-child){width:1%;white-space:nowrap}</style>
-      </head><body>${document.getElementById("caixaRelatorioConteudo").innerHTML}</body></html>
-    `);
-    janela.document.close();
-    janela.focus();
-    setTimeout(() => janela.print(), 300);
-  };
-
-  document.getElementById("btnConfirmarFechamento").onclick = async () => {
-    const btn = document.getElementById("btnConfirmarFechamento");
-    btn.disabled = true;
-    btn.textContent = "Fechando...";
-    const resultado = await fecharCaixaSessao(_sessaoCaixa.id, {
-      operadorNome: relatorio.operadorFechamento,
-      resumo: {
-        totalGeral: relatorio.totalGeral,
-        qtdVendasGeral: relatorio.qtdVendasGeral,
-        porFormaPagamento: relatorio.porFormaPagamento,
-        porVendedor: relatorio.porVendedor.map(v => ({ uid: v.uid, nome: v.nome, total: v.total, qtdVendas: v.vendas.length }))
-      }
-    });
-    if (resultado.sucesso) {
-      window.mostrarToast?.("Caixa fechado com sucesso!", "success");
-      window.fecharModal();
-      await atualizarStatusCaixa();
-    } else {
-      window.mostrarToast?.("Erro ao fechar o caixa. Tente novamente.", "error");
-      btn.disabled = false;
-      btn.textContent = "Confirmar Fechamento";
-    }
-  };
-}
-
-function renderConteudoRelatorio(relatorio, abaId) {
-  const cabecalho = `
-    <p style="color:var(--gray-500);font-size:13px;margin-bottom:14px">
-      Aberto em ${formatarDataHora(relatorio.abertoEm instanceof Date ? relatorio.abertoEm : relatorio.abertoEm)}
-      — Fechamento gerado em ${formatarDataHora(relatorio.fechadoEm)}
-    </p>`;
-
-  if (abaId === "geral") {
-    const formasHTML = Object.entries(relatorio.porFormaPagamento).map(([forma, total]) => `
-      <tr><td>${escHtml(forma)}</td><td style="text-align:right"><strong>${formatarMoeda(total)}</strong></td></tr>
-    `).join("");
-
-    const porVendedorHTML = relatorio.porVendedor.map(v => `
-      <tr><td>${escHtml(v.nome)}</td><td>${v.vendas.length}</td><td style="text-align:right"><strong>${formatarMoeda(v.total)}</strong></td></tr>
-    `).join("");
-
-    return `
-      ${cabecalho}
-      <h4 style="margin:0 0 8px">Resumo Geral</h4>
-      <table><tbody>
-        <tr><td>Total de vendas</td><td style="text-align:right"><strong>${relatorio.qtdVendasGeral}</strong></td></tr>
-        <tr><td>Valor total</td><td style="text-align:right"><strong>${formatarMoeda(relatorio.totalGeral)}</strong></td></tr>
-      </tbody></table>
-
-      <h4 style="margin:18px 0 8px">Por Forma de Pagamento</h4>
-      <table><tbody>${formasHTML || `<tr><td colspan="2">Nenhuma venda no período.</td></tr>`}</tbody></table>
-
-      <h4 style="margin:18px 0 8px">Por Vendedor</h4>
-      <table>
-        <thead><tr><th>Vendedor</th><th>Vendas</th><th style="text-align:right">Total</th></tr></thead>
-        <tbody>${porVendedorHTML || `<tr><td colspan="3">Nenhuma venda no período.</td></tr>`}</tbody>
-      </table>
-    `;
-  }
-
-  const vendedor = relatorio.porVendedor.find(v => v.uid === abaId);
-  if (!vendedor) return `<p>Vendedor não encontrado.</p>`;
-
-  const linhasHTML = vendedor.vendas.map(v => `
-    <tr>
-      <td>${formatarDataHora(v.criadoEm)}</td>
-      <td>#${escHtml(String(v.numero ?? "—"))}</td>
-      <td>${escHtml(v.formaPagamento || "—")}</td>
-      <td style="text-align:right"><strong>${formatarMoeda(v.total || 0)}</strong></td>
-    </tr>`).join("");
-
-  return `
-    ${cabecalho}
-    <h4 style="margin:0 0 8px">${escHtml(vendedor.nome)}</h4>
-    <table><tbody>
-      <tr><td>Total de vendas</td><td style="text-align:right"><strong>${vendedor.vendas.length}</strong></td></tr>
-      <tr><td>Valor total</td><td style="text-align:right"><strong>${formatarMoeda(vendedor.total)}</strong></td></tr>
-    </tbody></table>
-
-    <h4 style="margin:18px 0 8px">Vendas</h4>
-    <table>
-      <thead><tr><th>Data</th><th>Nº</th><th>Forma Pagto.</th><th style="text-align:right">Total</th></tr></thead>
-      <tbody>${linhasHTML || `<tr><td colspan="4">Nenhuma venda.</td></tr>`}</tbody>
-    </table>
-  `;
-}
-
-
-// ----------------------------------------------------------------
-// Terminal — captura de teclas
-// ----------------------------------------------------------------
 function modalAberto() {
   const backdrop = document.getElementById("modalBackdrop");
   return backdrop && backdrop.style.display === "flex";
@@ -577,10 +391,11 @@ function adicionarItem(produto, qtd, precoCustom) {
   } else {
     _itens.push({
       produtoId: produto.id,
+      codigo: produto.codigo || produto.codigoBarras || produto.id,
       tipo,
       nome: produto.nome || "—",
       precoOriginal: Number(produto.preco) || 0,
-      unitario,
+      unitario:centavos(unitario)/100,
       qtd,
       descontoValor: 0,
       total: unitario * qtd
@@ -775,7 +590,7 @@ function abrirEdicaoDescontoItem(idx) {
   document.getElementById("btnCancDescItem").onclick = () => window.fecharModal();
   document.getElementById("btnOkDescItem").onclick = () => {
     const v = parseFloat(document.getElementById("mCaixaDescItem").value) || 0;
-    item.descontoValor = Math.max(0, v);
+    item.descontoValor = Math.min(centavos(item.unitario*item.qtd),centavos(Math.max(0,v)))/100;
     item.total = calcularTotalItem(item);
     renderTudo();
     window.fecharModal();
@@ -805,50 +620,18 @@ function confirmarLimparTudo() { confirmarCancelarCompra(); }
 // ----------------------------------------------------------------
 // Histórico (H) — últimas vendas
 // ----------------------------------------------------------------
-async function abrirModalHistorico() {
-  window.abrirModal("Histórico de Vendas", `<p class="empty-cell">Carregando...</p>`, `<button class="btn-ghost" id="btnFecharHist">Fechar</button>`);
-  document.getElementById("btnFecharHist").onclick = () => window.fecharModal();
-
-  try {
-    const snap = await getDocs(query(collection(db, COL_VENDAS), orderBy("criadoEm", "desc"), limit(20)));
-    const vendas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    if (vendas.length === 0) {
-      document.getElementById("modalBody").innerHTML = `<p class="empty-cell">Nenhuma venda registrada ainda.</p>`;
-      return;
-    }
-    document.getElementById("modalBody").innerHTML = `<div class="caixa-lista-itens-modal">${vendas.map(v => `
-      <div class="caixa-lista-item-linha">
-        <div>
-          <strong>Venda #${v.numero ?? "—"}</strong> · ${escHtml(v.formaPagamento || "—")}<br/>
-          <small>${escHtml(v.vendedorNome || "—")} · ${v.itens?.length || 0} itens</small>
-        </div>
-        <strong>${formatarMoeda(v.total)}</strong>
-      </div>`).join("")}</div>`;
-  } catch (err) {
-    console.error(err);
-    document.getElementById("modalBody").innerHTML = `<p class="empty-cell">Erro ao carregar histórico.</p>`;
-  }
-}
+async function abrirModalHistorico() {try {await historicoVendasPdv();}catch(e){window.mostrarToast?.(e.message,'error');}}
 
 // ----------------------------------------------------------------
 // Cálculo e render
 // ----------------------------------------------------------------
 function calcularTotais() {
-  const subtotalBruto = _itens.reduce((s, i) => s + (i.unitario * i.qtd), 0);
-  const descontoItens = _itens.reduce((s, i) => s + (i.descontoValor || 0), 0);
-  const subtotalComDescItens = Math.max(0, subtotalBruto - descontoItens);
-
-  const descontoTotal = _descontoTotalTipo === "PCT"
-    ? subtotalComDescItens * (_descontoTotalValor / 100)
-    : _descontoTotalValor;
-
-  const acrescimo = _acrescimoTipo === "PCT"
-    ? subtotalComDescItens * (_acrescimoValor / 100)
-    : _acrescimoValor;
-
-  const total = Math.max(0, subtotalComDescItens - descontoTotal + acrescimo);
-
-  return { subtotalBruto, descontoItens, descontoTotal, acrescimo, total };
+  const subtotalCentavos = _itens.reduce((s,i)=>s+centavos(i.unitario*i.qtd),0);
+  const descontoItensCentavos = _itens.reduce((s,i)=>s+Math.min(centavos(i.descontoValor||0),centavos(i.unitario*i.qtd)),0);
+  const base = Math.max(0,subtotalCentavos-descontoItensCentavos);
+  const desconto = Math.min(base,_descontoTotalTipo==='PCT'?Math.round(base*_descontoTotalValor/100):centavos(_descontoTotalValor));
+  const extra = _acrescimoTipo==='PCT'?Math.round(base*_acrescimoValor/100):centavos(_acrescimoValor);
+  return {subtotalBruto:subtotalCentavos/100,descontoItens:descontoItensCentavos/100,descontoTotal:desconto/100,acrescimo:extra/100,total:Math.max(0,base-desconto+extra)/100};
 }
 
 function renderTudo() {
@@ -914,6 +697,7 @@ function resetarTerminal() {
   const inputAcr  = document.getElementById("inputAcrescimoValor");     if (inputAcr)  inputAcr.value  = 0;
   const inputCpf  = document.getElementById("inputCaixaCpfCnpj");       if (inputCpf)  inputCpf.value  = "";
   const inputObs  = document.getElementById("inputCaixaObservacao");    if (inputObs)  inputObs.value  = "";
+  for(const f of ['dinheiro','pix','debito','credito','outros']){const e=document.getElementById('pdvMisto_'+f);if(e)e.value='';}
   const inputRec  = document.getElementById("inputValorRecebido");      if (inputRec)  inputRec.value  = "";
   setToggleTipo("desconto", "RS");
   setToggleTipo("acrescimo", "RS");
@@ -926,87 +710,13 @@ function resetarTerminal() {
 // global, pois isso destruiria o modal "Selecionar Vendedor" que
 // já está aberto por baixo)
 // ----------------------------------------------------------------
-function _pedirSenhaComissao(comissaoId, onSucesso) {
-  const overlay = document.createElement("div");
-  overlay.className = "caixa-senha-overlay";
-  overlay.innerHTML = `
-    <div class="caixa-senha-caixa">
-      <h4>🔒 Senha necessária</h4>
-      <p>Informe a senha desta planilha de comissão para lançar o registro.</p>
-      <div class="senha-input-wrap">
-        <input type="password" id="caixaSenhaInput" class="field-input--plain" placeholder="Digite a senha" autocomplete="current-password" />
-        <button class="btn-toggle-senha" id="caixaBtnToggleSenha" type="button" aria-label="Mostrar senha">
-          <svg id="caixaIconSenhaVis" viewBox="0 0 20 20" fill="currentColor" style="display:none">
-            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
-            <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
-          </svg>
-          <svg id="caixaIconSenhaHid" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clip-rule="evenodd"/>
-            <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.064 7 9.542 7 .847 0 1.669-.105 2.454-.303z"/>
-          </svg>
-        </button>
-      </div>
-      <div id="caixaSenhaErro" class="caixa-senha-erro" style="display:none"></div>
-      <div class="caixa-senha-acoes">
-        <button class="btn-ghost" id="caixaSenhaCancelar" type="button">Cancelar</button>
-        <button class="btn-primary" id="caixaSenhaConfirmar" type="button">Confirmar</button>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
-
-  const input = overlay.querySelector("#caixaSenhaInput");
-  setTimeout(() => input.focus(), 50);
-
-  const fechar = () => overlay.remove();
-  overlay.querySelector("#caixaSenhaCancelar").onclick = fechar;
-  overlay.addEventListener("click", (e) => { if (e.target === overlay) fechar(); });
-
-  // Mostrar/ocultar senha
-  overlay.querySelector("#caixaBtnToggleSenha").addEventListener("click", () => {
-    const isPass = input.type === "password";
-    input.type = isPass ? "text" : "password";
-    overlay.querySelector("#caixaIconSenhaVis").style.display = isPass ? "" : "none";
-    overlay.querySelector("#caixaIconSenhaHid").style.display = isPass ? "none" : "";
-  });
-
-  const confirmar = async () => {
-    const senha  = input.value.trim();
-    const erroEl = overlay.querySelector("#caixaSenhaErro");
-    const btn    = overlay.querySelector("#caixaSenhaConfirmar");
-
-    erroEl.style.display = "none";
-    if (!senha) {
-      erroEl.textContent = "Informe a senha.";
-      erroEl.style.display = "block";
-      return;
-    }
-
-    btn.disabled = true;
-    btn.textContent = "Verificando...";
-
-    const resultado = await verificarSenhaComissao(comissaoId, senha);
-
-    if (resultado.sucesso) {
-      fechar();
-      onSucesso();
-    } else {
-      erroEl.textContent = resultado.erro || "Senha incorreta.";
-      erroEl.style.display = "block";
-      btn.disabled = false;
-      btn.textContent = "Confirmar";
-      input.value = "";
-      input.focus();
-    }
-  };
-
-  overlay.querySelector("#caixaSenhaConfirmar").onclick = confirmar;
-  input.addEventListener("keydown", (e) => { if (e.key === "Enter") confirmar(); });
-}
-
 // ----------------------------------------------------------------
 // Finalizar venda → modal Selecionar Vendedor (+ planilha comissão)
 // ----------------------------------------------------------------
 async function iniciarFinalizacaoVenda() {
+  await atualizarStatusCaixa();
+  if (!_sessaoCaixa) { window.mostrarToast?.('Abra seu caixa antes de finalizar a venda.','warning'); return; }
+  if (_sessaoCaixa.legado) {window.mostrarToast?.('Encerre a sessão anterior em Fechar Caixa e abra uma nova sessão para vincular as vendas.','warning');return;}
   if (_itens.length === 0) {
     window.mostrarToast?.("Adicione ao menos um item para finalizar a venda.", "warning");
     return;
@@ -1015,7 +725,7 @@ async function iniciarFinalizacaoVenda() {
   _vendedorSelecionadoId = null;
   _comissaoSelecionadaId = null;
 
-  const [resUsuarios, resComissoes] = await Promise.all([listarUsuarios(), listarComissoes()]);
+  const [resUsuarios, resComissoes] = await Promise.all([listarVendedoresPdv(), listarComissoes()]);
   const vendedores = resUsuarios.sucesso ? resUsuarios.usuarios.filter(u => temCargo(u, "vendedor")) : [];
   const planilhas   = resComissoes.sucesso ? resComissoes.comissoes : [];
 
@@ -1042,17 +752,17 @@ async function iniciarFinalizacaoVenda() {
     <div class="caixa-vendedor-lista" id="mCaixaListaVendedores">${listaVendedoresHTML}</div>
 
     <div style="margin-top:16px">
-      <label class="field-label">Lançar comissão na planilha (opcional)</label>
+      <label class="field-label">Planilha para registrar a venda (opcional)</label>
       <select class="field-input--plain" id="mCaixaSelectComissao" autocomplete="off">
         ${optsPlanilha}
       </select>
-      <small style="color:var(--gray-500)">Selecionar uma planilha vai pedir a senha de acesso.</small>
+      <small style="color:var(--gray-500)">O registro será adicionado à planilha selecionada ao concluir a venda.</small>
     </div>
 
-    <div id="mCaixaCampoCliente" style="margin-top:16px;display:none">
+    <div id="mCaixaCampoCliente" style="margin-top:16px">
       <label class="field-label" for="mCaixaNomeCliente">Nome do cliente (opcional)</label>
       <input class="field-input--plain" type="text" id="mCaixaNomeCliente"
-        placeholder="Se preenchido, entra automaticamente na linha da comissão" autocomplete="off" />
+        placeholder="Nome do cliente no comprovante e na planilha" autocomplete="off" />
     </div>
   `;
 
@@ -1069,20 +779,12 @@ async function iniciarFinalizacaoVenda() {
 
     if (!idEscolhido) {
       _comissaoSelecionadaId = null;
-      campoCliente.style.display = "none";
+      campoCliente.style.display = "";
       return;
     }
 
-    // Reseta visualmente até a senha ser confirmada
-    selectComissao.value = "";
-    campoCliente.style.display = "none";
-    _comissaoSelecionadaId = null;
-
-    _pedirSenhaComissao(idEscolhido, () => {
-      _comissaoSelecionadaId = idEscolhido;
-      selectComissao.value = idEscolhido;
-      campoCliente.style.display = "";
-    });
+    _comissaoSelecionadaId = idEscolhido;
+    campoCliente.style.display = "";
   });
 
   document.getElementById("btnCancelarVendedor").onclick = () => window.fecharModal();
@@ -1105,10 +807,9 @@ async function iniciarFinalizacaoVenda() {
     btnConfirmar.textContent = "Finalizando...";
     try {
       await finalizarVenda(vendedor, nomeCliente);
-      window.fecharModal();
     } catch (err) {
       console.error(err);
-      window.mostrarToast?.("Erro ao finalizar a venda. Tente novamente.", "error");
+      window.mostrarToast?.(err.message || "Erro ao finalizar a venda. Tente novamente.", "error");
       btnConfirmar.disabled = false;
       btnConfirmar.textContent = "Confirmar";
     }
@@ -1128,9 +829,11 @@ async function finalizarVenda(vendedor, nomeCliente = "") {
   const numeroVenda = _contadorVenda++;
 
   const vendaDoc = {
+    sessaoId: _sessaoCaixa.id,
+    clienteNome: nomeCliente,
     numero: numeroVenda,
     itens: _itens.map(i => ({
-      produtoId: i.produtoId, tipo: i.tipo || "produto", nome: i.nome, qtd: i.qtd,
+      codigo: i.codigo || i.produtoId, produtoId: i.produtoId, tipo: i.tipo || "produto", nome: i.nome, qtd: i.qtd,
       unitario: i.unitario, precoOriginal: i.precoOriginal ?? i.unitario,
       descontoValor: i.descontoValor || 0, total: i.total
     })),
@@ -1148,6 +851,9 @@ async function finalizarVenda(vendedor, nomeCliente = "") {
     criadoEm: serverTimestamp()
   };
 
+  if (formaPagamento === 'Misto') vendaDoc.pagamentos = Object.fromEntries(['dinheiro','pix','debito','credito','outros','fiado'].map(f => [f, f === 'fiado' ? 0 : centavos(document.getElementById('pdvMisto_'+f)?.value || 0)]));
+  const recebido = document.getElementById('inputValorRecebido')?.value.trim();
+  vendaDoc.recebidoCentavos = recebido ? centavos(recebido) : centavos(total);
   // 1) Salvar a venda
   const vendaRef = await salvarVendaComComissao(vendaDoc, _vendaPersistenciaId);
 
@@ -1177,45 +883,12 @@ async function finalizarVenda(vendedor, nomeCliente = "") {
     }
   }));
 
-  // 3) Criar registro na Comissão (se uma planilha foi escolhida)
-  let comissaoRegistrada = false;
-  if (_comissaoSelecionadaId) {
-    const resumoItens = _itens.length === 1
-      ? _itens[0].nome
-      : `Venda #${numeroVenda} — ${_itens.length} itens`;
-    const descricaoComissao = _observacao?.trim()
-      ? `${resumoItens} — ${_observacao.trim()}`
-      : resumoItens;
-
-    const hoje = new Date().toISOString().slice(0, 10);
-    const registro = {
-      cliente: nomeCliente || (_cpfCnpj ? `Consumidor (${_cpfCnpj})` : "Consumidor"),
-      descricao: descricaoComissao,
-      qtdFolhas: 1,
-      valor: total,
-      data: hoje,
-      categoria: MAPA_CATEGORIA_COMISSAO[formaPagamento] || formaPagamento,
-      vendedor: vendedor.nome || vendedor.email || "—",
-      vendaId: vendaRef.id
-    };
-
-    const resReg = await adicionarRegistroComissao(_comissaoSelecionadaId, registro);
-    comissaoRegistrada = !!resReg.sucesso;
-    if (!comissaoRegistrada) {
-      console.error("Erro ao registrar comissão:", resReg.erro);
-    }
-  }
-
-  // 4) Feedback + limpar terminal
-  if (_comissaoSelecionadaId && comissaoRegistrada) {
-    window.mostrarToast?.(`Venda finalizada e comissão registrada para ${vendedor.nome || vendedor.email}.`, "success", 5000);
-  } else if (_comissaoSelecionadaId && !comissaoRegistrada) {
-    window.mostrarToast?.(`Venda finalizada, mas houve um erro ao registrar a comissão de ${vendedor.nome || vendedor.email}.`, "warning", 6000);
-  } else {
-    window.mostrarToast?.(`Venda finalizada para ${vendedor.nome || vendedor.email}.`, "success", 4000);
-  }
-
+  window.mostrarToast?.('Venda finalizada e registros salvos.','success');
   resetarTerminal();
   carregarProdutosCache(true); // atualiza estoque em cache
+  window.fecharModal();
+  try {await mostrarComprovante(vendaRef.id,true);}catch(e){window.mostrarToast?.('Venda salva. O comprovante pode ser acessado no histórico. '+e.message,'warning');}
   document.getElementById("caixaTerminalInput")?.focus();
 }
+
+async function listarVendedoresPdv(){if(temCargo(_dadosUsuario,'admin'))return listarUsuarios();try{const resultados=await Promise.all([getDocs(query(collection(db,'usuarios'),where('roles','array-contains','vendedor'))),getDocs(query(collection(db,'usuarios'),where('role','==','vendedor')))]);const usuarios=new Map();for(const r of resultados)for(const d of r.docs)usuarios.set(d.id,{...d.data(),id:d.id});return {sucesso:true,usuarios:[...usuarios.values()]};}catch(e){return {sucesso:false,erro:e.message};}}

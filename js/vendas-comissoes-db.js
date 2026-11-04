@@ -1,3 +1,4 @@
+import {salvarVendaPdv,prepararAjustePdv,gravarAjustePdv} from './pdv-db.js';
 import {
   collection,
   doc,
@@ -49,6 +50,7 @@ function registroVenda(id, v, bps, regra, retroativa = false) {
   };
 }
 export async function salvarVendaComComissao(venda, id) {
+  if(venda.sessaoId) return salvarVendaPdv(venda,id);
   const vendaRef = ref("pf_vendas", id);
   return runTransaction(db, async (tx) => {
     const [existente, config, base] = await Promise.all([
@@ -255,6 +257,7 @@ export async function ajustarVenda(
     const [vs, cs] = await Promise.all([tx.get(vr), tx.get(cr)]);
     if (!vs.exists()) throw Error("Venda não encontrada.");
     const anterior = vs.data();
+    const sessaoPdv = await prepararAjustePdv(tx, anterior);
     if (
       !Number.isSafeInteger(estornoCentavos) ||
       estornoCentavos < 0 ||
@@ -282,6 +285,7 @@ export async function ajustarVenda(
         atualizadoPor: autor,
       });
     }
+    gravarAjustePdv(tx,sessaoPdv,anterior,{...nova,id},cs.exists()?cs.data():null,auditoria.id,motivo.trim());
     tx.set(auditoria, {
       tipo: "ajuste-venda",
       vendaId: id,

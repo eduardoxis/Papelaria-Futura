@@ -58,6 +58,27 @@ try {
     Buffer.from(
       "export const db=globalThis.__vcTestDb;export const auth={currentUser:{uid:'admin'}};",
     ).toString("base64");
+  const dataUrl = (s) =>
+    "data:text/javascript;base64," + Buffer.from(s).toString("base64");
+  const coreUrl = new URL("../js/vendas-comissoes-core.js", import.meta.url)
+    .href;
+  const pdvCoreUrl = dataUrl(
+    fs
+      .readFileSync(new URL("../js/pdv-core.js", import.meta.url), "utf8")
+      .replaceAll("./vendas-comissoes-core.js", coreUrl),
+  );
+  const pdvDbUrl = dataUrl(
+    fs
+      .readFileSync(new URL("../js/pdv-db.js", import.meta.url), "utf8")
+      .replaceAll(
+        "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js",
+        firestoreUrl,
+      )
+      .replaceAll("./firebase-config.js", configUrl)
+      .replaceAll("./vendas-comissoes-core.js", coreUrl)
+      .replaceAll("./pdv-core.js", pdvCoreUrl),
+  );
+  source = source.replaceAll("./pdv-db.js", pdvDbUrl);
   source = source
     .replace(
       "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js",
@@ -76,14 +97,35 @@ try {
     app.salvarPercentual({ id: "vendedor", nome: "João" }, "5"),
   );
   await assertSucceeds(app.salvarBase(true));
+  const pdv = await import(pdvDbUrl);
+  const sessaoId = await pdv.abrirSessaoPdv({
+    numero: "CX-TESTE-COMISSAO",
+    inicial: 0,
+    nome: "Administrador",
+  });
   const venda = {
+    sessaoId,
+    subtotal: 1000,
+    descontoItens: 0,
+    descontoTotal: 0,
+    acrescimo: 0,
     total: 1000,
     vendedorId: "vendedor",
     vendedorNome: "João",
     operadorUid: "admin",
     formaPagamento: "Pix",
     criadoEm: serverTimestamp(),
-    itens: [],
+    itens: [
+      {
+        produtoId: "teste",
+        codigo: "T1",
+        nome: "Produto",
+        qtd: 1,
+        unitario: 1000,
+        total: 1000,
+        descontoValor: 0,
+      },
+    ],
   };
   await assertSucceeds(app.salvarVendaComComissao(venda, "venda1"));
   let c = (await getDoc(doc(admin, "pf_comissoes_vendas", "venda1"))).data();

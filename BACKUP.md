@@ -2,7 +2,7 @@
 
 Em Administração → Backup, o administrador baixa um único JSON com os documentos completos. Não é o Excel resumido antigo. O arquivo contém dados pessoais e configurações de acesso: guarde fora do repositório, em local seguro, preferencialmente com outra cópia em outro dispositivo.
 
-Inclui as 23 coleções usadas pelo projeto: cotações de todos os modelos (e itens), comissões e lançamentos, usuários/perfis, configurações, cadastro de clientes, vendas e itens, sessões de caixa, produtos, marcas, movimentos de estoque, custos, serviços, entregas, clientes/compras/pagamentos/histórico de promissórias e cartas de anuência. Inclui também configurações individuais, regras de base, comissões por venda, pagamentos e auditoria da área Vendas e Comissões. Inclui lembretes de cotações e versões das cartas. As consultas às subcoleções incluem registros sem documento pai.
+Inclui as 28 coleções usadas pelo projeto: cotações de todos os modelos (e itens), comissões e lançamentos, usuários/perfis, configurações, cadastro de clientes, vendas e itens, sessões de caixa, produtos, marcas, movimentos de estoque, custos, serviços, entregas, clientes/compras/pagamentos/histórico de promissórias e cartas de anuência. Inclui também configurações individuais, regras de base, comissões por venda, pagamentos e auditoria da área Vendas e Comissões. Inclui também fechamentos de caixa, movimentos de dinheiro, ajustes auditáveis, identificação dos caixas e sessões por operador. Inclui lembretes de cotações e versões das cartas. As consultas às subcoleções incluem registros sem documento pai.
 
 Preserva todos os campos, IDs, relacionamentos, datas com precisão de nanossegundos, listas, referências, valores e anexos incorporados nos documentos. Inclui as sugestões e a preferência de salvamento automático deste navegador. Não exporta tokens de sessão.
 
@@ -13,7 +13,7 @@ Publique também as regras do Firestore, pois o backup consulta grupos de subcol
     npx firebase-tools login
     npx firebase-tools deploy --only firestore:rules --project papelaria-futura
 
-O arquivo firebase.json incluído aponta para as regras. Sem essa publicação, o backup pode informar acesso negado e não gera arquivo parcial.
+Se npx não estiver disponível, copie o conteúdo completo de firestore.rules para Firebase Console → Firestore Database → Regras e clique em Publicar. O arquivo firebase.json incluído aponta para as regras. Sem essa publicação, o backup pode informar acesso negado e não gera arquivo parcial.
 
 ## Conferência
 

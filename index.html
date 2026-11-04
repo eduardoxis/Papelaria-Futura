@@ -31,6 +31,7 @@
   <link rel="stylesheet" href="css/clientes.css" />
   <link rel="stylesheet" href="css/mobile.css" />
   <link rel="stylesheet" href="css/vendas-comissoes.css" />
+  <link rel="stylesheet" href="css/pdv.css" />
 </head>
 <body>
 
@@ -778,9 +779,10 @@ Minha lista de produtos:
               <option>Cartão de Crédito</option>
               <option>Pix</option>
               <option>Fiado</option>
-              <option>Convênio</option>
+              <option>Convênio</option><option>Misto</option>
             </select>
 
+            <div id="pdvPagamentosMistos" class="pdv-form" hidden><label>dinheiro (R$)<input id="pdvMisto_dinheiro" inputmode="decimal" placeholder="0,00"></label><label>pix (R$)<input id="pdvMisto_pix" inputmode="decimal" placeholder="0,00"></label><label>debito (R$)<input id="pdvMisto_debito" inputmode="decimal" placeholder="0,00"></label><label>credito (R$)<input id="pdvMisto_credito" inputmode="decimal" placeholder="0,00"></label><label>outros (R$)<input id="pdvMisto_outros" inputmode="decimal" placeholder="0,00"></label></div>
             <div class="caixa-pagto-grid">
               <div>
                 <label class="field-label">Valor Recebido</label>
@@ -1775,6 +1777,7 @@ Minha lista de produtos:
           <span class="admin-menu-item__desc">Acompanhe somente as comissões das cotações ganhas.</span>
           <span class="admin-menu-item__link">Acessar <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H3a1 1 0 110-2h9.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg></span>
         </button>
+<button class="admin-menu-item admin-menu-item--cyan" data-admin-panel="historicoCaixas"><span class="admin-menu-item__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18v16H3zM7 2v6m10-6v6M3 11h18"/></svg></span><span class="admin-menu-item__title">Histórico de Caixas</span><span class="admin-menu-item__desc">Fechamentos, conferência, relatórios e dados da loja.</span><span class="admin-menu-item__link">Acessar</span></button>
         <button class="admin-menu-item admin-menu-item--cyan" data-admin-panel="backup">
           <span class="admin-menu-item__icon">
             <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v1H2V6z"/><path fill-rule="evenodd" d="M2 9h16v5a2 2 0 01-2 2H4a2 2 0 01-2-2V9zm8 1a1 1 0 011 1v2.586l.793-.793a1 1 0 111.414 1.414l-2.5 2.5a1 1 0 01-1.414 0l-2.5-2.5a1 1 0 111.414-1.414l.793.793V11a1 1 0 011-1z" clip-rule="evenodd"/></svg>
@@ -1972,7 +1975,7 @@ Minha lista de produtos:
         </div>
 
         <div class="table-wrap">
-          <table class="data-table" id="tabelaVendas">
+          <table class="data-table pdv-tabela" id="tabelaVendas">
             <thead>
               <tr>
                 <th>Data</th>
@@ -1981,13 +1984,13 @@ Minha lista de produtos:
                 <th>Itens</th>
                 <th>Forma Pagto.</th>
                 <th class="col-right">Total</th>
-                <th class="col-center">Comissão</th>
+                <th class="col-center">Planilha de registro</th><th>Ações</th>
               </tr>
             </thead>
             <tbody id="tbodyVendas">
               <tr><td colspan="7" class="loading-cell">Carregando...</td></tr>
             </tbody>
-          </table>
+          </table><button class="btn-secondary" id="btnAdminMaisVendasPdv" hidden>Carregar mais vendas</button><p>Pesquisa nas páginas de vendas carregadas.</p>
         </div>
       </div>
       </div>
@@ -2157,6 +2160,7 @@ Minha lista de produtos:
       </div>
 
       <div class="admin-panel" id="adminPanelVendasComissoes"><div id="vcConteudo"></div></div>
+      <div class="admin-panel" id="adminPanelHistoricoCaixas"><div id="pdvHistoricoCaixas"></div></div>
       <!-- Painel: Backup -->
       <div class="admin-panel" id="adminPanelBackup">
       <div class="card">
@@ -2275,9 +2279,10 @@ Minha lista de produtos:
     const nome   = dadosUsuario?.nome   || usuario.email.split("@")[0];
     const isAdmin = temCargo(dadosUsuario, "admin");
     const isVendedor = temCargo(dadosUsuario, "vendedor");
+    const isOperador = temCargo(dadosUsuario,"operador_caixa");
 
     document.getElementById("userName").textContent  = nome;
-    document.getElementById("userRole").textContent  = isAdmin ? "Administrador" : (isVendedor ? "Vendedor" : "Usuário");
+    document.getElementById("userRole").textContent  = isAdmin ? "Administrador" : (isOperador ? "Operador de caixa" : (isVendedor ? "Vendedor" : "Usuário"));
     document.getElementById("userAvatar").textContent = nome.charAt(0).toUpperCase();
 
     // Saudação dinâmica
@@ -2299,7 +2304,8 @@ Minha lista de produtos:
     iniciarCotacao(usuario, dadosUsuario);
     if (isAdmin) iniciarAdmin(usuario, dadosUsuario);
     iniciarComissao(usuario, dadosUsuario);
-    if (isAdmin) iniciarCaixa(usuario, dadosUsuario);
+    if (isAdmin || isOperador) iniciarCaixa(usuario, dadosUsuario);
+    if(isOperador) document.querySelectorAll('[data-page="caixa"]').forEach(el=>{el.hidden=false;const li=el.closest('.nav-item-admin');if(li)li.hidden=false;});
     iniciarEntrega(usuario, dadosUsuario);
     if (isAdmin) iniciarProdutos(usuario, dadosUsuario);
     if (isAdmin) iniciarServicos(usuario, dadosUsuario);
@@ -2309,7 +2315,7 @@ Minha lista de produtos:
     iniciarNotificacoes(usuario, dadosUsuario);
 
     // Navegação
-    configurarNavegacao(isAdmin);
+    configurarNavegacao(isAdmin,isOperador);
 
     // Logout
     document.getElementById("btnLogout").addEventListener("click", logoutUsuario);
@@ -2318,7 +2324,7 @@ Minha lista de produtos:
   // ----------------------------------------------------------------
   // Sistema de navegação SPA
   // ----------------------------------------------------------------
-  function configurarNavegacao(isAdmin) {
+  function configurarNavegacao(isAdmin,isOperador=false) {
     const paginas = document.querySelectorAll(".page");
     const navItems = document.querySelectorAll("[data-page]");
     const titles = {
@@ -2336,6 +2342,7 @@ Minha lista de produtos:
     };
 
     const paginasPermitidasUsuario = new Set(["dashboard", "cotacoes", "cotacoes-fw3", "cotacoes-avenida", "nova-cotacao", "entrega", "comissao"]);
+    if(isOperador)paginasPermitidasUsuario.add("caixa");
     const paginasOrcamento = {
       "cotacoes-fw3": "cotacoes",
       "cotacoes-avenida": "cotacoes"

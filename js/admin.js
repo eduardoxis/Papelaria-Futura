@@ -1,3 +1,5 @@
+import {listarVendasPdv} from './pdv-db.js';
+import {iniciarPdvUi,iniciarHistoricoCaixas,mostrarComprovante,acaoVendaPdv} from './pdv-ui.js';
 import { iniciarVendasComissoes, abrirPainelComissoes, fecharPainelComissoes } from "./vendas-comissoes.js";
 import { coletarBackup } from "./backup.js";
 // ============================================================
@@ -36,6 +38,9 @@ let _histCarregandoMais = false;
 
 export function iniciarAdmin(usuario, dadosUsuario) {
   _dadosUsuario = dadosUsuario;
+  iniciarPdvUi(dadosUsuario);
+  document.getElementById('tbodyVendas')?.addEventListener('click',e=>{const b=e.target.closest('[data-pdv-acao]');if(b)acaoVendaPdv(b.dataset.venda,b.dataset.pdvAcao).catch(erro=>window.mostrarToast?.(erro.message,'error'));});
+  document.getElementById('btnAdminMaisVendasPdv')?.addEventListener('click',()=>carregarVendas(document.getElementById('filtroBuscaVendas')?.value||'',true));
   iniciarVendasComissoes(usuario, dadosUsuario);
 
   // Só carrega se for admin
@@ -241,7 +246,7 @@ function abrirModalNovoUsuario() {
             <input type="checkbox" name="novoCargo" value="vendedor" /> Vendedor
           </label>
           <label class="checkbox-cargo">
-            <input type="checkbox" name="novoCargo" value="admin" /> Administrador
+            <input type="checkbox" name="novoCargo" value="operador_caixa" /> Operador de caixa</label><label class="checkbox-cargo"><input type="checkbox" name="novoCargo" value="admin" /> Administrador
           </label>
         </div>
       </div>
@@ -326,7 +331,7 @@ function abrirModalEditarUsuario(usuario) {
             <input type="checkbox" name="editCargo" value="vendedor" ${cargosAtuais.includes("vendedor") ? "checked" : ""} /> Vendedor
           </label>
           <label class="checkbox-cargo">
-            <input type="checkbox" name="editCargo" value="admin" ${cargosAtuais.includes("admin") ? "checked" : ""} /> Administrador
+            <input type="checkbox" name="editCargo" value="operador_caixa" ${cargosAtuais.includes("operador_caixa") ? "checked" : ""} /> Operador de caixa</label><label class="checkbox-cargo"><input type="checkbox" name="editCargo" value="admin" ${cargosAtuais.includes("admin") ? "checked" : ""} /> Administrador
           </label>
         </div>
       </div>
@@ -413,6 +418,7 @@ const PAINEIS_ADMIN = {
   comissaoCriador: "adminPanelComissaoCriador",
   dashboardComissao: "adminPanelDashboardComissao",
   vendasComissoes: "adminPanelVendasComissoes",
+  historicoCaixas: "adminPanelHistoricoCaixas",
   backup: "adminPanelBackup"
 };
 
@@ -425,10 +431,12 @@ const TITULOS_ADMIN = {
   comissaoCriador: "Comissão por Cotação Ganhada",
   dashboardComissao: "Dashboard de Comissões",
   vendasComissoes: "Vendas e Comissões",
+  historicoCaixas: "Histórico de Caixas",
   backup: "Backup"
 };
 
 function trocarPainelAdmin(painelId) {
+  if(painelId==='historicoCaixas')iniciarHistoricoCaixas().catch(e=>window.mostrarToast?.(e.message,'error'));
   if (painelId === 'vendasComissoes') abrirPainelComissoes(); else fecharPainelComissoes();
   document.querySelectorAll(".admin-menu-item").forEach(btn => {
     btn.classList.toggle("admin-menu-item--ativo", btn.dataset.adminPanel === painelId);
@@ -462,7 +470,7 @@ function trocarPainelAdmin(painelId) {
 // ================================================================
 function roleBadge(usuario) {
   const cargos = cargosDoUsuario(usuario);
-  const rotulos = { admin: "Administrador", vendedor: "Vendedor", user: "Usuário" };
+  const rotulos = { admin: "Administrador", vendedor: "Vendedor", operador_caixa: "Operador de caixa", user: "Usuário" };
   const classes = { admin: "role-badge--admin", vendedor: "role-badge--vendedor", user: "role-badge--user" };
   return cargos.map(c =>
     `<span class="role-badge ${classes[c] || "role-badge--user"}">${rotulos[c] || c}</span>`
@@ -1316,32 +1324,11 @@ let _todasCotacoesAprovadasCache = [];
 let _percentualComissaoCriador = 0;
 let _ccgFiltroStatus = "todas"; // "todas" | "pagas" | "naopagas"
 
-async function carregarVendas(termoBusca = "") {
-  const tbody = document.getElementById("tbodyVendas");
-  if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="7" class="loading-cell">Carregando...</td></tr>`;
-
-  // Busca tudo uma vez e cacheia; filtro por vendedor é feito no cliente
-  if (_todasVendasCache.length === 0 || termoBusca === "") {
-    const resultado = await listarVendas({ limitQtd: 200 });
-    if (!resultado.sucesso) {
-      tbody.innerHTML = `<tr><td colspan="7" class="loading-cell">Erro ao carregar vendas.</td></tr>`;
-      return;
-    }
-    _todasVendasCache = resultado.vendas;
-  }
-
-  const termo = termoBusca.trim().toLowerCase();
-  const vendas = termo
-    ? _todasVendasCache.filter(v => (v.vendedorNome || "").toLowerCase().includes(termo))
-    : _todasVendasCache;
-
-  if (vendas.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty-cell">Nenhuma venda encontrada.</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = vendas.map(linhaVendaHtml).join("");
+let _cursorVendasPdv = null;
+async function carregarVendas(termoBusca = '',mais=false) {
+  const tbody=document.getElementById('tbodyVendas'),botao=document.getElementById('btnAdminMaisVendasPdv');if(!tbody)return;
+  if(botao)botao.disabled=true;
+  try {if(!mais){_cursorVendasPdv=null;_todasVendasCache=[];}const resultado=await listarVendasPdv(_cursorVendasPdv);_cursorVendasPdv=resultado.cursor;_todasVendasCache.push(...resultado.itens);const termo=termoBusca.trim().toLowerCase(),vendas=termo?_todasVendasCache.filter(v=>(v.vendedorNome||'').toLowerCase().includes(termo)):_todasVendasCache;tbody.innerHTML=vendas.map(linhaVendaHtml).join('')||'<tr><td colspan="8">Nenhuma venda nas páginas carregadas.</td></tr>';if(botao)botao.hidden=!_cursorVendasPdv;}catch(e){tbody.innerHTML='<tr><td colspan="8">Erro ao carregar vendas.</td></tr>';window.mostrarToast?.(e.message,'error');}finally{if(botao)botao.disabled=false;}
 }
 
 function linhaVendaHtml(v) {
@@ -1359,6 +1346,7 @@ function linhaVendaHtml(v) {
           ? `<span class="role-badge role-badge--vendedor">Sim</span>`
           : `<span class="role-badge role-badge--user">Não</span>`}
       </td>
+      <td><button class="btn-ghost" data-pdv-acao="visualizar" data-venda="${escHtml(v.id)}">Ver venda / produtos / comprovante</button><button class="btn-ghost" data-pdv-acao="pdf" data-venda="${escHtml(v.id)}">Baixar PDF</button><button class="btn-ghost" data-pdv-acao="imprimir" data-venda="${escHtml(v.id)}">Reimprimir</button></td>
     </tr>`;
 }
 

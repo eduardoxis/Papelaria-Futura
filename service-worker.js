@@ -3,7 +3,7 @@
 // ============================================================
 // Sobe a versão do cache sempre que alterar arquivos estáticos
 // para forçar os usuários a receberem a versão nova.
-const CACHE_VERSION = "pf-cache-vendas-comissoes-v5";
+const CACHE_VERSION = "pf-cache-pdv-fechamentos-v6";
 const CACHE_NAME = `papelaria-futura-${CACHE_VERSION}`;
 
 const APP_SHELL = [
@@ -36,6 +36,11 @@ const APP_SHELL = [
   "./js/caixa.js",
   "./js/admin.js",
   "./js/backup.js",
+  "./js/pdv-core.js",
+  "./js/pdv-db.js",
+  "./js/pdv-ui.js",
+  "./js/pdv-documentos.js",
+  "./css/pdv.css",
   "./js/vendas-comissoes.js",
   "./js/vendas-comissoes-core.js",
   "./js/vendas-comissoes-db.js",

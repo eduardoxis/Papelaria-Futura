@@ -105,6 +105,108 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "pf_caixa_fechamentos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "operadorUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechadoEm",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "pf_caixa_fechamentos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "caixaNumero",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechadoEm",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "pf_caixa_fechamentos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "operadorUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "caixaNumero",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechadoEm",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "pf_vendas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "operadorUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "criadoEm",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "pf_caixa_sessoes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "fechadoEm",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "pf_caixa_ajustes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "fechamentoId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "criadoEm",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "pf_caixa_movimentos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "sessaoId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "criadoEm",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

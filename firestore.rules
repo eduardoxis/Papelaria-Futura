@@ -5,10 +5,7 @@ service cloud.firestore {
       return request.auth != null;
     }
     function ehAdmin() {
-      return estaAutenticado() &&
-        (get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.role == "admin" ||
-         (get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.roles is list &&
-          get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.roles.hasAny(["admin"])));
+      return estaAutenticado() && (get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.get('roles',[]).hasAny(['admin']) || get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.get('role','') == 'admin');
     }
     function ehDono(uid) {
       return estaAutenticado() && request.auth.uid == uid;
@@ -90,7 +87,8 @@ service cloud.firestore {
         p.registradoPor == request.auth.uid && p.criadoEm == request.time;
     }
     match /pf_comissao_vendedores/{vendedorId} {
-      allow read: if ehAdmin();
+      allow get: if podeOperar();
+      allow list: if ehAdmin();
       allow create, update: if ehAdmin() && request.resource.data.vendedorId == vendedorId &&
         request.resource.data.percentualBps is int && request.resource.data.percentualBps >= 0 && request.resource.data.percentualBps <= 10000 &&
         request.resource.data.atualizadoPor == request.auth.uid && request.resource.data.atualizadoEm == request.time &&
@@ -98,7 +96,8 @@ service cloud.firestore {
       allow delete: if false;
     }
     match /pf_comissao_config/{configId} {
-      allow read: if ehAdmin();
+      allow get: if podeOperar();
+      allow list: if ehAdmin();
       allow create, update: if ehAdmin() && configId == 'base' && request.resource.data.excluirFrete is bool &&
         request.resource.data.atualizadoPor == request.auth.uid && request.resource.data.atualizadoEm == request.time &&
         auditoriaComissao(request.resource.data.auditoriaId);
@@ -106,7 +105,7 @@ service cloud.firestore {
     }
     match /pf_comissoes_vendas/{vendaId} {
       allow read: if ehAdmin();
-      allow create: if ehAdmin() && comissaoNova(vendaId, request.resource.data);
+      allow create: if podeOperar() && comissaoNova(vendaId, request.resource.data);
       allow update: if ehAdmin() &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['baseCentavos','valorCentavos','pagoCentavos','pendenteCentavos','recuperarCentavos','status','ultimoPagamentoId','auditoriaId','atualizadoEm','atualizadoPor']) &&
         request.resource.data.atualizadoEm == request.time && request.resource.data.atualizadoPor == request.auth.uid &&
@@ -137,10 +136,166 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+
+    function podeOperar() {
+      return estaAutenticado() && (get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.get('roles',[]).hasAny(['admin','operador_caixa']) || get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.get('role','') in ['admin','operador_caixa']);
+    }
+    function resumoPdvZero() { return {'vendas':0,'itens':0,'bruto':0,'descontos':0,'acrescimos':0,'liquido':0,'canceladas':0,'estornos':0,'dinheiro':0,'pix':0,'debito':0,'credito':0,'outros':0,'fiado':0,'baseComissao':0,'comissaoGerada':0,'comissaoValida':0,'suprimentos':0,'sangrias':0,'devolucoesDinheiro':0,'pagamentosComissaoDinheiro':0}; }
+    function somaPdv(n,a,d) {return n.vendas == a.vendas + d.vendas && n.itens == a.itens + d.itens && n.bruto == a.bruto + d.bruto && n.descontos == a.descontos + d.descontos && n.acrescimos == a.acrescimos + d.acrescimos && n.liquido == a.liquido + d.liquido && n.canceladas == a.canceladas + d.canceladas && n.estornos == a.estornos + d.estornos && n.dinheiro == a.dinheiro + d.dinheiro && n.pix == a.pix + d.pix && n.debito == a.debito + d.debito && n.credito == a.credito + d.credito && n.outros == a.outros + d.outros && n.fiado == a.fiado + d.fiado && n.baseComissao == a.baseComissao + d.baseComissao && n.comissaoGerada == a.comissaoGerada + d.comissaoGerada && n.comissaoValida == a.comissaoValida + d.comissaoValida && n.suprimentos == a.suprimentos + d.suprimentos && n.sangrias == a.sangrias + d.sangrias && n.devolucoesDinheiro == a.devolucoesDinheiro + d.devolucoesDinheiro && n.pagamentosComissaoDinheiro == a.pagamentosComissaoDinheiro + d.pagamentosComissaoDinheiro;}
+    function zeroVendedorPdv() {return {'vendas':0,'liquido':0,'comissaoValida':0};}
+    function deltaVendedorPdv(n,a,d,v) {return n.vendas == a.vendas+d.vendas-v.vendas && n.liquido == a.liquido+d.liquido-v.liquido && n.comissaoValida == a.comissaoValida+d.comissaoValida-v.comissaoValida;}
+    function deltaPdv(n,a,d,v) { return n.vendas == a.vendas + d.vendas - v.vendas &&
+        n.itens == a.itens + d.itens - v.itens &&
+        n.bruto == a.bruto + d.bruto - v.bruto &&
+        n.descontos == a.descontos + d.descontos - v.descontos &&
+        n.acrescimos == a.acrescimos + d.acrescimos - v.acrescimos &&
+        n.liquido == a.liquido + d.liquido - v.liquido &&
+        n.canceladas == a.canceladas + d.canceladas - v.canceladas &&
+        n.estornos == a.estornos + d.estornos - v.estornos &&
+        n.dinheiro == a.dinheiro + d.dinheiro - v.dinheiro &&
+        n.pix == a.pix + d.pix - v.pix &&
+        n.debito == a.debito + d.debito - v.debito &&
+        n.credito == a.credito + d.credito - v.credito &&
+        n.outros == a.outros + d.outros - v.outros &&
+        n.fiado == a.fiado + d.fiado - v.fiado &&
+        n.baseComissao == a.baseComissao + d.baseComissao - v.baseComissao &&
+        n.comissaoGerada == a.comissaoGerada + d.comissaoGerada - v.comissaoGerada &&
+        n.comissaoValida == a.comissaoValida + d.comissaoValida - v.comissaoValida &&
+        n.suprimentos == a.suprimentos + d.suprimentos - v.suprimentos &&
+        n.sangrias == a.sangrias + d.sangrias - v.sangrias &&
+        n.devolucoesDinheiro == a.devolucoesDinheiro + d.devolucoesDinheiro - v.devolucoesDinheiro &&
+        n.pagamentosComissaoDinheiro == a.pagamentosComissaoDinheiro + d.pagamentosComissaoDinheiro - v.pagamentosComissaoDinheiro; }
+    function pagamentoVendaPdv(v) {
+      let p = v.pagamentos;
+      return p.dinheiro is int && p.dinheiro >= 0 && p.pix is int && p.pix >= 0 && p.debito is int && p.debito >= 0 && p.credito is int && p.credito >= 0 && p.outros is int && p.outros >= 0 && p.fiado is int && p.fiado >= 0 &&
+        p.dinheiro+p.pix+p.debito+p.credito+p.outros+p.fiado == v.totalCentavos &&
+        (p.fiado == 0 || p.fiado == v.totalCentavos) && v.pago == (p.fiado == 0) &&
+        v.recebidoCentavos is int && v.recebidoCentavos >= v.totalCentavos &&
+        v.trocoCentavos == v.recebidoCentavos-v.totalCentavos && (p.dinheiro > 0 || v.trocoCentavos == 0);
+    }
+    function contribuicaoPdv(v,d,c) {
+      let cancelada = v.status in ['cancelada','devolvida','estornada'];
+      let originalBase = centavosVenda(v) - (c.excluirFrete ? v.get('freteCentavos',0) : 0);
+      return d.vendas == (cancelada ? 0 : 1) && d.itens == (cancelada ? 0 : v.quantidadeItens) &&
+        d.bruto == math.round(v.subtotal * 100) &&
+        d.descontos == math.round((v.descontoItens+v.descontoTotal)*100) && d.acrescimos == math.round(v.acrescimo*100) &&
+        d.liquido == (cancelada ? 0 : centavosVenda(v)-v.estornoCentavos) &&
+        d.canceladas == (cancelada ? centavosVenda(v) : 0) && d.estornos == (cancelada ? 0 : v.estornoCentavos) &&
+        d.dinheiro == v.pagamentos.dinheiro && d.pix == v.pagamentos.pix && d.debito == v.pagamentos.debito &&
+        d.credito == v.pagamentos.credito && d.outros == v.pagamentos.outros && d.fiado == v.pagamentos.fiado &&
+        d.baseComissao == c.baseCentavos && d.comissaoValida == c.valorCentavos &&
+        d.comissaoGerada == (v.pago && originalBase>0 ? math.floor((originalBase * c.percentualBps + 5000) / 10000) : 0) &&
+        d.suprimentos == 0 && d.sangrias == 0 && d.devolucoesDinheiro == 0 && d.pagamentosComissaoDinheiro == 0;
+    }
+    function vendedorPdv(n,a,v,d,antes) {
+      let id = v.vendedorId;
+      let antigo = a.get(id,zeroVendedorPdv());
+      let atual = n[id];
+      return n.diff(a).affectedKeys().hasOnly([id]) && atual.nome == v.vendedorNome &&
+        deltaVendedorPdv(atual,antigo,d,antes) &&
+        atual.percentuais.diff(antigo.get('percentuais',{})).affectedKeys().hasOnly([string(getAfter(/databases/$(database)/documents/pf_comissoes_vendas/$(v.idPdv)).data.percentualBps)]);
+    }
+    function sessaoVendaPdv(id,v) {
+      let a = get(/databases/$(database)/documents/pf_caixa_sessoes/$(v.sessaoId)).data;
+      let n = getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(v.sessaoId)).data;
+      let c = getAfter(/databases/$(database)/documents/pf_comissoes_vendas/$(id)).data;
+      return a.status == 'aberto' && a.operadorAberturaUid == request.auth.uid && n.status == 'aberto' &&
+        n.revisao == a.revisao+1 && n.ultimaOperacao == id && n.tipoUltimaOperacao == 'venda' && v.idPdv == id &&
+        contribuicaoPdv(v,v.contribuicaoPdv,c) && somaPdv(n.resumo,a.resumo,v.contribuicaoPdv) &&
+        vendedorPdv(n.vendedores,a.vendedores,v,v.contribuicaoPdv,zeroVendedorPdv());
+    }
+    function movimentoPdv(m,id,a,n) {
+      let campo = m.tipo == 'suprimento' ? 'suprimentos' : (m.tipo == 'sangria' ? 'sangrias' : (m.tipo == 'devolucao' ? 'devolucoesDinheiro' : 'pagamentosComissaoDinheiro'));
+      return m.tipo in ['suprimento','sangria','devolucao'] && m.operadorUid == request.auth.uid &&
+        m.valorCentavos is int && m.valorCentavos > 0 && m.motivo is string && m.motivo.size()>0 && m.criadoEm == request.time &&
+        a.status == 'aberto' && (ehAdmin() || a.operadorAberturaUid == request.auth.uid) && n.status == 'aberto' && n.revisao == a.revisao+1 &&
+        n.ultimaOperacao == id && n.tipoUltimaOperacao == 'movimento' &&
+        n.resumo.diff(a.resumo).affectedKeys().hasOnly([campo]) && n.resumo[campo] == a.resumo[campo]+m.valorCentavos && n.vendedores == a.vendedores;
+    }
+    function ajusteSessaoPdv(a,n) {
+      let audit = getAfter(/databases/$(database)/documents/pf_comissao_auditoria/$(n.ultimaOperacao)).data;
+      let v = getAfter(/databases/$(database)/documents/pf_vendas/$(audit.vendaId)).data;
+      let antes = get(/databases/$(database)/documents/pf_vendas/$(audit.vendaId)).data;
+      let c = getAfter(/databases/$(database)/documents/pf_comissoes_vendas/$(audit.vendaId)).data;
+      return ehAdmin() && audit.criadoEm == request.time && audit.registradoPor == request.auth.uid && v.sessaoId == antes.sessaoId &&
+        contribuicaoPdv(v,v.contribuicaoPdv,c) && deltaPdv(n.resumo,a.resumo,v.contribuicaoPdv,antes.contribuicaoPdv) &&
+        vendedorPdv(n.vendedores,a.vendedores,v,v.contribuicaoPdv,antes.contribuicaoPdv);
+    }
+    function saldoDinheiroPdv(s) {
+      return s.inicialCentavos+s.resumo.dinheiro+s.resumo.suprimentos-s.resumo.sangrias-s.resumo.devolucoesDinheiro-s.resumo.pagamentosComissaoDinheiro;
+    }
+    function fechamentoPdv(id,f,s) {
+      return s.status == 'aberto' && s.operadorAberturaUid == request.auth.uid && f.sessaoId == id &&
+        f.operadorUid == request.auth.uid && f.fechadoEm == request.time && f.abertoEm == s.abertoEm && f.status == 'confirmado' &&
+        f.caixaNumero == s.caixaNumero && f.inicialCentavos == s.inicialCentavos && f.resumo == s.resumo && f.vendedores == s.vendedores &&
+        f.revisao == s.revisao && f.esperadoCentavos == saldoDinheiroPdv(s) && f.contadoCentavos is int && f.contadoCentavos >= 0 &&
+        f.diferencaCentavos == f.contadoCentavos-f.esperadoCentavos &&
+        getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(id)).data.status == 'fechado' &&
+        getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(id)).data.fechamentoId == id;
+    }
+    function ajusteVendaPdv(id,a,n) {
+      let sid = a.get('sessaoId',null);
+      return sid == null ||
+        (get(/databases/$(database)/documents/pf_caixa_sessoes/$(sid)).data.status == 'aberto' &&
+         getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(sid)).data.ultimaOperacao == n.auditoriaComissaoId &&
+         getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(sid)).data.revisao == get(/databases/$(database)/documents/pf_caixa_sessoes/$(sid)).data.revisao+1) ||
+        (get(/databases/$(database)/documents/pf_caixa_sessoes/$(sid)).data.status == 'fechado' &&
+         getAfter(/databases/$(database)/documents/pf_caixa_ajustes/$(n.auditoriaComissaoId)).data.vendaId == id &&
+         getAfter(/databases/$(database)/documents/pf_caixa_ajustes/$(n.auditoriaComissaoId)).data.fechamentoId == sid);
+    }
+    function devolucaoVendaPdv(id,a,n) {
+      let m = getAfter(/databases/$(database)/documents/pf_caixa_movimentos/$(n.ultimaDevolucaoId)).data;
+      let permitido = a.status in ['cancelada','devolvida'] ? centavosVenda(a) : a.get('estornoCentavos',0);
+      return podeOperar() && (ehAdmin() || a.operadorUid == request.auth.uid) &&
+        n.diff(a).affectedKeys().hasOnly(['devolvidoDinheiroCentavos','ultimaDevolucaoId']) &&
+        m.tipo == 'devolucao' && m.vendaId == id && m.operadorUid == request.auth.uid && m.criadoEm == request.time &&
+        n.devolvidoDinheiroCentavos == a.get('devolvidoDinheiroCentavos',0)+m.valorCentavos && n.devolvidoDinheiroCentavos <= permitido;
+    }
+    match /pf_caixa_controle/{numero} {
+      allow read: if podeOperar();
+      allow create, update: if podeOperar() && (request.resource.data.sessaoId == null ?
+        (resource.data.operadorUid == request.auth.uid && getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(resource.data.sessaoId)).data.status == 'fechado') :
+        (getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(request.resource.data.sessaoId)).data.caixaNumero == numero &&
+         getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(request.resource.data.sessaoId)).data.operadorAberturaUid == request.auth.uid &&
+         (!exists(/databases/$(database)/documents/pf_caixa_controle/$(numero)) ? true : (resource.data.sessaoId == null ? true : getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(resource.data.sessaoId)).data.status == 'fechado'))));
+      allow delete: if false;
+    }
+    match /pf_caixa_operadores/{operadorId} {
+      allow read: if ehAdmin() || ehDono(operadorId);
+      allow create, update: if podeOperar() && ehDono(operadorId) && (request.resource.data.sessaoId == null ?
+        getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(resource.data.sessaoId)).data.status == 'fechado' :
+        (getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(request.resource.data.sessaoId)).data.operadorAberturaUid == operadorId &&
+         (!exists(/databases/$(database)/documents/pf_caixa_operadores/$(operadorId)) ? true : (resource.data.sessaoId == null ? true : getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(resource.data.sessaoId)).data.status == 'fechado'))));
+      allow delete: if false;
+    }
+    match /pf_caixa_fechamentos/{fechamentoId} {
+      allow get: if ehAdmin() || (podeOperar() && (!exists(/databases/$(database)/documents/pf_caixa_fechamentos/$(fechamentoId)) || resource.data.operadorUid == request.auth.uid));
+      allow list: if ehAdmin() || (podeOperar() && resource.data.operadorUid == request.auth.uid);
+      allow create: if podeOperar() && fechamentoPdv(fechamentoId,request.resource.data,get(/databases/$(database)/documents/pf_caixa_sessoes/$(fechamentoId)).data);
+      allow update, delete: if false;
+    }
+    match /pf_caixa_movimentos/{movimentoId} {
+      allow get: if ehAdmin() || (podeOperar() && (!exists(/databases/$(database)/documents/pf_caixa_movimentos/$(movimentoId)) || resource.data.operadorUid == request.auth.uid));
+      allow list: if ehAdmin() || (podeOperar() && resource.data.operadorUid == request.auth.uid);
+      allow create: if podeOperar() && movimentoPdv(request.resource.data,movimentoId,
+        get(/databases/$(database)/documents/pf_caixa_sessoes/$(request.resource.data.sessaoId)).data,
+        getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(request.resource.data.sessaoId)).data) &&
+        (request.resource.data.tipo != 'devolucao' || getAfter(/databases/$(database)/documents/pf_vendas/$(request.resource.data.vendaId)).data.ultimaDevolucaoId == movimentoId) &&
+        (request.resource.data.tipo != 'pagamento_comissao' || ehAdmin());
+      allow update, delete: if false;
+    }
+    match /pf_caixa_ajustes/{ajusteId} {
+      allow read: if ehAdmin() || (podeOperar() && get(/databases/$(database)/documents/pf_caixa_fechamentos/$(resource.data.fechamentoId)).data.operadorUid == request.auth.uid);
+      allow create: if ehAdmin() && request.resource.data.operadorUid == request.auth.uid && request.resource.data.criadoEm == request.time &&
+        request.resource.data.motivo is string && request.resource.data.motivo.size()>0 &&
+        get(/databases/$(database)/documents/pf_caixa_fechamentos/$(request.resource.data.fechamentoId)).data.status == 'confirmado';
+      allow update, delete: if false;
+    }
+
     match /usuarios/{uid} {
       // Cada pessoa vê somente o próprio perfil. A gestão de usuários
       // permanece exclusiva do administrador.
-      allow read: if ehDono(uid) || ehAdmin();
+      allow read: if ehDono(uid) || ehAdmin() || (podeOperar() && (resource.data.get('roles',[]).hasAny(['vendedor']) || resource.data.get('role','') == 'vendedor'));
       allow create: if estaAutenticado() && request.auth.uid == uid &&
         request.resource.data.roles == ["user"];
       allow update: if ehAdmin() ||
@@ -176,7 +331,11 @@ service cloud.firestore {
       allow delete: if donoDoDocumento() || ehAdmin();
       match /registros/{registroId} {
         allow read: if estaAutenticado();
-        allow create, update, delete: if donoDaComissao(comissaoId) || ehAdmin();
+        allow create: if donoDaComissao(comissaoId) || ehAdmin() || (podeOperar() && request.resource.data.origem == 'caixa' && request.resource.data.vendaId == registroId &&
+          getAfter(/databases/$(database)/documents/pf_vendas/$(registroId)).data.operadorUid == request.auth.uid &&
+          getAfter(/databases/$(database)/documents/pf_vendas/$(registroId)).data.comissaoId == comissaoId &&
+          request.resource.data.valor == getAfter(/databases/$(database)/documents/pf_vendas/$(registroId)).data.total);
+        allow update, delete: if donoDaComissao(comissaoId) || ehAdmin();
       }
     }
     // ── Produtos / Estoque — leitura liberada p/ o Caixa (PDV),
@@ -184,7 +343,8 @@ service cloud.firestore {
     //     Cadastro/edição completa do módulo Estoque continua admin.
     match /pf_produtos/{produtoId} {
       allow read: if estaAutenticado();
-      allow create, update, delete: if ehAdmin();
+      allow create, delete: if ehAdmin();
+      allow update: if ehAdmin() || (podeOperar() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estoque']) && request.resource.data.estoque >= 0 && request.resource.data.estoque <= resource.data.estoque);
     }
     match /pf_marcas/{marcaId} {
       allow read: if estaAutenticado();
@@ -207,23 +367,41 @@ service cloud.firestore {
     }
     // ── Caixa (PDV) — vendas ────────────────────────────────────
     match /pf_vendas/{vendaId} {
-      allow read:   if ehAdmin();
-      allow create: if ehAdmin() && request.resource.data.operadorUid == request.auth.uid &&
+      allow get: if ehAdmin() || (podeOperar() && (!exists(/databases/$(database)/documents/pf_vendas/$(vendaId)) || resource.data.operadorUid == request.auth.uid));
+      allow list: if ehAdmin() || (podeOperar() && resource.data.operadorUid == request.auth.uid);
+      allow create: if podeOperar() && request.resource.data.operadorUid == request.auth.uid &&
         request.resource.data.totalCentavos is int && request.resource.data.totalCentavos >= 0 && request.resource.data.totalCentavos <= 10000000000 &&
         request.resource.data.totalCentavos == math.round(request.resource.data.total * 100) &&
-        request.resource.data.comissaoVersao == 1 && comissaoNova(vendaId, getAfter(/databases/$(database)/documents/pf_comissoes_vendas/$(vendaId)).data);
-      allow update: if ehAdmin() &&
+        request.resource.data.comissaoVersao == 1 && request.resource.data.quantidadeItens >= 0 && pagamentoVendaPdv(request.resource.data) && sessaoVendaPdv(vendaId,request.resource.data) && request.resource.data.comprovante.vendaId == vendaId && request.resource.data.comprovante.totalCentavos == request.resource.data.totalCentavos && getAfter(/databases/$(database)/documents/pf_comissoes_vendas/$(vendaId)).data.criadoEm == request.time;
+      allow update: if devolucaoVendaPdv(vendaId,resource.data,request.resource.data) || (ehAdmin() && ajusteVendaPdv(vendaId,resource.data,request.resource.data) &&
         (!exists(/databases/$(database)/documents/pf_comissoes_vendas/$(vendaId)) ||
-          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','pago','estornoCentavos','auditoriaComissaoId']) &&
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','pago','estornoCentavos','auditoriaComissaoId','contribuicaoPdv']) &&
            request.resource.data.status in ['concluida','cancelada','devolvida'] && request.resource.data.pago is bool &&
            request.resource.data.estornoCentavos is int && request.resource.data.estornoCentavos >= 0 && request.resource.data.estornoCentavos <= centavosVenda(resource.data) &&
            auditoriaComissao(request.resource.data.auditoriaComissaoId) &&
-           saldoCorreto(request.resource.data, getAfter(/databases/$(database)/documents/pf_comissoes_vendas/$(vendaId)).data)));
+           saldoCorreto(request.resource.data, getAfter(/databases/$(database)/documents/pf_comissoes_vendas/$(vendaId)).data))));
       allow delete: if ehAdmin() && !exists(/databases/$(database)/documents/pf_comissoes_vendas/$(vendaId));
     }
     match /pf_caixa_sessoes/{sessaoId} {
-      allow read, create, update: if ehAdmin();
-      allow delete: if ehAdmin();
+      allow read: if ehAdmin() || (podeOperar() && resource.data.operadorAberturaUid == request.auth.uid);
+      allow create: if podeOperar() && request.resource.data.versaoPdv == 2 && request.resource.data.status == 'aberto' &&
+        request.resource.data.operadorAberturaUid == request.auth.uid && request.resource.data.abertoEm == request.time &&
+        request.resource.data.inicialCentavos is int && request.resource.data.inicialCentavos >= 0 && request.resource.data.resumo == resumoPdvZero() &&
+        request.resource.data.revisao == 0 && request.resource.data.vendedores == {} &&
+        getAfter(/databases/$(database)/documents/pf_caixa_controle/$(request.resource.data.caixaNumero)).data.sessaoId == sessaoId &&
+        getAfter(/databases/$(database)/documents/pf_caixa_operadores/$(request.auth.uid)).data.sessaoId == sessaoId;
+      allow update: if (ehAdmin() && resource.data.get('versaoPdv',0) != 2 && resource.data.status == 'aberto' && resource.data.operadorAberturaUid == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','fechadoEm','operadorFechamentoNome','conferenciaLegada']) && request.resource.data.status == 'fechado' && request.resource.data.fechadoEm == request.time &&
+        request.resource.data.conferenciaLegada.operadorUid == request.auth.uid && request.resource.data.conferenciaLegada.criadoEm == request.time && request.resource.data.conferenciaLegada.contadoCentavos is int && request.resource.data.conferenciaLegada.contadoCentavos >= 0 && request.resource.data.conferenciaLegada.motivo.size()>0) ||
+        (podeOperar() && resource.data.status == 'aberto' &&
+        ((request.resource.data.status == 'fechado' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','fechadoEm','fechamentoId','operadorFechamentoNome']) &&
+          getAfter(/databases/$(database)/documents/pf_caixa_fechamentos/$(sessaoId)).data.fechadoEm == request.time && getAfter(/databases/$(database)/documents/pf_caixa_fechamentos/$(sessaoId)).data.operadorUid == request.auth.uid) ||
+         (request.resource.data.status == 'aberto' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['resumo','vendedores','revisao','ultimaOperacao','tipoUltimaOperacao']) &&
+          request.resource.data.revisao == resource.data.revisao+1 &&
+          ((request.resource.data.tipoUltimaOperacao == 'venda' && getAfter(/databases/$(database)/documents/pf_vendas/$(request.resource.data.ultimaOperacao)).data.sessaoId == sessaoId && getAfter(/databases/$(database)/documents/pf_vendas/$(request.resource.data.ultimaOperacao)).data.criadoEm == request.time) ||
+           (request.resource.data.tipoUltimaOperacao == 'movimento' && movimentoPdv(getAfter(/databases/$(database)/documents/pf_caixa_movimentos/$(request.resource.data.ultimaOperacao)).data,request.resource.data.ultimaOperacao,resource.data,request.resource.data)) ||
+           (request.resource.data.tipoUltimaOperacao == 'ajuste' && ajusteSessaoPdv(resource.data,request.resource.data))))));
+      allow delete: if false;
     }
     // ── Entrega — controle de saídas/entregas, liberado pra qualquer
     //     usuário autenticado (mesmo nível de acesso do Caixa) ──────

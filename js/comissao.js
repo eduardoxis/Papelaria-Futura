@@ -10,7 +10,7 @@ import {
   formatarMoeda, formatarData
 } from "./database.js";
 
-const CATEGORIAS = ["Dinheiro", "Débito", "Crédito", "Pix celular", "Pix maquininha", "Convênio"];
+const CATEGORIAS = ["Dinheiro", "Débito", "Crédito", "Pix celular", "Pix maquininha", "Convênio", "Misto"];
 
 let _usuario          = null;
 let _dadosUsuario      = null;

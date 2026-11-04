@@ -1,5 +1,6 @@
 // Inventário das coleções usadas pelo projeto. Atualize ao criar uma nova área.
 export const COLECOES_BACKUP = [
+  'pf_caixa_controle', 'pf_caixa_operadores', 'pf_caixa_movimentos', 'pf_caixa_ajustes', 'pf_caixa_fechamentos',
   'pf_comissao_vendedores', 'pf_comissao_config', 'pf_comissoes_vendas', 'pf_comissao_pagamentos', 'pf_comissao_auditoria',
   'cotacoes', 'comissoes', 'usuarios', 'config', 'clientes_cadastro',
   'pf_vendas', 'pf_caixa_sessoes', 'pf_produtos', 'pf_marcas',
