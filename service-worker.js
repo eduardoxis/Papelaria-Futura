@@ -3,7 +3,7 @@
 // ============================================================
 // Sobe a versão do cache sempre que alterar arquivos estáticos
 // para forçar os usuários a receberem a versão nova.
-const CACHE_VERSION = "pf-comissao-pagamento-radius-v1";
+const CACHE_VERSION = "pf-cache-sem-extensoes-v1";
 const CACHE_NAME = `papelaria-futura-${CACHE_VERSION}`;
 
 const APP_SHELL = [
@@ -76,6 +76,7 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
+  if (!/^https?:$/.test(url.protocol) || url.hostname === 'ext-cdn.cuponomia.com.br') return;
 
   const ehExterno = url.origin !== self.location.origin;
   const ehFirebase = /firestore|firebaseio|googleapis|gstatic\.com\/firebasejs|identitytoolkit/.test(url.href);
