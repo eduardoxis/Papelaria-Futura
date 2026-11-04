@@ -1,3 +1,4 @@
+import { salvarVendaComComissao } from "./vendas-comissoes-db.js";
 // ============================================================
 // caixa.js — Módulo Caixa (PDV) — Papelaria Futura
 // Integra baixa de estoque (pf_produtos) e lançamento
@@ -48,6 +49,7 @@ let _produtosCacheEm = 0;
 
 let _vendedorSelecionadoId = null;
 let _comissaoSelecionadaId = null;
+let _vendaPersistenciaId = null;
 let _sessaoCaixa = null; // { id, abertoEm, operadorAberturaNome, ... } | null se fechado
 
 // ----------------------------------------------------------------
@@ -903,6 +905,7 @@ function atualizarTroco() {
 }
 
 function resetarTerminal() {
+  _vendaPersistenciaId = null;
   _itens = [];
   _descontoTotalTipo = "RS"; _descontoTotalValor = 0;
   _acrescimoTipo = "RS"; _acrescimoValor = 0;
@@ -1116,6 +1119,7 @@ async function iniciarFinalizacaoVenda() {
 // Persistência: venda + baixa de estoque + registro de comissão
 // ----------------------------------------------------------------
 async function finalizarVenda(vendedor, nomeCliente = "") {
+  if (!_vendaPersistenciaId) _vendaPersistenciaId = doc(collection(db, COL_VENDAS)).id;
   const { subtotalBruto, descontoItens, descontoTotal, acrescimo, total } = calcularTotais();
   const formaPagamento = document.getElementById("selCaixaFormaPagto")?.value || "Dinheiro";
   const recebidoRaw = (document.getElementById("inputValorRecebido")?.value || "").replace(",", ".");
@@ -1145,7 +1149,7 @@ async function finalizarVenda(vendedor, nomeCliente = "") {
   };
 
   // 1) Salvar a venda
-  const vendaRef = await addDoc(collection(db, COL_VENDAS), vendaDoc);
+  const vendaRef = await salvarVendaComComissao(vendaDoc, _vendaPersistenciaId);
 
   // 2) Baixar estoque apenas dos itens do tipo "produto" — serviços
   //    personalizados não têm estoque físico (best-effort, não bloqueia a venda)

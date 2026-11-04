@@ -1,0 +1,172 @@
+.vc-cabecalho,
+.vc-acoes,
+.vc-paginacao {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.vc-cabecalho {
+  justify-content: space-between;
+}
+.vc-filtros {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 16px 0;
+}
+.vc-filtros label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 160px;
+  font-size: 13px;
+}
+.vc-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+.vc-indicador {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 !important;
+}
+.vc-indicador span {
+  font-size: 13px;
+  color: var(--gray-600);
+}
+.vc-indicador strong {
+  font-size: 24px;
+  color: var(--gray-900);
+  overflow-wrap: anywhere;
+}
+.vc-graficos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.vc-grafico {
+  height: 260px;
+  position: relative;
+}
+.vc-ranking {
+  display: grid;
+  grid-template-columns: 45px minmax(100px, 1fr) 90px 150px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--gray-200);
+}
+.vc-paginacao {
+  justify-content: center;
+  margin-top: 16px;
+}
+.vc-valor {
+  min-width: 90px;
+  max-width: 130px;
+}
+#adminPanelVendasComissoes .card h3 {
+  margin-bottom: 12px;
+}
+#adminPanelVendasComissoes p {
+  font-size: 13px;
+  color: var(--gray-600);
+  line-height: 1.6;
+}
+#adminPanelVendasComissoes .data-table {
+  min-width: 860px;
+}
+#vcStatus {
+  min-height: 24px;
+}
+#vcConteudo [hidden] {
+  display: none !important;
+}
+@media (max-width: 900px) {
+  .vc-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .vc-graficos {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 540px) {
+  .vc-cards {
+    grid-template-columns: 1fr;
+  }
+  .vc-ranking {
+    grid-template-columns: 30px 1fr;
+  }
+  .vc-filtros label {
+    flex-basis: 100%;
+  }
+  .vc-acoes > * {
+    flex: 1 1 140px;
+  }
+}
+.modal [hidden] {
+  display: none !important;
+}
+#vcConteudo,
+#adminPanelVendasComissoes {
+  min-width: 0;
+  max-width: 100%;
+}
+#vcConteudo .table-wrap {
+  max-width: 100%;
+}
+
+.vc-table {
+  min-width: 760px;
+}
+.vc-table thead {
+  display: table-header-group;
+}
+.vc-table tbody tr {
+  display: table-row;
+}
+.vc-table td {
+  display: table-cell;
+  padding: 12px;
+  white-space: normal;
+}
+.vc-filtros .field-input--plain,
+.vc-form input:not([type="checkbox"]),
+.vc-form select {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  border: 1px solid var(--gray-300);
+  border-radius: 10px;
+  background: var(--white);
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--gray-800);
+  box-sizing: border-box;
+}
+.vc-filtros .field-input--plain:disabled {
+  background: var(--gray-100);
+  color: var(--gray-500);
+}
+.vc-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 0;
+  font-size: 13px;
+}
+.vc-form label:has(input[type="checkbox"]) {
+  flex-direction: row;
+  align-items: center;
+}
+.vc-form .vc-valor {
+  min-width: 90px;
+  max-width: 130px;
+}
+.vc-form p {
+  line-height: 1.6;
+}

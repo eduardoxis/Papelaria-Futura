@@ -4,41 +4,106 @@
       "collectionGroup": "cotacoes",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "criadoPor", "order": "ASCENDING" },
-        { "fieldPath": "dataCriacao", "order": "ASCENDING" }
+        {
+          "fieldPath": "criadoPor",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dataCriacao",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "cotacoes",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "criadoPor", "order": "ASCENDING" },
-        { "fieldPath": "dataCriacao", "order": "DESCENDING" }
+        {
+          "fieldPath": "criadoPor",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dataCriacao",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "cotacoes",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "criadoPor", "order": "ASCENDING" },
-        { "fieldPath": "valorTotal", "order": "ASCENDING" }
+        {
+          "fieldPath": "criadoPor",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "valorTotal",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "cotacoes",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "criadoPor", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "proximoLembreteEm", "order": "ASCENDING" }
+        {
+          "fieldPath": "criadoPor",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "proximoLembreteEm",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
       "collectionGroup": "cotacoes",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "proximoLembreteEm", "order": "ASCENDING" }
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "proximoLembreteEm",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "pf_comissoes_vendas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "vendedorId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dataVenda",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "pf_comissao_pagamentos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "vendedorId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dataPagamento",
+          "order": "DESCENDING"
+        }
       ]
     }
   ],

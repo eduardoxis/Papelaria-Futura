@@ -30,6 +30,7 @@
   <link rel="stylesheet" href="css/anuencia-modelos.css" />
   <link rel="stylesheet" href="css/clientes.css" />
   <link rel="stylesheet" href="css/mobile.css" />
+  <link rel="stylesheet" href="css/vendas-comissoes.css" />
 </head>
 <body>
 
@@ -1752,6 +1753,12 @@ Minha lista de produtos:
           <span class="admin-menu-item__desc">Acompanhe os principais indicadores e métricas de vendas.</span>
           <span class="admin-menu-item__link">Acessar <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H3a1 1 0 110-2h9.586l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg></span>
         </button>
+        <button class="admin-menu-item admin-menu-item--pink" data-admin-panel="vendasComissoes">
+          <span class="admin-menu-item__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M7 16v-5m5 5V7m5 9V4"/></svg></span>
+          <span class="admin-menu-item__title">Vendas e Comissões</span>
+          <span class="admin-menu-item__desc">Faturamento por vendedor, percentuais e pagamentos.</span>
+          <span class="admin-menu-item__link">Acessar</span>
+        </button>
         <button class="admin-menu-item admin-menu-item--pink" data-admin-panel="comissaoCriador">
           <span class="admin-menu-item__icon">
             <svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"/></svg>
@@ -2149,12 +2156,13 @@ Minha lista de produtos:
       </div>
       </div>
 
+      <div class="admin-panel" id="adminPanelVendasComissoes"><div id="vcConteudo"></div></div>
       <!-- Painel: Backup -->
       <div class="admin-panel" id="adminPanelBackup">
       <div class="card">
         <h3 class="card-section-title">Backup</h3>
         <p class="page-subtitle" style="margin: -8px 0 16px">
-          Baixe uma cópia completa dos dados principais (Excel) para guardar em segurança ou enviar ao contador.
+          Baixe um arquivo de recuperação (JSON) com todos os campos, itens, anexos, comissões e lançamentos, clientes, vendas, caixa, estoque, serviços, entregas, promissórias, cartas, históricos, usuários e configurações armazenados pelo sistema. Guarde em local seguro: contém dados pessoais e configurações de acesso. Evite alterações durante a geração. Não inclui contas e senhas de login do Firebase Authentication nem arquivos externos.
         </p>
 
         <div class="ccg-config" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
@@ -2164,7 +2172,7 @@ Minha lista de produtos:
           </div>
           <button class="btn-primary" id="btnGerarBackup">
             <svg viewBox="0 0 20 20" fill="currentColor" style="width:16px;height:16px"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
-            Baixar Backup Agora
+            Baixar backup completo
           </button>
         </div>
 

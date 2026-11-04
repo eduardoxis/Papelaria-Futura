@@ -24,6 +24,119 @@ service cloud.firestore {
       return estaAutenticado() &&
         get(/databases/$(database)/documents/cotacoes/$(cotacaoId)).data.criadoPor == request.auth.uid;
     }
+    // Consultas do backup a subcoleções, inclusive documentos sem pai.
+    match /{path=**}/registros/{id} {
+      allow read: if ehAdmin();
+    }
+    match /{path=**}/lembretes/{id} {
+      allow read: if ehAdmin();
+    }
+    match /{path=**}/versoes/{id} {
+      allow read: if ehAdmin();
+    }
+    match /clientes_cadastro/{clienteId} {
+      allow read, write: if ehAdmin();
+    }
+    // Vendas e Comissões: validações executadas pelo Firestore, não só pela tela.
+    function centavosVenda(v) {
+      return v.get('totalCentavos', math.round(v.total * 100));
+    }
+    function vendaPaga(v) {
+      return v.get('status', 'concluida') in ['concluida', 'concluída', 'finalizada', 'paga'] &&
+        v.get('pago', !(v.get('formaPagamento', '') in ['Fiado', 'Convênio']));
+    }
+    function baseComissao(v, c) {
+      let restante = centavosVenda(v) - v.get('estornoCentavos', 0) - (c.excluirFrete ? v.get('freteCentavos', 0) : 0);
+      return vendaPaga(v) && restante > 0 ? restante : 0;
+    }
+    function valorComissao(v, c) {
+      return math.floor((baseComissao(v, c) * c.percentualBps + 5000) / 10000);
+    }
+    function saldoCorreto(v, c) {
+      let valor = valorComissao(v, c);
+      let pendente = valor - c.pagoCentavos;
+      let esperado = !vendaPaga(v) || baseComissao(v, c) == 0 ? 'cancelada' : (c.pagoCentavos >= valor ? 'paga' : 'pendente');
+      return c.percentualBps is int && c.percentualBps >= 0 && c.percentualBps <= 10000 && c.excluirFrete is bool &&
+        c.pagoCentavos is int && c.pagoCentavos >= 0 && c.pagoCentavos <= 10000000000 &&
+        c.baseCentavos == baseComissao(v, c) && c.valorCentavos == valor &&
+        c.pendenteCentavos == (pendente > 0 ? pendente : 0) &&
+        c.recuperarCentavos == (pendente < 0 ? -pendente : 0) && c.status == esperado;
+    }
+    function configPercentual(id) {
+      return exists(/databases/$(database)/documents/pf_comissao_vendedores/$(id)) ?
+        get(/databases/$(database)/documents/pf_comissao_vendedores/$(id)).data.percentualBps : 0;
+    }
+    function configFrete() {
+      return exists(/databases/$(database)/documents/pf_comissao_config/base) ?
+        get(/databases/$(database)/documents/pf_comissao_config/base).data.excluirFrete : true;
+    }
+    function auditoriaComissao(id) {
+      let a = getAfter(/databases/$(database)/documents/pf_comissao_auditoria/$(id)).data;
+      return a.registradoPor == request.auth.uid && a.criadoEm == request.time;
+    }
+    function comissaoNova(id, c) {
+      let v = getAfter(/databases/$(database)/documents/pf_vendas/$(id)).data;
+      return c.vendaId == id && c.vendedorId == v.vendedorId && c.vendedorId is string && c.vendedorId.size() > 0 &&
+        c.dataVenda == v.criadoEm && c.totalVendaCentavos == centavosVenda(v) && c.pagoCentavos == 0 &&
+        c.criadoEm == request.time && c.atualizadoEm == request.time && c.atualizadoPor == request.auth.uid &&
+        saldoCorreto(v, c) && c.excluirFrete == configFrete() &&
+        ((c.retroativa == false && c.percentualBps == configPercentual(c.vendedorId)) ||
+         (c.retroativa == true && vendaPaga(v) && auditoriaComissao(c.auditoriaId)));
+    }
+    function pagamentoComissaoValido(id, antes, depois) {
+      let p = getAfter(/databases/$(database)/documents/pf_comissao_pagamentos/$(depois.ultimoPagamentoId)).data;
+      return depois.pagoCentavos > antes.pagoCentavos &&
+        p.vendaId == id && p.vendedorId == antes.vendedorId && p.valorCentavos == depois.pagoCentavos - antes.pagoCentavos &&
+        p.registradoPor == request.auth.uid && p.criadoEm == request.time;
+    }
+    match /pf_comissao_vendedores/{vendedorId} {
+      allow read: if ehAdmin();
+      allow create, update: if ehAdmin() && request.resource.data.vendedorId == vendedorId &&
+        request.resource.data.percentualBps is int && request.resource.data.percentualBps >= 0 && request.resource.data.percentualBps <= 10000 &&
+        request.resource.data.atualizadoPor == request.auth.uid && request.resource.data.atualizadoEm == request.time &&
+        auditoriaComissao(request.resource.data.auditoriaId);
+      allow delete: if false;
+    }
+    match /pf_comissao_config/{configId} {
+      allow read: if ehAdmin();
+      allow create, update: if ehAdmin() && configId == 'base' && request.resource.data.excluirFrete is bool &&
+        request.resource.data.atualizadoPor == request.auth.uid && request.resource.data.atualizadoEm == request.time &&
+        auditoriaComissao(request.resource.data.auditoriaId);
+      allow delete: if false;
+    }
+    match /pf_comissoes_vendas/{vendaId} {
+      allow read: if ehAdmin();
+      allow create: if ehAdmin() && comissaoNova(vendaId, request.resource.data);
+      allow update: if ehAdmin() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['baseCentavos','valorCentavos','pagoCentavos','pendenteCentavos','recuperarCentavos','status','ultimoPagamentoId','auditoriaId','atualizadoEm','atualizadoPor']) &&
+        request.resource.data.atualizadoEm == request.time && request.resource.data.atualizadoPor == request.auth.uid &&
+        saldoCorreto(getAfter(/databases/$(database)/documents/pf_vendas/$(vendaId)).data, request.resource.data) &&
+        ((request.resource.data.pagoCentavos == resource.data.pagoCentavos &&
+          getAfter(/databases/$(database)/documents/pf_vendas/$(vendaId)).data.auditoriaComissaoId == request.resource.data.auditoriaId &&
+          auditoriaComissao(request.resource.data.auditoriaId)) ||
+         (request.resource.data.recuperarCentavos == 0 && pagamentoComissaoValido(vendaId, resource.data, request.resource.data)));
+      allow delete: if false;
+    }
+    match /pf_comissao_pagamentos/{pagamentoId} {
+      allow read: if ehAdmin();
+      allow create: if ehAdmin() &&
+        request.resource.data.valorCentavos is int && request.resource.data.valorCentavos > 0 &&
+        request.resource.data.forma in ['PIX','Dinheiro','Transferência'] &&
+        request.resource.data.dataPagamento.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+        request.resource.data.registradoPor == request.auth.uid && request.resource.data.criadoEm == request.time &&
+        request.resource.data.vendedorId == get(/databases/$(database)/documents/pf_comissoes_vendas/$(request.resource.data.vendaId)).data.vendedorId &&
+        getAfter(/databases/$(database)/documents/pf_comissoes_vendas/$(request.resource.data.vendaId)).data.ultimoPagamentoId == pagamentoId &&
+        getAfter(/databases/$(database)/documents/pf_comissoes_vendas/$(request.resource.data.vendaId)).data.pagoCentavos ==
+          get(/databases/$(database)/documents/pf_comissoes_vendas/$(request.resource.data.vendaId)).data.pagoCentavos + request.resource.data.valorCentavos;
+      allow update, delete: if false;
+    }
+    match /pf_comissao_auditoria/{registroId} {
+      allow read: if ehAdmin();
+      allow create: if ehAdmin() && request.resource.data.registradoPor == request.auth.uid && request.resource.data.criadoEm == request.time &&
+        request.resource.data.tipo in ['percentual','base','retroativa','ajuste-venda'];
+      allow update, delete: if false;
+    }
+
     match /usuarios/{uid} {
       // Cada pessoa vê somente o próprio perfil. A gestão de usuários
       // permanece exclusiva do administrador.
@@ -95,9 +208,18 @@ service cloud.firestore {
     // ── Caixa (PDV) — vendas ────────────────────────────────────
     match /pf_vendas/{vendaId} {
       allow read:   if ehAdmin();
-      allow create: if ehAdmin() &&
-        request.resource.data.operadorUid == request.auth.uid;
-      allow update, delete: if ehAdmin();
+      allow create: if ehAdmin() && request.resource.data.operadorUid == request.auth.uid &&
+        request.resource.data.totalCentavos is int && request.resource.data.totalCentavos >= 0 && request.resource.data.totalCentavos <= 10000000000 &&
+        request.resource.data.totalCentavos == math.round(request.resource.data.total * 100) &&
+        request.resource.data.comissaoVersao == 1 && comissaoNova(vendaId, getAfter(/databases/$(database)/documents/pf_comissoes_vendas/$(vendaId)).data);
+      allow update: if ehAdmin() &&
+        (!exists(/databases/$(database)/documents/pf_comissoes_vendas/$(vendaId)) ||
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','pago','estornoCentavos','auditoriaComissaoId']) &&
+           request.resource.data.status in ['concluida','cancelada','devolvida'] && request.resource.data.pago is bool &&
+           request.resource.data.estornoCentavos is int && request.resource.data.estornoCentavos >= 0 && request.resource.data.estornoCentavos <= centavosVenda(resource.data) &&
+           auditoriaComissao(request.resource.data.auditoriaComissaoId) &&
+           saldoCorreto(request.resource.data, getAfter(/databases/$(database)/documents/pf_comissoes_vendas/$(vendaId)).data)));
+      allow delete: if ehAdmin() && !exists(/databases/$(database)/documents/pf_comissoes_vendas/$(vendaId));
     }
     match /pf_caixa_sessoes/{sessaoId} {
       allow read, create, update: if ehAdmin();

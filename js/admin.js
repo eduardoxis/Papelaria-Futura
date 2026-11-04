@@ -1,3 +1,5 @@
+import { iniciarVendasComissoes, abrirPainelComissoes, fecharPainelComissoes } from "./vendas-comissoes.js";
+import { coletarBackup } from "./backup.js";
 // ============================================================
 // admin.js — Painel Administrativo (somente admin)
 // ============================================================
@@ -16,10 +18,10 @@ import {
   buscarConfigComissaoCriador, salvarConfigComissaoCriador,
   listarCotacoesAprovadas, marcarComissaoCriadorPaga, marcarCotacaoPagaLoja,
   buscarConfigLembreteCotacao, salvarConfigLembreteCotacao,
-  exportarExcelMultiplasAbas, exportarExcel, buscarUltimoBackup, salvarUltimoBackup
+  exportarExcel, buscarUltimoBackup, salvarUltimoBackup
 } from "./database.js";
 import { cargosDoUsuario, temCargo } from "./auth.js";
-import { collection, getDocs, query, orderBy, limit, startAfter, documentId } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { collection, collectionGroup, getDocs, getDocsFromServer, query, orderBy, limit, startAfter, documentId } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 import { gerarPdfFechamentoCaixa, gerarPdfComissaoCriador } from "./pdf.js";
 
@@ -34,6 +36,7 @@ let _histCarregandoMais = false;
 
 export function iniciarAdmin(usuario, dadosUsuario) {
   _dadosUsuario = dadosUsuario;
+  iniciarVendasComissoes(usuario, dadosUsuario);
 
   // Só carrega se for admin
   document.addEventListener("navegacao", (e) => {
@@ -59,7 +62,7 @@ export function iniciarAdmin(usuario, dadosUsuario) {
   document.getElementById("btnSalvarDiasLembreteCotacao")?.addEventListener("click", salvarDiasLembreteCotacao);
 
   // Backup
-  document.getElementById("btnGerarBackup")?.addEventListener("click", gerarBackupExcel);
+  document.getElementById("btnGerarBackup")?.addEventListener("click", gerarBackupCompleto);
 
   // Menu de seções (Usuários / Senha Cotação / Histórico / Vendas)
   document.querySelectorAll(".admin-menu-item").forEach(btn => {
@@ -409,6 +412,7 @@ const PAINEIS_ADMIN = {
   vendas:    "adminPanelVendas",
   comissaoCriador: "adminPanelComissaoCriador",
   dashboardComissao: "adminPanelDashboardComissao",
+  vendasComissoes: "adminPanelVendasComissoes",
   backup: "adminPanelBackup"
 };
 
@@ -420,10 +424,12 @@ const TITULOS_ADMIN = {
   dashboardVendas: "Dashboard de Vendas",
   comissaoCriador: "Comissão por Cotação Ganhada",
   dashboardComissao: "Dashboard de Comissões",
+  vendasComissoes: "Vendas e Comissões",
   backup: "Backup"
 };
 
 function trocarPainelAdmin(painelId) {
+  if (painelId === 'vendasComissoes') abrirPainelComissoes(); else fecharPainelComissoes();
   document.querySelectorAll(".admin-menu-item").forEach(btn => {
     btn.classList.toggle("admin-menu-item--ativo", btn.dataset.adminPanel === painelId);
   });
@@ -533,72 +539,55 @@ async function carregarStatusBackup() {
   }
 }
 
-function _linhaCsvData(ts) {
-  if (!ts) return "";
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
-  return d.toLocaleString("pt-BR");
-}
-
-async function buscarColecaoCompletaBackup(nomeColecao) {
-  const tamanhoPagina = 500;
+async function buscarColecaoCompletaBackup(caminho, grupo = false) {
   const registros = [];
   let cursor = null;
   while (true) {
-    const restricoes = [orderBy(documentId()), limit(tamanhoPagina)];
+    const restricoes = [orderBy(documentId()), limit(500)];
     if (cursor) restricoes.push(startAfter(cursor));
-    const pagina = await getDocs(query(collection(db, nomeColecao), ...restricoes));
-    registros.push(...pagina.docs.map(d => ({ id: d.id, ...d.data() })));
-    if (pagina.docs.length < tamanhoPagina) return registros;
+    const origem = grupo ? collectionGroup(db, caminho) : collection(db, caminho);
+    // Não aceita cache offline como se fosse uma cópia completa do servidor.
+    const pagina = await getDocsFromServer(query(origem, ...restricoes));
+    registros.push(...pagina.docs.map(d => ({ id: d.id, path: d.ref.path, dados: d.data() })));
+    if (pagina.docs.length < 500) return registros;
     cursor = pagina.docs[pagina.docs.length - 1];
   }
 }
 
-async function gerarBackupExcel() {
+async function gerarBackupCompleto() {
   const btn = document.getElementById("btnGerarBackup");
   if (!btn || btn.disabled) return;
+  if (!temCargo(_dadosUsuario, "admin")) return;
   const textoOriginal = btn.innerHTML;
   btn.disabled = true;
-  btn.textContent = "Lendo dados do sistema...";
-
+  let baixado = false;
   try {
-    const colecoes = [
-      ["Cotações", "cotacoes"],
-      ["Vendas Caixa", "pf_vendas"],
-      ["Usuários", "usuarios"],
-      ["Promissórias - Clientes", "prom_clientes"],
-      ["Promissórias - Compras", "prom_compras"],
-      ["Promissórias - Pagamentos", "prom_pagamentos"],
-      ["Produtos", "pf_produtos"]
-    ];
-    const resultados = await Promise.all(colecoes.map(async ([nome, colecao]) => {
-      btn.textContent = `Lendo ${nome}...`;
-      return [nome, await buscarColecaoCompletaBackup(colecao)];
-    }));
-    const dados = Object.fromEntries(resultados);
-    const agora = new Date();
-    const linhasInfo = [["Planilha", "Registros exportados"], ...resultados.map(([nome, registros]) => [nome, registros.length]), ["Gerado em", agora.toLocaleString("pt-BR")]];
-    const abas = [
-      { nome: "Resumo", linhas: linhasInfo },
-      { nome: "Cotações", linhas: [["ID", "Cliente", "CNPJ", "Status", "Valor Total", "Criada em", "Funcionário"], ...dados["Cotações"].map(c => [c.id, c.cliente || "", c.cnpj || "", c.status || "", Number(c.valorTotal) || 0, _linhaCsvData(c.dataCriacao), c.funcionario || ""])] },
-      { nome: "Vendas Caixa", linhas: [["ID", "Data", "Vendedor", "Nº Venda", "Forma Pagto.", "Total"], ...dados["Vendas Caixa"].map(v => [v.id, _linhaCsvData(v.criadoEm), v.vendedorNome || "", v.numero || "", v.formaPagamento || "", Number(v.total) || 0])] },
-      { nome: "Usuários", linhas: [["ID", "Nome", "E-mail", "Cargos"], ...dados["Usuários"].map(u => [u.id, u.nome || "", u.email || "", (cargosDoUsuario(u) || []).join(", ")])] },
-      { nome: "Promissórias - Clientes", linhas: [["ID", "Nome", "Telefone", "CPF/CNPJ"], ...dados["Promissórias - Clientes"].map(c => [c.id, c.nome || "", c.telefone || "", c.documento || ""])] },
-      { nome: "Promissórias - Compras", linhas: [["ID", "Cliente ID", "Valor", "Data da Compra", "Vencimento", "Observações"], ...dados["Promissórias - Compras"].map(c => [c.id, c.clienteId || "", Number(c.valor) || 0, _linhaCsvData(c.dataCompra), _linhaCsvData(c.vencimento), c.observacoes || ""])] },
-      { nome: "Promissórias - Pagamentos", linhas: [["ID", "Cliente ID", "Valor", "Data do Pagamento", "Forma", "Observações"], ...dados["Promissórias - Pagamentos"].map(p => [p.id, p.clienteId || "", Number(p.valor) || 0, _linhaCsvData(p.dataPagamento), p.forma || "", p.observacoes || ""])] },
-      { nome: "Produtos", linhas: [["ID", "Nome", "Código", "Categoria", "Preço", "Preço Custo", "Estoque", "Estoque Mínimo"], ...dados.Produtos.map(p => [p.id, p.nome || "", p.codigo || "", p.categoria || "", Number(p.preco) || 0, Number(p.precoCusto) || 0, Number(p.estoque) || 0, Number(p.estoqueMinimo) || 0])] }
-    ];
-
-    btn.textContent = "Preparando Excel...";
-    const nomeArquivo = `Backup_Papelaria_Futura_${agora.toISOString().split("T")[0]}.xlsx`;
-    if (!exportarExcelMultiplasAbas(nomeArquivo, abas)) {
-      throw new Error("O arquivo Excel não foi criado. Confira se a biblioteca de exportação carregou e tente novamente.");
-    }
-    await salvarUltimoBackup();
-    window.mostrarToast?.(`Backup baixado. Registros: ${resultados.map(([nome, itens]) => `${nome}: ${itens.length}`).join(" · ")}`, "success", 9000);
+    const backup = await coletarBackup({
+      lerColecao: caminho => buscarColecaoCompletaBackup(caminho),
+      lerGrupo: nome => buscarColecaoCompletaBackup(nome, true),
+      projectId: db.app.options.projectId,
+      storage: localStorage,
+      progresso: nome => { btn.textContent = `Lendo ${nome}...`; }
+    });
+    const texto = JSON.stringify(backup, null, 2);
+    const verificado = JSON.parse(texto);
+    if (verificado.documentos.length !== backup.totalDocumentos) throw new Error("Falha ao verificar o arquivo.");
+    const blob = new Blob([texto], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Backup_Completo_Papelaria_Futura_${backup.concluidoEm.replace(/[:.]/g, "-")}.json`;
+    document.body.appendChild(link);
+    try { link.click(); baixado = true; }
+    finally { link.remove(); window.setTimeout(() => URL.revokeObjectURL(url), 60000); }
+    const status = await salvarUltimoBackup();
+    window.mostrarToast?.(`Backup preparado: ${backup.totalDocumentos} documentos completos. Confira o arquivo nos downloads.${status?.sucesso === false ? ' Não foi possível atualizar a data do último backup.' : ''}`, "success", 10000);
     carregarStatusBackup();
   } catch (err) {
-    console.error("Erro ao gerar backup:", err);
-    window.mostrarToast?.(`Backup não concluído: ${err.message || "falha ao ler os dados"}. Nenhum Excel parcial foi marcado como backup.`, "error", 10000);
+    console.error("Erro ao gerar backup completo:", err);
+    window.mostrarToast?.(baixado
+      ? "Arquivo enviado para download, mas não foi possível atualizar o status. Confira seus downloads."
+      : `Backup não concluído: ${err.message || 'falha na leitura'}. Nenhum arquivo parcial foi gerado.`, "error", 12000);
   } finally {
     btn.disabled = false;
     btn.innerHTML = textoOriginal;
