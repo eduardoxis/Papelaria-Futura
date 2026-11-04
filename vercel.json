@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/os/painel", "destination": "/os/painel.html" },
     { "source": "/dashboard", "destination": "/index.html" },
     { "source": "/login",     "destination": "/login.html" },
     { "source": "/",          "destination": "/login.html" }

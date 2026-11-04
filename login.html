@@ -247,7 +247,7 @@
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./js/service-worker.js", { scope: "./" }).catch(() => {});
+        navigator.serviceWorker.register("./service-worker.js", { scope: "./" }).catch(() => {});
       });
     }
   </script>

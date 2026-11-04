@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Fila de serviços — Papelaria Futura</title>
+    <link rel="icon" href="/img/favicon.png" />
+    <link rel="stylesheet" href="/css/os.css" />
+  </head>
+  <body class="os-painel-body">
+    <main class="os-painel">
+      <header>
+        <img src="/img/logo.png" alt="Papelaria Futura" />
+        <div>
+          <h1>Fila de serviços</h1>
+          <small>Papelaria Futura · <time id="osRelogio"></time></small>
+        </div>
+        <div class="os-painel-controles">
+          <button id="osTelaCheia">Tela cheia</button
+          ><a href="/dashboard">Voltar ao sistema</a>
+        </div>
+      </header>
+      <p id="osPainelConexao" role="status">Verificando acesso…</p>
+      <div id="osPainelLista" class="os-painel-cards"></div>
+      <footer>
+        <span>Acompanhe o andamento do seu serviço</span
+        ><strong id="osPainelPagina"></strong>
+      </footer>
+    </main>
+    <script type="module" src="/js/os-painel.js"></script>
+  </body>
+</html>

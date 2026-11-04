@@ -207,6 +207,176 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "pf_os",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ativo",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "posicaoFila",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "pf_os",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "responsavelId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ativo",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "posicaoFila",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "pf_os",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "responsavelId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dataEntrada",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "pf_os_eventos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "osId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "revisao",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "pf_os_painel",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ativo",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "posicaoFila",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dataEntrada",
+          "order": "DESCENDING"
+        }
+      ],
+      "queryScope": "COLLECTION",
+      "collectionGroup": "pf_os"
+    },
+    {
+      "fields": [
+        {
+          "fieldPath": "responsavelId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dataEntrada",
+          "order": "DESCENDING"
+        }
+      ],
+      "queryScope": "COLLECTION",
+      "collectionGroup": "pf_os"
+    },
+    {
+      "fields": [
+        {
+          "fieldPath": "servicoId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dataEntrada",
+          "order": "DESCENDING"
+        }
+      ],
+      "queryScope": "COLLECTION",
+      "collectionGroup": "pf_os"
+    },
+    {
+      "fields": [
+        {
+          "fieldPath": "responsavelId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "servicoId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dataEntrada",
+          "order": "DESCENDING"
+        }
+      ],
+      "queryScope": "COLLECTION",
+      "collectionGroup": "pf_os"
+    },
+    {
+      "fields": [
+        {
+          "fieldPath": "prioridade",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dataEntrada",
+          "order": "DESCENDING"
+        }
+      ],
+      "queryScope": "COLLECTION",
+      "collectionGroup": "pf_os"
+    },
+    {
+      "fields": [
+        {
+          "fieldPath": "responsavelId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "prioridade",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "dataEntrada",
+          "order": "DESCENDING"
+        }
+      ],
+      "queryScope": "COLLECTION",
+      "collectionGroup": "pf_os"
     }
   ],
   "fieldOverrides": []

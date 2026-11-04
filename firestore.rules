@@ -292,12 +292,141 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+
+    // Ordem de Serviço: fila única, histórico imutável e painel sem dados privados.
+    function cargoOs(c) {
+      return estaAutenticado() && (get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.get('roles',[]).hasAny([c]) || get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.get('role','') == c);
+    }
+    function operadorOs() { return ehAdmin() || cargoOs('operador_os'); }
+    function leitorPainelOs() { return operadorOs() || cargoOs('painel_os'); }
+    function osAtiva(o) { return o.status in ['aguardando','em_producao','pronto']; }
+    function responsavelOs(o) { return operadorOs() && o.responsavelId == request.auth.uid; }
+    function osNumero(n) {
+      return 'OS-' + (n < 10 ? '00000' : n < 100 ? '0000' : n < 1000 ? '000' : n < 10000 ? '00' : n < 100000 ? '0' : '') + string(n);
+    }
+    function osDados(o) {
+      return !o.keys().hasAny(['id']) && o.keys().hasAll(['numero','sequencia','clienteId','clienteNome','clienteTelefone','clienteExibicao','servicoId','servicoNome','descricao','responsavelId','responsavelNome','previsaoConclusao','previsaoEntrega','previsaoOriginalConclusao','previsaoOriginalEntrega','dataEntrada','dataInicio','dataConclusao','dataEntrega','criadoPor','atualizadoPor','atualizadoEm','revisao','ultimoEventoId','posicaoFila','status','ativo','quantidade','material','dimensao','acabamento','observacoes','prioridade','entregaId','entreguePor']) &&
+        o.clienteNome is string && o.clienteNome.size()>0 && o.clienteNome.size()<=120 &&
+        o.clienteTelefone is string && o.clienteTelefone.size()<=40 && o.clienteExibicao is string && o.clienteExibicao.size()>0 && o.clienteExibicao.size()<=40 &&
+        o.descricao is string && o.descricao.size()>0 && o.descricao.size()<=2000 &&
+        o.observacoes is string && o.observacoes.size()<=2000 && o.material is string && o.material.size()<=250 && o.dimensao is string && o.dimensao.size()<=150 && o.acabamento is string && o.acabamento.size()<=250 &&
+        o.quantidade is number && o.quantidade>0 && o.quantidade<=1000000 && o.prioridade in ['baixa','normal','alta','urgente'] &&
+        o.previsaoConclusao is timestamp && o.previsaoEntrega is timestamp && o.previsaoEntrega>=o.previsaoConclusao &&
+        o.status in ['aguardando','em_producao','pronto','entregue','cancelado'] && o.ativo == osAtiva(o) &&
+        o.posicaoFila is int && o.posicaoFila>0 && o.revisao is int && o.revisao>0 &&
+        o.atualizadoPor == request.auth.uid && o.atualizadoEm == request.time;
+    }
+    function osReferencias(o) {
+      let u = get(/databases/$(database)/documents/usuarios/$(o.responsavelId)).data;
+      let s = get(/databases/$(database)/documents/pf_servicos/$(o.servicoId)).data;
+      return u.get('ativo',true) != false && (u.get('roles',[]).hasAny(['admin','operador_os']) || u.get('role','') in ['admin','operador_os']) &&
+        o.responsavelNome == u.nome && s.get('ativo',true) != false && o.servicoNome == s.nome &&
+        (o.clienteId == '' || o.clienteNome == get(/databases/$(database)/documents/clientes_cadastro/$(o.clienteId)).data.nome);
+    }
+    function osEvento(id,a,b) {
+      let e = getAfter(/databases/$(database)/documents/pf_os_eventos/$(b.ultimoEventoId)).data;
+      return !exists(/databases/$(database)/documents/pf_os_eventos/$(b.ultimoEventoId)) &&
+        e.osId == id && e.usuarioId == request.auth.uid && e.usuarioNome == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.get('nome',request.auth.uid) && e.criadoEm == request.time &&
+        e.revisao == b.revisao && e.antes == a && e.depois == b && e.motivo is string && e.motivo.size()<=1000;
+    }
+    function osProjecao(id,o) {
+      return {'osId':id,'numero':o.numero,'cliente':o.clienteExibicao,'servico':o.servicoNome,'responsavel':o.responsavelNome,'previsaoConclusao':o.previsaoConclusao,'status':o.status,'prioridade':o.prioridade,'posicaoFila':o.posicaoFila,'ativo':o.ativo,'dataConclusao':o.dataConclusao,'revisao':o.revisao};
+    }
+    function osPainelCorreto(id,o) {
+      return getAfter(/databases/$(database)/documents/pf_os_painel/$(id)).data == osProjecao(id,o);
+    }
+    function osCriacao(id,o) {
+      let m = getAfter(/databases/$(database)/documents/pf_os_controle/fila).data;
+      return ehAdmin() && osDados(o) && osReferencias(o) && o.sequencia == m.sequencia && o.numero == osNumero(o.sequencia) && o.posicaoFila == o.sequencia &&
+        m.ultimaOsId == id && m.tipo == 'criacao' && m.atualizadoEm == request.time &&
+        o.dataEntrada == request.time && o.criadoPor == request.auth.uid && o.criadoPorNome == get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.get('nome',request.auth.uid) && o.revisao == 1 && o.status == 'aguardando' &&
+        o.previsaoOriginalConclusao == o.previsaoConclusao && o.previsaoOriginalEntrega == o.previsaoEntrega &&
+        o.dataInicio == null && o.dataConclusao == null && o.dataEntrega == null && o.entregaId == null && o.entreguePor == null &&
+        osEvento(id,null,o) && osPainelCorreto(id,o);
+    }
+    function osTroca(id,a,b) {
+      let outro = get(/databases/$(database)/documents/pf_os/$(b.parTrocaId)).data;
+      let novo = getAfter(/databases/$(database)/documents/pf_os/$(b.parTrocaId)).data;
+      let m = getAfter(/databases/$(database)/documents/pf_os_controle/fila).data;
+      return ehAdmin() && osAtiva(outro) && b.parTrocaId != id &&
+        b.diff(a).affectedKeys().hasOnly(['posicaoFila','parTrocaId','revisao','atualizadoEm','atualizadoPor','ultimoEventoId']) &&
+        b.posicaoFila == outro.posicaoFila && novo.posicaoFila == a.posicaoFila && novo.parTrocaId == id && novo.revisao == outro.revisao+1 &&
+        m.tipo == 'reordenacao' && id in [m.ultimaOsId,m.outraOsId] && m.atualizadoEm == request.time;
+    }
+    function osTransicao(a,b) {
+      return (a.status == 'aguardando' && b.status in ['em_producao','cancelado']) ||
+        (a.status == 'em_producao' && b.status in ['pronto','cancelado']) ||
+        (a.status == 'pronto' && b.status in ['entregue','cancelado']);
+    }
+    function osStatus(id,a,b) {
+      let e = getAfter(/databases/$(database)/documents/pf_os_eventos/$(b.ultimoEventoId)).data;
+      return (ehAdmin() || responsavelOs(a)) && osTransicao(a,b) && e.tipo == 'status' &&
+        b.diff(a).affectedKeys().hasOnly(['status','ativo','dataInicio','dataConclusao','dataEntrega','entreguePor','entregaId','revisao','atualizadoEm','atualizadoPor','ultimoEventoId']) &&
+        b.dataInicio == (b.status == 'em_producao' ? request.time : a.dataInicio) &&
+        b.dataConclusao == (b.status == 'pronto' ? request.time : a.dataConclusao) &&
+        b.dataEntrega == (b.status == 'entregue' ? request.time : a.dataEntrega) &&
+        b.entreguePor == (b.status == 'entregue' ? request.auth.uid : a.entreguePor) &&
+        b.entregaId == (b.status == 'entregue' ? 'os_'+id : a.entregaId) &&
+        (b.status != 'cancelado' || (ehAdmin() && e.motivo.size()>0)) &&
+        (b.status != 'entregue' || (!exists(/databases/$(database)/documents/pf_entregas/$(b.entregaId)) && getAfter(/databases/$(database)/documents/pf_entregas/$(b.entregaId)).data.osId == id));
+    }
+    function osEdicao(a,b) {
+      return ehAdmin() && osReferencias(b) &&
+        b.diff(a).affectedKeys().hasOnly(['clienteId','clienteNome','clienteTelefone','clienteExibicao','servicoId','servicoNome','descricao','responsavelId','responsavelNome','previsaoConclusao','previsaoEntrega','quantidade','material','dimensao','acabamento','observacoes','prioridade','revisao','atualizadoEm','atualizadoPor','ultimoEventoId']);
+    }
+    match /pf_os/{id} {
+      allow get: if ehAdmin() || (!exists(/databases/$(database)/documents/pf_os/$(id)) ? false : responsavelOs(resource.data));
+      allow list: if ehAdmin() || responsavelOs(resource.data);
+      allow create: if osCriacao(id,request.resource.data);
+      allow update: if osAtiva(resource.data) && osDados(request.resource.data) && request.resource.data.revisao == resource.data.revisao+1 &&
+        osEvento(id,resource.data,request.resource.data) && osPainelCorreto(id,request.resource.data) &&
+        (osStatus(id,resource.data,request.resource.data) || osEdicao(resource.data,request.resource.data) || osTroca(id,resource.data,request.resource.data));
+      allow delete: if false;
+    }
+    match /pf_os_eventos/{id} {
+      allow get: if ehAdmin() || (operadorOs() && (!exists(/databases/$(database)/documents/pf_os_eventos/$(id)) || responsavelOs(get(/databases/$(database)/documents/pf_os/$(resource.data.osId)).data)));
+      allow list: if ehAdmin() || responsavelOs(get(/databases/$(database)/documents/pf_os/$(resource.data.osId)).data);
+      allow create: if operadorOs() && request.resource.data.keys().hasOnly(['osId','revisao','tipo','motivo','usuarioId','usuarioNome','criadoEm','antes','depois']) &&
+        request.resource.data.usuarioId == request.auth.uid && request.resource.data.criadoEm == request.time &&
+        getAfter(/databases/$(database)/documents/pf_os/$(request.resource.data.osId)).data.ultimoEventoId == id &&
+        request.resource.data.depois == getAfter(/databases/$(database)/documents/pf_os/$(request.resource.data.osId)).data &&
+        request.resource.data.antes == (exists(/databases/$(database)/documents/pf_os/$(request.resource.data.osId)) ? get(/databases/$(database)/documents/pf_os/$(request.resource.data.osId)).data : null);
+      allow update, delete: if false;
+    }
+    match /pf_os_painel/{id} {
+      allow read: if leitorPainelOs();
+      allow create, update: if operadorOs() && request.resource.data == osProjecao(id,getAfter(/databases/$(database)/documents/pf_os/$(id)).data);
+      allow delete: if false;
+    }
+    match /pf_os_controle/{id} {
+      allow read: if ehAdmin();
+      allow create: if id == 'fila' && ehAdmin() && request.resource.data.sequencia == 1 && request.resource.data.revisao == 1 &&
+        request.resource.data.tipo == 'criacao' && request.resource.data.atualizadoEm == request.time &&
+        getAfter(/databases/$(database)/documents/pf_os/$(request.resource.data.ultimaOsId)).data.sequencia == 1;
+      allow update: if id == 'fila' && ehAdmin() && request.resource.data.revisao == resource.data.revisao+1 && request.resource.data.atualizadoEm == request.time &&
+        ((request.resource.data.tipo == 'criacao' && request.resource.data.sequencia == resource.data.sequencia+1 &&
+          !exists(/databases/$(database)/documents/pf_os/$(request.resource.data.ultimaOsId)) &&
+          getAfter(/databases/$(database)/documents/pf_os/$(request.resource.data.ultimaOsId)).data.sequencia == request.resource.data.sequencia) ||
+         (request.resource.data.tipo == 'reordenacao' && request.resource.data.sequencia == resource.data.sequencia &&
+          getAfter(/databases/$(database)/documents/pf_os/$(request.resource.data.ultimaOsId)).data.parTrocaId == request.resource.data.outraOsId &&
+          getAfter(/databases/$(database)/documents/pf_os/$(request.resource.data.ultimaOsId)).data.atualizadoEm == request.time));
+      allow delete: if false;
+    }
+    function entregaOs(id,d) {
+      let o = getAfter(/databases/$(database)/documents/pf_os/$(d.osId)).data;
+      return operadorOs() && id == 'os_'+d.osId && d.keys().hasOnly(['origem','osId','osNumero','cliente','local','data','horaSaida','horaVolta','criadoPor','criadoEm','entregueEm']) &&
+        o.status == 'entregue' && o.entregaId == id && o.dataEntrega == request.time && d.entregueEm == request.time && d.criadoEm == request.time && d.criadoPor == request.auth.uid &&
+        d.osNumero == o.numero && d.cliente == o.clienteNome && d.local is string && d.local.size()<=250;
+    }
+
+
     match /usuarios/{uid} {
       // Cada pessoa vê somente o próprio perfil. A gestão de usuários
       // permanece exclusiva do administrador.
       allow read: if ehDono(uid) || ehAdmin() || (podeOperar() && (resource.data.get('roles',[]).hasAny(['vendedor']) || resource.data.get('role','') == 'vendedor'));
-      allow create: if estaAutenticado() && request.auth.uid == uid &&
-        request.resource.data.roles == ["user"];
+      allow create: if (estaAutenticado() && request.auth.uid == uid &&
+        request.resource.data.roles == ["user"] && request.resource.data.get('role','user') == 'user' &&
+        request.resource.data.get('uid',uid) == uid) || ehAdmin();
       allow update: if ehAdmin() ||
         (ehDono(uid) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["roles", "role"]));
       allow delete: if ehAdmin();
@@ -408,10 +537,10 @@ service cloud.firestore {
     match /pf_entregas/{entregaId} {
       allow read:   if donoDoDocumento() || ehAdmin();
       allow create: if estaAutenticado() &&
-        request.resource.data.criadoPor == request.auth.uid;
-      allow update: if (donoDoDocumento() || ehAdmin()) &&
+        request.resource.data.criadoPor == request.auth.uid && (request.resource.data.get('origem','') == 'os' ? entregaOs(entregaId,request.resource.data) : (!entregaId.matches('^os_.*') && !request.resource.data.keys().hasAny(['osId'])));
+      allow update: if resource.data.get('origem','') != 'os' && request.resource.data.get('origem','') != 'os' && !request.resource.data.keys().hasAny(['osId']) && (donoDoDocumento() || ehAdmin()) &&
         request.resource.data.criadoPor == resource.data.criadoPor;
-      allow delete: if donoDoDocumento() || ehAdmin();
+      allow delete: if resource.data.get('origem','') != 'os' && (donoDoDocumento() || ehAdmin());
     }
     match /prom_historico/{registroId} {
       allow read:   if ehAdmin();

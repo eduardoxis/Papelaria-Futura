@@ -32,6 +32,7 @@
   <link rel="stylesheet" href="css/mobile.css" />
   <link rel="stylesheet" href="css/vendas-comissoes.css" />
   <link rel="stylesheet" href="css/pdv.css" />
+<link rel="stylesheet" href="./css/os.css"/>
 </head>
 <body>
 
@@ -92,18 +93,20 @@
           Caixa
         </a>
       </li>
-      <li>
-        <a href="#" class="nav-item" data-page="entrega">
-          <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M8 16a2 2 0 11-4 0 2 2 0 014 0zM18 16a2 2 0 11-4 0 2 2 0 014 0z"/><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM12 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0114.95 16H15a1 1 0 001-1v-2h1.5a1 1 0 00.83-.445l1.5-2.25A1 1 0 0020 9.75V8a1 1 0 00-1-1h-7z"/></svg>
-          Entrega
-        </a>
-      </li>
-      <li>
+      <li class="nav-item-os" hidden><a href="#" class="nav-item" data-page="os"><svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M5 2a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V4a2 2 0 00-2-2H5zm1 4h8v2H6V6zm0 4h8v2H6v-2zm0 4h5v2H6v-2z"/></svg>Ordem de Serviço</a></li>
+<li>
         <a href="#" class="nav-item" data-page="comissao">
           <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V8z" clip-rule="evenodd"/></svg>
           Comissão
         </a>
       </li>
+<li>
+        <a href="#" class="nav-item" data-page="entrega">
+          <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M8 16a2 2 0 11-4 0 2 2 0 014 0zM18 16a2 2 0 11-4 0 2 2 0 014 0z"/><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM12 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0114.95 16H15a1 1 0 001-1v-2h1.5a1 1 0 00.83-.445l1.5-2.25A1 1 0 0020 9.75V8a1 1 0 00-1-1h-7z"/></svg>
+          Entrega
+        </a>
+      </li>
+
       <li class="nav-item-admin" hidden>
         <a href="#" class="nav-item" data-page="estoque">
           <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 3a1 1 0 011-1h1a1 1 0 011 1v14a1 1 0 01-1 1H3a1 1 0 01-1-1V3zM6 3a1 1 0 011-1 1 1 0 011 1v14a1 1 0 01-1 1 1 1 0 01-1-1V3zM9.5 2a1 1 0 00-1 1v14a1 1 0 002 0V3a1 1 0 00-1-1zM12 3a1 1 0 011-1h1a1 1 0 011 1v14a1 1 0 01-1 1h-1a1 1 0 01-1-1V3zM17 2a1 1 0 00-1 1v14a1 1 0 002 0V3a1 1 0 00-1-1z"/></svg>
@@ -820,6 +823,7 @@ Minha lista de produtos:
     <!-- ======================================================== -->
     <!-- PÁGINA: ENTREGA                                           -->
     <!-- ======================================================== -->
+    <section id="page-os" class="page" aria-label="Ordem de Serviço" hidden><div class="page-header"><div><h2>Ordem de Serviço</h2><p>Organize a produção, acompanhe os prazos e registre as entregas.</p></div></div><div id="osConteudo"></div></section>
     <section id="page-entrega" class="page" aria-label="Entrega" hidden>
 
       <!-- Mobile page header -->
@@ -2259,6 +2263,7 @@ Minha lista de produtos:
   import { iniciarAdmin }                from "./js/admin.js";
   import { iniciarComissao }             from "./js/comissao.js";
   import { iniciarCaixa }                from "./js/caixa.js";
+  import { iniciarOs } from "./js/os-ui.js";
   import { iniciarEntrega }              from "./js/entrega.js";
   import { iniciarProdutos }             from "./js/produtos.js";
   import { iniciarServicos }             from "./js/servicos.js";
@@ -2280,9 +2285,11 @@ Minha lista de produtos:
     const isAdmin = temCargo(dadosUsuario, "admin");
     const isVendedor = temCargo(dadosUsuario, "vendedor");
     const isOperador = temCargo(dadosUsuario,"operador_caixa");
+    const isOs = isAdmin || temCargo(dadosUsuario,"operador_os");
+    document.querySelectorAll(".nav-item-os").forEach(el => el.hidden = !isOs);
 
     document.getElementById("userName").textContent  = nome;
-    document.getElementById("userRole").textContent  = isAdmin ? "Administrador" : (isOperador ? "Operador de caixa" : (isVendedor ? "Vendedor" : "Usuário"));
+    document.getElementById("userRole").textContent  = isAdmin ? "Administrador" : (isOperador ? "Operador de caixa" : (isOs ? "Operador de OS" : (isVendedor ? "Vendedor" : "Usuário")));
     document.getElementById("userAvatar").textContent = nome.charAt(0).toUpperCase();
 
     // Saudação dinâmica
@@ -2307,6 +2314,7 @@ Minha lista de produtos:
     if (isAdmin || isOperador) iniciarCaixa(usuario, dadosUsuario);
     if(isOperador) document.querySelectorAll('[data-page="caixa"]').forEach(el=>{el.hidden=false;const li=el.closest('.nav-item-admin');if(li)li.hidden=false;});
     iniciarEntrega(usuario, dadosUsuario);
+    if (isOs) iniciarOs(usuario, dadosUsuario);
     if (isAdmin) iniciarProdutos(usuario, dadosUsuario);
     if (isAdmin) iniciarServicos(usuario, dadosUsuario);
     if (isAdmin) iniciarPromissoria(usuario, dadosUsuario);
@@ -2315,7 +2323,7 @@ Minha lista de produtos:
     iniciarNotificacoes(usuario, dadosUsuario);
 
     // Navegação
-    configurarNavegacao(isAdmin,isOperador);
+    configurarNavegacao(isAdmin,isOperador,isOs);
 
     // Logout
     document.getElementById("btnLogout").addEventListener("click", logoutUsuario);
@@ -2324,7 +2332,7 @@ Minha lista de produtos:
   // ----------------------------------------------------------------
   // Sistema de navegação SPA
   // ----------------------------------------------------------------
-  function configurarNavegacao(isAdmin,isOperador=false) {
+  function configurarNavegacao(isAdmin,isOperador=false,isOs=false) {
     const paginas = document.querySelectorAll(".page");
     const navItems = document.querySelectorAll("[data-page]");
     const titles = {
@@ -2332,6 +2340,7 @@ Minha lista de produtos:
       "cotacoes":      "Cotações",
       "nova-cotacao":  "Nova Cotação",
       "caixa":         "Caixa",
+      "os":            "Ordem de Serviço",
       "entrega":       "Entrega",
       "comissao":      "Comissão",
       "estoque":       "Produtos / Estoque",
@@ -2343,6 +2352,7 @@ Minha lista de produtos:
 
     const paginasPermitidasUsuario = new Set(["dashboard", "cotacoes", "cotacoes-fw3", "cotacoes-avenida", "nova-cotacao", "entrega", "comissao"]);
     if(isOperador)paginasPermitidasUsuario.add("caixa");
+    if(isOs)paginasPermitidasUsuario.add("os");
     const paginasOrcamento = {
       "cotacoes-fw3": "cotacoes",
       "cotacoes-avenida": "cotacoes"

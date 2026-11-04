@@ -44,6 +44,7 @@ export function iniciarEntrega(usuario, dadosUsuario) {
   });
 
   document.getElementById("tbodyEntrega")?.addEventListener("click", onTabelaClick);
+  document.addEventListener("os:atualizada", () => carregarListaEntregas());
 }
 
 async function carregarListaEntregas() {
@@ -201,18 +202,18 @@ function renderizarTabelaEntrega() {
 
   tbody.innerHTML = lista.map(en => `
     <tr>
-      <td><strong>${escHtml(en.cliente || "—")}</strong></td>
+      <td><strong>${escHtml(en.cliente || "—")}</strong>${en.origem === "os" ? '<br><small>'+escHtml(en.osNumero)+' · Entrega registrada pela OS</small>' : ''}</td>
       <td>${escHtml(en.local || "—")}</td>
       <td>${fmtDataBR(en.data)}</td>
       <td class="col-center">${escHtml(en.horaSaida || "—")}</td>
       <td class="col-center">${escHtml(en.horaVolta || "—")}</td>
       <td class="col-center td-actions-col">
         <div class="td-actions-wrap">
-          <button class="btn-action btn-action--edit" data-action="editar" data-id="${escHtml(en.id)}">
+          <button class="btn-action btn-action--edit" data-action="editar" data-id="${escHtml(en.id)}" ${en.origem === "os" ? "hidden" : ""}>
             <svg viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
             Editar
           </button>
-          <button class="btn-action btn-action--delete" data-action="excluir" data-id="${escHtml(en.id)}" data-cliente="${escHtml(en.cliente || "")}">
+          <button class="btn-action btn-action--delete" data-action="excluir" data-id="${escHtml(en.id)}" data-cliente="${escHtml(en.cliente || "")}" ${en.origem === "os" ? "hidden" : ""}>
             <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
             Excluir
           </button>
@@ -226,6 +227,10 @@ function onTabelaClick(e) {
   const btn = e.target.closest("[data-action]");
   if (!btn) return;
   const { action, id, cliente } = btn.dataset;
+  if (_entregasCache.find(en => en.id === id)?.origem === "os") {
+    window.mostrarToast?.("Consulte o registro e seu histórico em Ordem de Serviço.", "info");
+    return;
+  }
   if (action === "editar") abrirModalEditarEntrega(id);
   if (action === "excluir") confirmarExcluirEntrega(id, cliente);
 }

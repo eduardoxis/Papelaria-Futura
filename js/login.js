@@ -101,7 +101,9 @@ function _resetarTentativasLogin() {
   _salvarEstadoTentativas({ contador: 0, primeiraTentativa: 0, bloqueadoAte: 0, nivelBloqueio: 0 });
 }
 
+let loginEmAndamento = false;
 async function fazerLogin() {
+  if (loginEmAndamento) return;
   const email = inputEmail.value.trim();
   const senha = inputSenha.value;
 
@@ -123,6 +125,7 @@ async function fazerLogin() {
     return;
   }
 
+  loginEmAndamento = true;
   definirCarregando(true);
 
   try {
@@ -132,6 +135,7 @@ async function fazerLogin() {
     _resetarTentativasLogin();
     window.location.href = "/index.html";
   } catch (e) {
+    loginEmAndamento = false;
     mostrarErro(traduzirErro(e.code));
     definirCarregando(false);
   }
@@ -221,5 +225,6 @@ function traduzirErro(codigo) {
     "auth/invalid-credential":     "E-mail ou senha incorretos.",
     "auth/too-many-requests":      "Muitas tentativas. Tente mais tarde.",
     "auth/network-request-failed": "Erro de rede.",
+    "auth/web-storage-unsupported": "O navegador bloqueou o armazenamento necessário para manter o login. Libere o armazenamento deste site e tente novamente.",
   })[codigo] ?? "Erro ao fazer login. Tente novamente.";
 }

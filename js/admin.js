@@ -10,10 +10,6 @@ import {
   listarUsuarios, salvarUsuario, excluirUsuarioFirestore,
   salvarSenhaCotacao, senhaCotacaoExiste, listarCotacoes, listarVendas
 } from "./database.js";
-import {
-  createUserWithEmailAndPassword
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { auth } from "./firebase-config.js";
 import { escHtml } from "./index.js";
 import { formatarData, formatarDataHora, formatarMoeda, listarVendasEntre } from "./database.js";
 import {
@@ -22,7 +18,7 @@ import {
   buscarConfigLembreteCotacao, salvarConfigLembreteCotacao,
   exportarExcel, buscarUltimoBackup, salvarUltimoBackup
 } from "./database.js";
-import { cargosDoUsuario, temCargo } from "./auth.js";
+import { cargosDoUsuario, temCargo, criarContaUsuario } from "./auth.js";
 import { collection, collectionGroup, getDocs, getDocsFromServer, query, orderBy, limit, startAfter, documentId } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db } from "./firebase-config.js";
 import { gerarPdfFechamentoCaixa, gerarPdfComissaoCriador } from "./pdf.js";
@@ -246,7 +242,7 @@ function abrirModalNovoUsuario() {
             <input type="checkbox" name="novoCargo" value="vendedor" /> Vendedor
           </label>
           <label class="checkbox-cargo">
-            <input type="checkbox" name="novoCargo" value="operador_caixa" /> Operador de caixa</label><label class="checkbox-cargo"><input type="checkbox" name="novoCargo" value="admin" /> Administrador
+            <input type="checkbox" name="novoCargo" value="operador_caixa" /> Operador de caixa</label><label class="checkbox-cargo"><input type="checkbox" name="novoCargo" value="operador_os" /> Operador de OS</label><label class="checkbox-cargo"><input type="checkbox" name="novoCargo" value="painel_os" /> Painel de OS (somente exibição)</label><label class="checkbox-cargo"><input type="checkbox" name="novoCargo" value="admin" /> Administrador
           </label>
         </div>
       </div>
@@ -261,6 +257,7 @@ function abrirModalNovoUsuario() {
 }
 
 async function criarNovoUsuario() {
+  if (document.getElementById("btnConfirmarNovoUsuario")?.disabled) return;
   const nome  = document.getElementById("novoNome")?.value.trim();
   const email = document.getElementById("novoEmail")?.value.trim();
   const senha = document.getElementById("novaSenha")?.value;
@@ -286,18 +283,21 @@ async function criarNovoUsuario() {
   btn.textContent = "Criando...";
 
   try {
-    // Criar no Firebase Auth
-    const credencial = await createUserWithEmailAndPassword(auth, email, senha);
-    const uid = credencial.user.uid;
+    // Reutiliza a conta já criada se somente a gravação do perfil precisar de nova tentativa.
+    const uid = btn.dataset.uidCriado || (await criarContaUsuario(email, senha)).uid;
+    btn.dataset.uidCriado = uid;
+    document.getElementById("novoEmail").readOnly = true;
+    document.getElementById("novaSenha").readOnly = true;
 
     // Salvar no Firestore
-    await salvarUsuario(uid, { nome, email, roles, role: roles[0], uid });
+    const resultado = await salvarUsuario(uid, { nome, email, roles, role: roles[0], uid });
+    if (!resultado.sucesso) throw Object.assign(new Error("A conta foi criada, mas o perfil não foi salvo. Confira a conexão e clique novamente em Criar Usuário para concluir."), { mensagemUsuario:true });
 
     window.fecharModal?.();
     window.mostrarToast?.(`Usuário "${nome}" criado com sucesso!`, "success");
     carregarUsuarios();
   } catch (err) {
-    erroEl.textContent = traduzirErro(err.code);
+    erroEl.textContent = err.mensagemUsuario ? err.message : traduzirErro(err.code);
     erroEl.style.display = "block";
     btn.disabled = false;
     btn.textContent = "Criar Usuário";
@@ -331,7 +331,7 @@ function abrirModalEditarUsuario(usuario) {
             <input type="checkbox" name="editCargo" value="vendedor" ${cargosAtuais.includes("vendedor") ? "checked" : ""} /> Vendedor
           </label>
           <label class="checkbox-cargo">
-            <input type="checkbox" name="editCargo" value="operador_caixa" ${cargosAtuais.includes("operador_caixa") ? "checked" : ""} /> Operador de caixa</label><label class="checkbox-cargo"><input type="checkbox" name="editCargo" value="admin" ${cargosAtuais.includes("admin") ? "checked" : ""} /> Administrador
+            <input type="checkbox" name="editCargo" value="operador_caixa" ${cargosAtuais.includes("operador_caixa") ? "checked" : ""} /> Operador de caixa</label><label class="checkbox-cargo"><input type="checkbox" name="editCargo" value="operador_os" ${cargosAtuais.includes("operador_os") ? "checked" : ""} /> Operador de OS</label><label class="checkbox-cargo"><input type="checkbox" name="editCargo" value="painel_os" ${cargosAtuais.includes("painel_os") ? "checked" : ""} /> Painel de OS (somente exibição)</label><label class="checkbox-cargo"><input type="checkbox" name="editCargo" value="admin" ${cargosAtuais.includes("admin") ? "checked" : ""} /> Administrador
           </label>
         </div>
       </div>
@@ -470,7 +470,7 @@ function trocarPainelAdmin(painelId) {
 // ================================================================
 function roleBadge(usuario) {
   const cargos = cargosDoUsuario(usuario);
-  const rotulos = { admin: "Administrador", vendedor: "Vendedor", operador_caixa: "Operador de caixa", user: "Usuário" };
+  const rotulos = { admin: "Administrador", vendedor: "Vendedor", operador_caixa: "Operador de caixa", operador_os:"Operador de OS", painel_os:"Painel de OS", user: "Usuário" };
   const classes = { admin: "role-badge--admin", vendedor: "role-badge--vendedor", user: "role-badge--user" };
   return cargos.map(c =>
     `<span class="role-badge ${classes[c] || "role-badge--user"}">${rotulos[c] || c}</span>`

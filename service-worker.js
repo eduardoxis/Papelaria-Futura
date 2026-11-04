@@ -3,10 +3,11 @@
 // ============================================================
 // Sobe a versão do cache sempre que alterar arquivos estáticos
 // para forçar os usuários a receberem a versão nova.
-const CACHE_VERSION = "pf-cache-pdv-fechamentos-v6";
+const CACHE_VERSION = "pf-cache-os-sessao-v2";
 const CACHE_NAME = `papelaria-futura-${CACHE_VERSION}`;
 
 const APP_SHELL = [
+  "./js/os-core.js", "./js/os-db.js", "./js/os-ui.js", "./js/os-painel.js", "./css/os.css", "./os/painel.html",
   "./",
   "./index.html",
   "./login.html",

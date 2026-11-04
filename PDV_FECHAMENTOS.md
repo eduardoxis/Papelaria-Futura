@@ -75,7 +75,7 @@ Se houver caixa antigo aberto, o administrador deverá concluir a transição in
 
 Em Fechamentos antigos, os relatórios utilizam somente os campos que o sistema anterior realmente armazenou. Dados históricos ausentes não podem ser reconstruídos automaticamente. A atualização não recupera documentos que já foram apagados antes dela.
 
-Não foi configurada exclusão automática de fechamentos. A permanência depende da manutenção do projeto Firebase e de sua capacidade. O backup completo agora inclui **28 coleções principais**, além dos grupos de subcoleções, inclusive os novos fechamentos, movimentos, ajustes e controles de sessão. Veja BACKUP.md para limites e recuperação.
+Não foi configurada exclusão automática de fechamentos. A permanência depende da manutenção do projeto Firebase e de sua capacidade. O backup completo agora inclui **32 coleções principais**, além dos grupos de subcoleções, inclusive os novos fechamentos, movimentos, ajustes e controles de sessão. Veja BACKUP.md para limites e recuperação.
 
 ## Validação realizada
 

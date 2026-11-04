@@ -65,7 +65,7 @@ As regras do Firestore são a validação no servidor, inclusive cálculos e sal
 
 ## Backup
 
-As 5 novas coleções foram incluídas no backup completo: configurações dos vendedores, base de cálculo, comissões por venda, pagamentos e auditoria. O inventário agora contém 28 coleções do projeto, além das subcoleções. Veja BACKUP.md.
+As 5 novas coleções foram incluídas no backup completo: configurações dos vendedores, base de cálculo, comissões por venda, pagamentos e auditoria. O inventário agora contém 32 coleções do projeto, além das subcoleções. Veja BACKUP.md.
 
 ## Testes
 
