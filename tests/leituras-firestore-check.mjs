@@ -90,7 +90,7 @@ try {
   const pagUrl = url(
     fs
       .readFileSync(new URL("../js/paginacao.js", import.meta.url), "utf8")
-      .replaceAll("./firestore-operacoes.js", apiUrl),
+      .replaceAll("./operacoes-banco.js", apiUrl),
   );
   const { criarPaginador } = await import(pagUrl),
     pag = criarPaginador();

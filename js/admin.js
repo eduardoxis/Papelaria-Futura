@@ -19,7 +19,7 @@ import {
   exportarExcel, buscarUltimoBackup, salvarUltimoBackup
 } from "./database.js";
 import { cargosDoUsuario, temCargo, criarContaUsuario } from "./auth.js";
-import { collection, collectionGroup, getDocs, getDocsFromServer, query, where, orderBy, limit, startAfter, documentId } from "./firestore-operacoes.js";
+import { collection, collectionGroup, getDocs, getDocsFromServer, query, where, orderBy, limit, startAfter, documentId } from "./operacoes-banco.js";
 import { db } from "./firebase-config.js";
 import { criarPaginador, montarPaginacao } from './paginacao.js';
 const paginasUsuarios = criarPaginador();

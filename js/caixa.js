@@ -9,7 +9,7 @@ import { salvarVendaComComissao } from "./vendas-comissoes-db.js";
 // ============================================================
 import {
   collection, doc, getDocs, query, where, orderBy, limit, serverTimestamp
-} from "./firestore-operacoes.js";
+} from "./operacoes-banco.js";
 import { db } from "./firebase-config.js";
 import {
   formatarMoeda, formatarDataHora, listarComissoes, adicionarRegistroComissao, listarUsuarios,

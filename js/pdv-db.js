@@ -13,7 +13,7 @@ import {
   serverTimestamp,
   Timestamp,
   memorizarResumo,
-} from "./firestore-operacoes.js";
+} from "./operacoes-banco.js";
 import { db, auth } from "./firebase-config.js";
 import { executarFirebaseComLimite } from "./firebase-limites.js";
 const runTransaction = (banco, acao, opcoes) => executarFirebaseComLimite(() => transacaoFirestore(banco, acao, opcoes));

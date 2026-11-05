@@ -407,7 +407,7 @@ Verificações: tests/firebase-limites-check.mjs, tests/caixa-sessao-check.mjs e
 
 ### Como o reaproveitamento funciona
 
-Todas as áreas que acessam o Firestore passam por js/firestore-operacoes.js. Consultas de lista idênticas usam a mesma promessa durante uma carga concorrente e o mesmo resultado confirmado durante seu prazo de validade. O SDK compara as consultas, incluindo filtros, ordem e cursor; páginas e permissões distintas não são misturadas.
+Todas as áreas que acessam o Firestore passam por js/operacoes-banco.js. Consultas de lista idênticas usam a mesma promessa durante uma carga concorrente e o mesmo resultado confirmado durante seu prazo de validade. O SDK compara as consultas, incluindo filtros, ordem e cursor; páginas e permissões distintas não são misturadas.
 
 O prazo é de um minuto para listas comuns e cinco minutos para catálogos de serviços, marcas, usuários, clientes cadastrados e percentuais cadastrados. O conteúdo fica somente na memória da aba, separado por usuário e limitado a 80 entradas por cache. Não é gravado em localStorage ou em arquivos. Sair da conta limpa os resultados. Resultados offline ou com gravações pendentes não são guardados como confirmação do servidor.
 

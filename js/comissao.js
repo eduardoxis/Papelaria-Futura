@@ -11,7 +11,7 @@ import {
 } from "./database.js";
 
 const CATEGORIAS = ["Dinheiro", "Débito", "Crédito", "Pix celular", "Pix maquininha", "Convênio", "Misto"];
-import { collection, query, orderBy } from './firestore-operacoes.js';
+import { collection, query, orderBy } from './operacoes-banco.js';
 import { db } from './firebase-config.js';
 import { criarPaginador, montarPaginacao } from './paginacao.js';
 const paginasPlanilhas = criarPaginador();

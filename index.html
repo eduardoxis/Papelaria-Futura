@@ -179,6 +179,10 @@
 
   <!-- Área de páginas -->
   <main class="content-area">
+    <div class="card" id="pfFalhaInicio" role="alert" hidden>
+      <p>Não foi possível carregar o sistema. Recarregue a página para tentar novamente.</p>
+      <button type="button" class="btn-secondary" onclick="window.location.reload()">Recarregar página</button>
+    </div>
 
     <!-- ======================================================== -->
     <!-- PÁGINA: DASHBOARD                                         -->
@@ -1705,7 +1709,14 @@ Minha lista de produtos:
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
-<script type="module">
+<script>
+  window.addEventListener("error", (evento) => {
+    if (evento.target?.id === "pfInicio") {
+      document.getElementById("pfFalhaInicio").hidden = false;
+    }
+  }, true);
+</script>
+<script type="module" id="pfInicio">
   import { protegerRota, logoutUsuario, temCargo } from "./js/auth.js";
   import { iniciarDashboard }            from "./js/index.js";
   import { iniciarPaginacaoTabelas } from './js/tabelas-paginadas.js';

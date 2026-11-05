@@ -88,7 +88,7 @@ export async function getDocs(q){leituras++;const n=q.f.find(f=>f.limite)?.limit
 const inicio=apos?Number(apos):0;const docs=q.itens.slice(inicio,inicio+n).map((d,i)=>({id:String(inicio+i+1),data:()=>d}));documentos+=docs.length;return {docs,size:docs.length};}`);
 const fonte = fs
   .readFileSync(new URL("../js/paginacao.js", import.meta.url), "utf8")
-  .replaceAll("./firestore-operacoes.js", stub);
+  .replaceAll("./operacoes-banco.js", stub);
 const { criarPaginador } = await import(url(fonte)),
   sdk = await import(stub);
 const itens = Array.from({ length: 450 }, (_, i) => ({

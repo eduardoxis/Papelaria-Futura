@@ -14,7 +14,7 @@ import {
   getDocFromServer,
   runTransaction,
   serverTimestamp,
-} from "./firestore-operacoes.js";
+} from "./operacoes-banco.js";
 import app, { auth, db } from "./firebase-config.js";
 import {
   initializeApp,

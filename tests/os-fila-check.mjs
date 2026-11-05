@@ -24,7 +24,7 @@ const api = await import(
   url(
     ler("os-db.js")
       .replaceAll(
-        "./firestore-operacoes.js",
+        "./operacoes-banco.js",
         sdkUrl,
       )
       .replaceAll("./firebase-config.js", cfgUrl)

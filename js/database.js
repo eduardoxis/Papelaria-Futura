@@ -27,7 +27,7 @@ import {
   sum,
   writeBatch,
   memorizarResumo
-} from "./firestore-operacoes.js";
+} from "./operacoes-banco.js";
 
 import { db } from "./firebase-config.js";
 

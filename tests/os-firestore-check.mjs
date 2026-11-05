@@ -46,7 +46,7 @@ const cfg = url(
 const core = await import(coreUrl);
 const code = ler("os-db.js")
   .replaceAll(
-    "./firestore-operacoes.js",
+    "./operacoes-banco.js",
     sdk,
   )
   .replaceAll("./firebase-config.js", cfg)

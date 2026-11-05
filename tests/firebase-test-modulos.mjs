@@ -5,7 +5,7 @@ const ler = (n) =>
   fs.readFileSync(new URL("../js/" + n, import.meta.url), "utf8");
 export function fachadaFirebaseTeste(sdk, authSdk, config) {
   return url(
-    ler("firestore-operacoes.js")
+    ler("operacoes-banco.js")
       .replaceAll(
         "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js",
         sdk,

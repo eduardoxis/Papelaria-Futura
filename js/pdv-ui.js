@@ -7,7 +7,7 @@ import {
   orderBy,
   limit,
   startAfter,
-} from "./firestore-operacoes.js";
+} from "./operacoes-banco.js";
 import { db, auth } from "./firebase-config.js";
 import { temCargo } from "./auth.js";
 import { centavos, dataLocal, intervalo } from "./vendas-comissoes-core.js";

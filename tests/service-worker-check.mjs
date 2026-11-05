@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 
 const origem = "https://papelaria.test";
-const urlModulo = origem + "/js/firestore-operacoes.js";
+const urlModulo = origem + "/js/operacoes-banco.js";
 const eventos = new Map();
 const arquivos = new Map();
 let rede;

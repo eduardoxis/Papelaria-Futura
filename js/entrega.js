@@ -6,7 +6,7 @@
 import {
   collection, doc, addDoc, getDocs,
   updateDoc, deleteDoc, query, where, orderBy, serverTimestamp
-} from "./firestore-operacoes.js";
+} from "./operacoes-banco.js";
 import { db } from "./firebase-config.js";
 import { escHtml } from "./index.js";
 import { temCargo } from "./auth.js";

@@ -4,7 +4,7 @@ import {
   limit,
   startAfter,
   invalidarLeituras,
-} from "./firestore-operacoes.js";
+} from "./operacoes-banco.js";
 
 // Cursores, sem offset: voltar a uma página já aberta não faz nova leitura.
 export function criarPaginador({ tamanho = 30 } = {}) {

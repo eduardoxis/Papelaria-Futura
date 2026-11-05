@@ -73,7 +73,7 @@ try {
     fs
       .readFileSync(new URL("../js/pdv-db.js", import.meta.url), "utf8")
       .replaceAll(
-        "./firestore-operacoes.js",
+        "./operacoes-banco.js",
         fachada,
       )
       .replaceAll("./firebase-config.js", configUrl)
@@ -87,7 +87,7 @@ try {
   source = source.replaceAll("./pdv-db.js", pdvDbUrl);
   source = source
     .replace(
-      "./firestore-operacoes.js",
+      "./operacoes-banco.js",
       fachada,
     )
     .replace("./firebase-config.js", configUrl)

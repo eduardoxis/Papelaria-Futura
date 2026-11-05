@@ -12,7 +12,7 @@ import {
   runTransaction,
   serverTimestamp,
   Timestamp,
-} from "./firestore-operacoes.js";
+} from "./operacoes-banco.js";
 import { db, auth } from "./firebase-config.js";
 import {
   COL_OS,

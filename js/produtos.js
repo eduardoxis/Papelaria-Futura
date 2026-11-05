@@ -5,7 +5,7 @@ import {
   collection, doc, addDoc, getDoc, getDocs,
   updateDoc, deleteDoc, query, orderBy, limit,
   serverTimestamp, Timestamp, where, writeBatch
-} from "./firestore-operacoes.js";
+} from "./operacoes-banco.js";
 import { db } from "./firebase-config.js";
 import { formatarMoeda, formatarData, exportarExcel } from "./database.js";
 import { escHtml } from "./index.js";

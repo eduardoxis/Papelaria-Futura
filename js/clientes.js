@@ -7,7 +7,7 @@
 import {
   collection, doc, addDoc, getDoc, getDocs,
   updateDoc, deleteDoc, query, orderBy, serverTimestamp, where, limit
-} from "./firestore-operacoes.js";
+} from "./operacoes-banco.js";
 import { db } from "./firebase-config.js";
 import { criarPaginador, montarPaginacao } from './paginacao.js';
 const paginasClientes = criarPaginador();

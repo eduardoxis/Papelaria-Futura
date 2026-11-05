@@ -9,7 +9,7 @@ import {
   collection, doc, addDoc, getDoc, getDocs, setDoc,
   updateDoc, query, where, orderBy, limit,
   serverTimestamp, Timestamp
-} from "./firestore-operacoes.js";
+} from "./operacoes-banco.js";
 import { db } from "./firebase-config.js";
 import { formatarMoeda } from "./database.js";
 import { temCargo } from "./auth.js";

@@ -49,7 +49,7 @@ const pdvCore = url(
 const preparar = (s) =>
   s
     .replaceAll(
-      "./firestore-operacoes.js",
+      "./operacoes-banco.js",
       fachada,
     )
     .replaceAll("./firebase-config.js", cfg)
