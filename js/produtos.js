@@ -9,6 +9,7 @@ import {
 import { db } from "./firebase-config.js";
 import { formatarMoeda, formatarData, exportarExcel } from "./database.js";
 import { escHtml } from "./index.js";
+import { startListLoading } from "./loading.js";
 
 const COL = "pf_produtos";
 const COL_MARCAS = "pf_marcas";
@@ -380,20 +381,26 @@ async function atualizarIndicadoresProdutos() {
   } catch (err) { console.error(err); }
 }
 
+let consultaListaProdutos = 0;
+
 async function carregarListaProdutos(busca = "", categoria = "todos") {
   const tbody = document.getElementById("tbodyProdutos");
   if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="12" class="loading-cell">Carregando produtos...</td></tr>`;
+  const revisao = ++consultaListaProdutos;
+  const concluirLoading = startListLoading(tbody.closest(".table-wrap"), "Carregando produtos");
   document.getElementById("prodPaginacao").hidden = true;
 
   try {
     const t = busca.toLowerCase();
     const consulta = query(collection(db, COL),orderBy('nome'));
     const estado = await paginasProdutos.iniciar(consulta, p => (categoria === 'todos' || p.categoria === categoria) && (!t || p.nome?.toLowerCase().includes(t) || p.codigo?.toLowerCase().includes(t)));
-    mostrarPaginaProdutos(estado, busca, categoria);
+    if (revisao === consultaListaProdutos) mostrarPaginaProdutos(estado, busca, categoria);
   } catch (err) {
+    if (revisao !== consultaListaProdutos) return;
     console.error(err);
-    tbody.innerHTML = `<tr><td colspan="12" class="empty-cell">Erro ao carregar produtos.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="12" class="empty-cell" role="alert">Não foi possível carregar os produtos. Tente buscar novamente.</td></tr>`;
+  } finally {
+    await concluirLoading();
   }
 }
 
@@ -403,7 +410,17 @@ function mostrarPaginaProdutos(estado, busca = '', categoria = 'todos') {
   document.getElementById('prodPaginacao').hidden = true;
   montarPaginacao(document.getElementById('tbodyProdutos'), estado, async delta => {
     if (!delta) return carregarListaProdutos(busca, categoria);
-    mostrarPaginaProdutos(await paginasProdutos.mover(delta), busca, categoria);
+    const revisao = consultaListaProdutos;
+    const tabela = document.getElementById("tabelaProdutos").closest(".table-wrap");
+    const concluirLoading = delta > 0 ? startListLoading(tabela, "Carregando produtos") : null;
+    try {
+      const pagina = await paginasProdutos.mover(delta);
+      if (revisao === consultaListaProdutos) mostrarPaginaProdutos(pagina, busca, categoria);
+    } catch (erro) {
+      if (revisao === consultaListaProdutos) throw erro;
+    } finally {
+      await concluirLoading?.();
+    }
   });
 }
 

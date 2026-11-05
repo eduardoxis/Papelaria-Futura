@@ -24,8 +24,26 @@
   <!-- CSS -->
   <link rel="stylesheet" href="css/main.css" />
   <link rel="stylesheet" href="css/login.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+  <script>
+    (() => {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      try { if (sessionStorage.getItem("futura-intro")) return; } catch {}
+      const html = document.documentElement;
+      setTimeout(() => html.classList.remove("intro-on", "site-in"), 7000);
+      html.classList.add("intro-on");
+    })();
+  </script>
 </head>
 <body>
+<div id="intro" role="dialog" aria-modal="true" aria-label="Abertura da Papelaria Futura" hidden>
+  <div class="intro__stage" role="img" aria-label="Papelaria Futura — 30 anos">
+    <div class="intro__lg intro__lg--f"></div>
+    <div class="intro__lg intro__lg--n"></div>
+    <div class="intro__shine"></div>
+  </div>
+  <button class="intro__skip" id="intro-pular" type="button">Pular</button>
+</div>
 
   <!-- ============================================================ -->
   <!-- FUNDO ANIMADO                                                -->
@@ -58,7 +76,7 @@
 
     <!-- Lado esquerdo — Branding -->
     <aside class="login-brand" aria-hidden="true">
-      <div class="brand-inner">
+      <div class="brand-inner rv" style="--i:0">
         <div class="brand-logo-wrap">
           <div class="brand-logo-icon">
             <img src="img/logo.png" alt="Papelaria Futura" />
@@ -91,7 +109,7 @@
 
     <!-- Lado direito — Formulário -->
     <section class="login-panel">
-      <div class="login-card">
+      <div class="login-card rv" style="--i:1">
 
         <!-- Logo mobile -->
         <div class="login-logo-mobile" aria-hidden="true">
@@ -252,5 +270,6 @@
     }
   </script>
 
+<script type="module" src="js/utils/intro.js"></script>
 </body>
 </html>

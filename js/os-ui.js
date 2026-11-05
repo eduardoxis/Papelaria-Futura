@@ -1,4 +1,5 @@
 import { temCargo } from "./auth.js";
+import { startListLoading } from "./loading.js";
 import {
   STATUS_OS,
   PRIORIDADES_OS,
@@ -137,15 +138,8 @@ function render() {
   $("osModoTitulo").textContent =
     modo === "fila" ? "Fila de execução" : "Histórico de OS";
   if (modo === "fila" && estadoFila !== "pronta" && !ordens.length) {
-    const mensagem =
-      estadoFila === "erro"
-        ? "Fila indisponível. Confira o aviso acima e clique em Atualizar."
-        : "Carregando ordens de serviço…";
-    $("osResumo").textContent =
-      estadoFila === "erro"
-        ? "Não foi possível consultar as ordens."
-        : "Consultando a fila…";
-    $("osLista").innerHTML = "<p>" + esc(mensagem) + "</p>";
+    $("osResumo").textContent = "A fila ainda não foi confirmada pelo servidor.";
+    $("osLista").innerHTML = '<p role="status">Confira a conexão e clique em Atualizar para consultar a fila.</p>';
     $("osMais").hidden = true;
     return;
   }
@@ -241,29 +235,59 @@ async function carregarHistorico(reiniciar = false) {
     cursor = null;
   }
   $("osResumo").textContent = "Pesquisando no histórico…";
-  const s = await historicoOs({
-    admin,
-    uid: usuario.uid,
-    cursor,
-    filtros: filtros(),
-    continuar: () => consulta === consultaHistorico && modo === "historico",
-  });
-  if (s.cancelado) return;
-  historico.push(...s.itens);
-  cursor = s.cursor;
-  mais = s.mais;
-  preencherFiltros();
-  render();
+  const concluirLoading = startListLoading($("osLista"), "Carregando histórico de OS");
+  try {
+    const s = await historicoOs({
+      admin,
+      uid: usuario.uid,
+      cursor,
+      filtros: filtros(),
+      continuar: () => consulta === consultaHistorico && modo === "historico",
+    });
+    if (s.cancelado || consulta !== consultaHistorico || modo !== "historico") return;
+    historico.push(...s.itens);
+    cursor = s.cursor;
+    mais = s.mais;
+    preencherFiltros();
+    render();
+  } catch (erro) {
+    if (consulta !== consultaHistorico || modo !== "historico") return;
+    $("osResumo").textContent = "Não foi possível consultar o histórico.";
+    if (reiniciar) {
+      $("osLista").innerHTML = '<p role="alert">Histórico indisponível. Clique em Atualizar para tentar novamente.</p>';
+      $("osMais").hidden = true;
+    }
+    throw erro;
+  } finally {
+    await concluirLoading();
+  }
 }
 let modoConexao = null;
+let concluirLoadingFila = null;
+let prazoLoadingFila;
+
+function finalizarLoadingFila() {
+  clearTimeout(prazoLoadingFila);
+  const concluir = concluirLoadingFila;
+  concluirLoadingFila = null;
+  concluir?.();
+}
+
 function conectar(entrega = false) {
   if (!podeOs(perfil) || (desligar && modoConexao === entrega)) return;
   desconectar();
   modoConexao = entrega;
+  estadoFila = "carregando";
   $("osConexao").textContent = "Conectando…";
-  desligar = observarFilaOs(
-    { admin, uid: usuario.uid, entrega },
-    (itens, m) => {
+  if (!entrega) {
+    concluirLoadingFila = startListLoading($("osLista"), "Carregando ordens de serviço");
+    prazoLoadingFila = setTimeout(() => {
+      $("osConexao").textContent = "A consulta ainda não foi confirmada. A fila será atualizada ao receber os dados.";
+      finalizarLoadingFila();
+    }, 10000);
+  }
+  const receber = (itens, m) => {
+    try {
       estadoFila = m.fromCache ? "carregando" : "pronta";
       ordens = itens;
       $("osConexao").textContent = m.fromCache
@@ -273,8 +297,12 @@ function conectar(entrega = false) {
       preencherFiltros();
       render();
       renderEntregas();
-    },
-    (e) => {
+    } finally {
+      if (!m.fromCache || itens.length || !navigator.onLine) finalizarLoadingFila();
+    }
+  };
+  const falhar = (e) => {
+    try {
       const aviso = erroConsultaOs(e);
       estadoFila = "erro";
       if (["permission-denied", "unauthenticated"].includes(e.code))
@@ -292,18 +320,23 @@ function conectar(entrega = false) {
       render();
       renderEntregas();
       toast(aviso.mensagem);
-      desligar?.();
-      desligar = null;
-      clearInterval(timer);
-      timer = null;
-    },
-  );
+    } finally {
+      desconectar();
+    }
+  };
+  try {
+    desligar = observarFilaOs({ admin, uid: usuario.uid, entrega }, receber, falhar);
+  } catch (erro) {
+    falhar(erro);
+    return;
+  }
   timer = setInterval(() => {
     render();
     renderEntregas();
   }, 30000);
 }
 function desconectar() {
+  finalizarLoadingFila();
   desligar?.();
   desligar = null;
   clearInterval(timer);
@@ -327,7 +360,7 @@ export function iniciarOs(u, p) {
     Object.entries(PRIORIDADES_OS)
       .map(([k, v]) => '<option value="' + k + '">' + v + "</option>")
       .join("") +
-    '</select></label><label>Entrada de<input type="date" id="osEntradaDe"></label><label>Entrada até<input type="date" id="osEntradaAte"></label><label>Conclusão prevista de<input type="date" id="osPrevisaoDe"></label><label>Conclusão prevista até<input type="date" id="osPrevisaoAte"></label><label><span><input type="checkbox" id="osAtrasado" style="width:auto;min-height:0"> Somente atrasados</span></label><button class="btn-secondary" id="osLimpar">Limpar filtros</button><button class="btn-secondary" id="osAtualizar">Atualizar</button></div><div id="osLista"></div><button class="btn-secondary" id="osMais" hidden>Carregar mais ordens</button>';
+    '</select></label><label>Entrada de<input type="date" id="osEntradaDe"></label><label>Entrada até<input type="date" id="osEntradaAte"></label><label>Conclusão prevista de<input type="date" id="osPrevisaoDe"></label><label>Conclusão prevista até<input type="date" id="osPrevisaoAte"></label><label><span><input type="checkbox" id="osAtrasado" style="width:auto;min-height:0"> Somente atrasados</span></label><button class="btn-secondary" id="osLimpar">Limpar filtros</button><button class="btn-secondary" id="osAtualizar">Atualizar</button></div><div id="osListaArea"><div id="osLista"></div><button class="btn-secondary" id="osMais" hidden>Carregar mais ordens</button></div>';
   $("osFila").onclick = () => {
     consultaHistorico++;
     clearTimeout(filtroTimer);

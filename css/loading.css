@@ -1,0 +1,100 @@
+.pf-loader {
+  --pf-ink: #1d4ed8;
+  --pf-duration: 2.4s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .9em;
+  min-height: 240px;
+  font: 16px Inter, system-ui, sans-serif;
+  color: var(--pf-ink);
+}
+
+:is([data-theme="dark"], [data-bg="escuro"], .pf-dark) .pf-loader {
+  --pf-ink: #93c5fd;
+}
+
+.pf-stage {
+  --pf-width: 10em;
+  position: relative;
+  width: var(--pf-width);
+  height: 4.5em;
+}
+
+.pf-line {
+  position: absolute;
+  inset: auto 0 .35em;
+  border-top: .28em solid var(--pf-ink);
+  border-radius: 1em;
+  transform-origin: left;
+  animation: pf-draw var(--pf-duration) cubic-bezier(.45, .05, .3, 1) infinite;
+}
+
+.pf-pencil {
+  position: absolute;
+  left: 0;
+  bottom: .35em;
+  width: .9em;
+  height: 3.6em;
+  margin-left: -.45em;
+  transform: rotate(35deg);
+  transform-origin: 50% 100%;
+  animation: pf-move var(--pf-duration) cubic-bezier(.45, .05, .3, 1) infinite;
+}
+
+.pf-pencil svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform-origin: 50% 100%;
+  animation: pf-wobble .3s ease-in-out infinite alternate;
+}
+
+.pf-text {
+  font-size: .95em;
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+
+.pf-text i {
+  font-style: normal;
+  animation: pf-dot 1.2s infinite;
+}
+
+.pf-text i:nth-child(2) { animation-delay: .2s; }
+.pf-text i:nth-child(3) { animation-delay: .4s; }
+
+[aria-busy="true"] > #wrapCarregarMaisCotacoes,
+[aria-busy="true"] > #tbodyProdutosPaginador,
+[aria-busy="true"] > #osMais {
+  display: none !important;
+}
+
+@keyframes pf-draw {
+  0% { transform: scaleX(0); opacity: 1; }
+  70%, 88% { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+
+@keyframes pf-move {
+  0% { transform: translateX(0) rotate(35deg); opacity: 1; }
+  70%, 88% { transform: translateX(var(--pf-width)) rotate(35deg); opacity: 1; }
+  100% { transform: translateX(var(--pf-width)) rotate(35deg); opacity: 0; }
+}
+
+@keyframes pf-wobble {
+  from { transform: rotate(-3deg); }
+  to { transform: rotate(3deg); }
+}
+
+@keyframes pf-dot {
+  0%, 100% { opacity: .2; }
+  40% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-line, .pf-pencil, .pf-pencil svg, .pf-text i { animation: none; }
+  .pf-pencil { left: 100%; }
+}
