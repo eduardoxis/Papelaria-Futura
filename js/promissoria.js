@@ -6,13 +6,14 @@
 import {
   collection, doc, addDoc, getDoc, getDocs, setDoc,
   updateDoc, deleteDoc, query, where, orderBy,
-  serverTimestamp, Timestamp
+  serverTimestamp, Timestamp, getAggregateFromServer, count, memorizarResumo
 } from "./firestore-operacoes.js";
 import { db } from "./firebase-config.js";
 import { formatarMoeda } from "./database.js";
 import { temCargo } from "./auth.js";
 import { criarPaginador, montarPaginacao } from './paginacao.js';
 const paginasPromissoria = criarPaginador();
+let indicadoresConsultados = false;
 
 // ── Constantes ──────────────────────────────────────────────
 const COL_CLIENTES     = "prom_clientes";
@@ -262,7 +263,10 @@ async function carregarPromissoriaPage() {
   if (!document.getElementById('btnResumoPromissoria')) {
     const botao = document.createElement('button'); botao.id = 'btnResumoPromissoria';
     botao.className = 'btn-secondary'; botao.textContent = 'Calcular indicadores financeiros completos';
-    botao.onclick = carregarIndicadores;
+    botao.onclick = () => {
+      indicadoresConsultados = true;
+      carregarIndicadores();
+    };
     document.getElementById('tbodyClientesProm').closest('table').parentElement.before(botao);
     for(const id of ['indTotalVendido','indTotalRecebido','indTotalAberto','indInadimplentes','indClientesTotal']) {
       const el = document.getElementById(id); if(el) el.textContent = '—';
@@ -271,6 +275,10 @@ async function carregarPromissoriaPage() {
 }
 
 // ── Indicadores financeiros ──────────────────────────────────
+function atualizarIndicadoresConsultados() {
+  if (indicadoresConsultados) return carregarIndicadores();
+}
+
 async function carregarIndicadores() {
   const el = id => document.getElementById(id);
   ["indTotalVendido","indTotalRecebido","indTotalAberto","indInadimplentes","indClientesTotal"].forEach(i => {
@@ -278,8 +286,11 @@ async function carregarIndicadores() {
   });
 
   try {
-    const [clientes, compras, pagamentos] = await Promise.all([
-      getDocs(collection(db, COL_CLIENTES)),
+    const [totalClientes, compras, pagamentos] = await Promise.all([
+      memorizarResumo("quantidade-clientes-promissoria", COL_CLIENTES, async () => {
+        const resultado = await getAggregateFromServer(collection(db, COL_CLIENTES), { quantidade: count() });
+        return resultado.data().quantidade;
+      }),
       getDocs(collection(db, COL_COMPRAS)),
       getDocs(collection(db, COL_PAGAMENTOS))
     ]);
@@ -317,7 +328,7 @@ async function carregarIndicadores() {
     if (el("indTotalRecebido"))  el("indTotalRecebido").textContent  = formatarMoeda(totalRecebido);
     if (el("indTotalAberto"))    el("indTotalAberto").textContent    = formatarMoeda(Math.max(0, totalAberto));
     if (el("indInadimplentes"))  el("indInadimplentes").textContent  = inadimplentes;
-    if (el("indClientesTotal"))  el("indClientesTotal").textContent  = clientes.size;
+    if (el("indClientesTotal"))  el("indClientesTotal").textContent  = totalClientes;
 
   } catch (err) {
     console.error("Erro ao carregar indicadores:", err);
@@ -1548,7 +1559,7 @@ async function salvarNovoCliente() {
     fecharModal();
     window.mostrarToast?.("Cliente cadastrado com sucesso!", "success");
     carregarListaClientes();
-    carregarIndicadores();
+    atualizarIndicadoresConsultados();
   } catch (err) {
     console.error(err);
     window.mostrarToast?.("Erro ao salvar cliente.", "error");
@@ -1710,7 +1721,7 @@ async function salvarNovaCompra(clienteId) {
     fecharModal();
     window.mostrarToast?.(`${compras.length} compra(s) registrada(s) com sucesso!`, "success");
     abrirPainelCliente(clienteId);
-    carregarIndicadores();
+    atualizarIndicadoresConsultados();
 
     // Gera um comprovante para cada lançamento (uma compra pode ter várias parcelas,
     // mas o comprovante é por lançamento original, com o valor total dele; usa o
@@ -2397,7 +2408,7 @@ async function salvarNovoPagamento(clienteId, comprasAbertas, saldoDevedorTotal 
     fecharModal();
     window.mostrarToast?.("Pagamento registrado com sucesso!", "success");
     abrirPainelCliente(clienteId);
-    carregarIndicadores();
+    atualizarIndicadoresConsultados();
 
     const valorTotalPago = lancamentos.reduce((s, l) => s + l.valor, 0);
     const { modo, win } = await perguntarComprovante("Pagamento registrado com sucesso! Deseja visualizar ou imprimir o comprovante?");
@@ -2695,7 +2706,7 @@ async function excluirCliente(clienteId) {
     window.mostrarToast?.("Cliente excluído.", "success");
     mostrarPainel("lista");
     carregarListaClientes();
-    carregarIndicadores();
+    atualizarIndicadoresConsultados();
   } catch (err) {
     console.error(err);
     window.mostrarToast?.("Erro ao excluir cliente.", "error");
@@ -2772,7 +2783,7 @@ async function salvarEdicaoCompra(clienteId, compraId, original) {
     fecharModal();
     window.mostrarToast?.("Compra atualizada com sucesso!", "success");
     abrirPainelCliente(clienteId);
-    carregarIndicadores();
+    atualizarIndicadoresConsultados();
   } catch (err) {
     console.error(err);
     window.mostrarToast?.("Erro ao salvar as alterações.", "error");
@@ -2848,7 +2859,7 @@ async function salvarEdicaoPagamento(clienteId, pagamentoId, original) {
     fecharModal();
     window.mostrarToast?.("Pagamento atualizado com sucesso!", "success");
     abrirPainelCliente(clienteId);
-    carregarIndicadores();
+    atualizarIndicadoresConsultados();
   } catch (err) {
     console.error(err);
     window.mostrarToast?.("Erro ao salvar as alterações.", "error");
@@ -2882,7 +2893,7 @@ async function excluirCompra(compraId) {
     fecharModal();
     window.mostrarToast?.("Compra excluída.", "success");
     if (clienteId) abrirPainelCliente(clienteId);
-    carregarIndicadores();
+    atualizarIndicadoresConsultados();
   } catch (err) {
     console.error(err);
     window.mostrarToast?.("Erro ao excluir compra.", "error");
@@ -3456,7 +3467,7 @@ async function importarCSV(file) {
       importados > 0 ? "success" : "error"
     );
     carregarListaClientes();
-    carregarIndicadores();
+    atualizarIndicadoresConsultados();
   };
 }
 

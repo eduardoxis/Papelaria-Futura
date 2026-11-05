@@ -106,6 +106,24 @@ try {
   const qt = api.estatisticasLeituras().consultas;
   await pag.mover(-1);
   assert.equal(api.estatisticasLeituras().consultas, qt);
+
+  const planilhas = api.collection(db, "comissoes");
+  const registrosA = api.collection(db, "comissoes", "a", "registros");
+  const registrosB = api.collection(db, "comissoes", "b", "registros");
+  await api.setDoc(api.doc(planilhas, "a"), { criadoPor: "admin", titulo: "A" });
+  await api.setDoc(api.doc(planilhas, "b"), { criadoPor: "admin", titulo: "B" });
+  const lerRegistros = origem => api.memorizarResumo(origem.path, origem.path, () => api.getDocs(origem));
+  await Promise.all([api.getDocs(planilhas), lerRegistros(registrosA), lerRegistros(registrosB)]);
+  const antesDoLancamento = api.estatisticasLeituras().consultas;
+  await api.addDoc(registrosA, { descricao: "Venda confirmada" });
+  const [cabecalhos, a, b] = await Promise.all([
+    api.getDocs(planilhas), lerRegistros(registrosA), lerRegistros(registrosB)
+  ]);
+  assert.equal(cabecalhos.size, 2);
+  assert.equal(a.size, 1);
+  assert.equal(b.size, 0);
+  assert.equal(api.estatisticasLeituras().consultas - antesDoLancamento, 1);
+
   cfg.auth.currentUser = { uid: "anonimo" };
   await assertFails(
     api.getDocs(

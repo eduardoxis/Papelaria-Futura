@@ -38,7 +38,13 @@ let _histCarregandoMais = false;
 export function iniciarAdmin(usuario, dadosUsuario) {
   _dadosUsuario = dadosUsuario;
   iniciarPdvUi(dadosUsuario);
-  document.getElementById('tbodyVendas')?.addEventListener('click',e=>{const b=e.target.closest('[data-pdv-acao]');if(b)acaoVendaPdv(b.dataset.venda,b.dataset.pdvAcao).catch(erro=>window.mostrarToast?.(erro.message,'error'));});
+  document.getElementById("tbodyVendas")?.addEventListener("click", (evento) => {
+    const botao = evento.target.closest("[data-pdv-acao]");
+    if (!botao) return;
+    const { venda, pdvAcao } = botao.dataset;
+    const registro = _todasVendasCache.find(item => item.id === venda);
+    acaoVendaPdv(venda, pdvAcao, registro).catch(erro => window.mostrarToast?.(erro.message, "error"));
+  });
   document.getElementById('btnAdminMaisVendasPdv')?.addEventListener('click',()=>carregarVendas(document.getElementById('filtroBuscaVendas')?.value||'',true));
   iniciarVendasComissoes(usuario, dadosUsuario);
 

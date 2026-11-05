@@ -893,12 +893,10 @@ export async function listarRegistrosComissao(comissaoId, { limitQtd = 50, curso
   try {
     // Inclui também lançamentos antigos do caixa sem o campo ordem.
     // orderBy excluiria esses documentos; a ordenação ocorre abaixo, antes de paginar.
-    const snap = await memorizarResumo('registros-planilha:'+comissaoId,COLECAO_COMISSOES,() => getDocs(
-      collection(db, COLECAO_COMISSOES, comissaoId, "registros")
-    ),300000);
-    const registros = snap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .sort(compararRegistrosComissao);
+    const origem = collection(db, COLECAO_COMISSOES, comissaoId, "registros");
+    const snap = await memorizarResumo("registros-planilha:" + comissaoId, origem.path,
+      () => getDocs(origem), 300000);
+    const registros = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort(compararRegistrosComissao);
     const inicio = cursor ? Math.max(0, registros.findIndex(r => r.id === cursor.id) + 1) : 0;
     const pagina = registros.slice(inicio, inicio + limitQtd);
     const temMais = inicio + pagina.length < registros.length;

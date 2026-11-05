@@ -238,6 +238,16 @@ async function atualizar() {
     throw e;
   }
 }
+
+async function atualizarConfiguracao() {
+  if (!pronto || !desligar) return atualizar();
+  const token = sequencia;
+  const novosCadastros = await carregarCadastros();
+  if (!ativo || token !== sequencia) return;
+  cadastro = novosCadastros;
+  renderizar();
+}
+
 function renderizar() {
   if (!pronto) return;
   const vendedores = cadastro.usuarios.filter((u) => temCargo(u, "vendedor"));
@@ -408,7 +418,7 @@ function editarPercentual(id) {
     executar(e.currentTarget, async () => {
       await salvarPercentual({ id, nome: nome(id) }, $("vcNovoPct").value);
       window.fecharModal();
-      await atualizar();
+      await atualizarConfiguracao();
       aviso("Percentual salvo. Comissões anteriores preservadas.", "success");
     });
 }
@@ -422,7 +432,7 @@ function editarBase() {
     executar(e.currentTarget, async () => {
       await salvarBase($("vcExcluirFrete").checked);
       window.fecharModal();
-      await atualizar();
+      await atualizarConfiguracao();
       aviso("Regra salva.", "success");
     });
 }

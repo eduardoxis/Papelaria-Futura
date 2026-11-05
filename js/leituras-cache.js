@@ -4,13 +4,13 @@ export function criarCacheLeituras({
   agora = Date.now,
   maximo = 80,
 } = {}) {
-  let entradas = [],
-    versao = 0;
+  let entradas = [];
   const metricas = { consultas: 0, reaproveitadas: 0 };
   function invalidar(colecoes = null) {
-    versao++;
     entradas = colecoes
-      ? entradas.filter((e) => !colecoes.includes(e.colecao))
+      ? entradas.filter((e) => !colecoes.some(
+          (caminho) => e.colecao === caminho || e.colecao.startsWith(caminho + "/")
+        ))
       : [];
   }
   async function ler(
@@ -28,7 +28,6 @@ export function criarCacheLeituras({
       return existente.promessa;
     }
     const entrada = { chave, dono, colecao, pendente: true, ate: 0 };
-    const revisao = versao;
     metricas.consultas++;
     entrada.promessa = Promise.resolve()
       .then(executar)
@@ -37,7 +36,6 @@ export function criarCacheLeituras({
           entrada.pendente = false;
           // Respostas offline/pending não viram resultados confirmados em cache.
           if (
-            revisao !== versao ||
             resultado?.sucesso === false ||
             resultado?.metadata?.fromCache ||
             resultado?.metadata?.hasPendingWrites

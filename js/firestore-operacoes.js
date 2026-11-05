@@ -17,20 +17,25 @@ const catalogos = new Set([
   "clientes_cadastro",
   "pf_comissao_vendedores",
 ]);
-const raiz = (referencia) =>
-  referencia?.path?.split("/")[0] || consultas.get(referencia) || "";
+const caminhoConsulta = (referencia) =>
+  referencia.path || consultas.get(referencia) || "";
+const caminhoGravacao = (referencia) => {
+  const partes = referencia.path.split("/");
+  if (referencia.type !== "collection") partes.pop();
+  return partes.join("/");
+};
 export function collection(...args) {
   const referencia = sdk.collection(...args);
-  consultas.set(referencia, raiz(referencia));
+  consultas.set(referencia, caminhoConsulta(referencia));
   return referencia;
 }
 export function query(origem, ...filtros) {
   const consulta = sdk.query(origem, ...filtros);
-  consultas.set(consulta, raiz(origem));
+  consultas.set(consulta, caminhoConsulta(origem));
   return consulta;
 }
 export function getDocs(consulta) {
-  const colecao = raiz(consulta);
+  const colecao = caminhoConsulta(consulta);
   return cache.ler(
     consulta,
     () => executarFirebaseComLimite(() => sdk.getDocs(consulta)),
@@ -97,18 +102,18 @@ async function gravar(acao, colecoes) {
     invalidarLeituras(colecoes, true);
   }
 }
-export const addDoc = (r, ...a) => gravar(() => sdk.addDoc(r, ...a), [raiz(r)]);
-export const setDoc = (r, ...a) => gravar(() => sdk.setDoc(r, ...a), [raiz(r)]);
+export const addDoc = (r, ...a) => gravar(() => sdk.addDoc(r, ...a), [caminhoGravacao(r)]);
+export const setDoc = (r, ...a) => gravar(() => sdk.setDoc(r, ...a), [caminhoGravacao(r)]);
 export const updateDoc = (r, ...a) =>
-  gravar(() => sdk.updateDoc(r, ...a), [raiz(r)]);
-export const deleteDoc = (r) => gravar(() => sdk.deleteDoc(r), [raiz(r)]);
+  gravar(() => sdk.updateDoc(r, ...a), [caminhoGravacao(r)]);
+export const deleteDoc = (r) => gravar(() => sdk.deleteDoc(r), [caminhoGravacao(r)]);
 export function writeBatch(db) {
   const lote = sdk.writeBatch(db),
     colecoes = new Set();
   const fachada = { commit: () => gravar(() => lote.commit(), [...colecoes]) };
   for (const metodo of ["set", "update", "delete"])
     fachada[metodo] = (r, ...a) => {
-      colecoes.add(raiz(r));
+      colecoes.add(caminhoGravacao(r));
       lote[metodo](r, ...a);
       return fachada;
     };
@@ -124,7 +129,7 @@ export async function runTransaction(db, executar, opcoes) {
           const fachada = { get: (r) => tx.get(r) };
           for (const metodo of ["set", "update", "delete"])
             fachada[metodo] = (r, ...a) => {
-              colecoes.add(raiz(r));
+              colecoes.add(caminhoGravacao(r));
               tx[metodo](r, ...a);
               return fachada;
             };

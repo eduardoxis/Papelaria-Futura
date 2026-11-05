@@ -69,9 +69,15 @@ async function fazer(b, fn) {
 export function iniciarPdvUi(dados) {
   perfil = dados;
 }
-export async function mostrarComprovante(id, finalizada = false) {
-  const venda = await buscarVenda(id),
-    c = comprovanteDaVenda(venda);
+async function obterComprovante(id, vendaCarregada) {
+  if (vendaCarregada?.id === id && vendaCarregada.comprovante?.versao === 2) {
+    return vendaCarregada.comprovante;
+  }
+  return comprovanteDaVenda(await buscarVenda(id));
+}
+
+export async function mostrarComprovante(id, finalizada = false, vendaCarregada = null) {
+  const c = await obterComprovante(id, vendaCarregada);
   window.abrirModal(
     finalizada ? "VENDA FINALIZADA COM SUCESSO!" : "Comprovante da venda",
     `<div class="pdv-form"><label>Formato de impressão<select id="pdvFormato"><option value="a4">A4</option><option value="58">Térmica 58 mm</option><option value="80">Térmica 80 mm</option></select></label></div><div id="pdvCupomPrevia">${preview(htmlComprovante(c, c.empresa?.formato || "a4"))}</div>`,
@@ -305,7 +311,9 @@ export async function historicoVendasPdv() {
       .forEach(
         (b) =>
           (b.onclick = () =>
-            fazer(b, () => mostrarComprovante(b.dataset.cupom))),
+            fazer(b, () => mostrarComprovante(
+              b.dataset.cupom, false, vendas.find(v => v.id === b.dataset.cupom),
+            ))),
       );
     document
       .querySelectorAll("[data-cupompdf]")
@@ -516,9 +524,9 @@ async function legados() {
   await carregar();
 }
 
-export async function acaoVendaPdv(id, acao) {
-  if (acao === "visualizar") return mostrarComprovante(id);
-  const c = comprovanteDaVenda(await buscarVenda(id));
+export async function acaoVendaPdv(id, acao, vendaCarregada = null) {
+  if (acao === "visualizar") return mostrarComprovante(id, false, vendaCarregada);
+  const c = await obterComprovante(id, vendaCarregada);
   if (acao === "pdf") return pdfComprovante(c, c.empresa?.formato || "a4");
   if (acao === "imprimir")
     return imprimirHtml(
