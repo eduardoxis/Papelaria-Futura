@@ -6,9 +6,12 @@
 
 import {
   collection, doc, addDoc, getDoc, getDocs,
-  updateDoc, deleteDoc, query, orderBy, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  updateDoc, deleteDoc, query, orderBy, serverTimestamp, where, limit
+} from "./firestore-operacoes.js";
 import { db } from "./firebase-config.js";
+import { criarPaginador, montarPaginacao } from './paginacao.js';
+const paginasClientes = criarPaginador();
+let buscaCadastroTimer;
 
 const COL_CLIENTES_CADASTRO = "clientes_cadastro";
 
@@ -25,12 +28,12 @@ let _clienteEditandoId = null;
 // Inicialização
 // ============================================================
 export function iniciarClientesCadastro(usuario, dadosUsuario) {
-  carregarCacheClientes();
 
   document.getElementById("btnNovoClienteCadastro")?.addEventListener("click", () => abrirModalCliente());
 
   document.getElementById("filtroBuscaCadastro")?.addEventListener("input", (e) => {
-    renderListaClientesCadastro(e.target.value);
+    clearTimeout(buscaCadastroTimer);
+    buscaCadastroTimer = setTimeout(() => renderListaClientesCadastro(e.target.value), 350);
   });
 
   ativarAutocompleteCotacao();
@@ -40,14 +43,7 @@ export function iniciarClientesCadastro(usuario, dadosUsuario) {
 // Firestore — CRUD
 // ============================================================
 async function carregarCacheClientes() {
-  try {
-    const snap = await getDocs(query(collection(db, COL_CLIENTES_CADASTRO), orderBy("nome")));
-    _cacheClientes = [];
-    snap.forEach(d => _cacheClientes.push({ id: d.id, ...d.data() }));
-    _cacheCarregada = true;
-  } catch (err) {
-    console.error("Erro ao carregar clientes cadastrados:", err);
-  }
+  _cacheCarregada = false;
 }
 
 async function salvarClienteCadastro(dados, id = null) {
@@ -73,16 +69,20 @@ async function excluirClienteCadastro(id) {
 // ============================================================
 // Lista (aba Cadastro)
 // ============================================================
-export function renderListaClientesCadastro(termoBusca = "") {
+export async function renderListaClientesCadastro(termoBusca = "", estado = null) {
   const tbody = document.getElementById("tabelaClientesCadastro");
   const contagem = document.getElementById("contagemClientesCadastro");
   if (!tbody) return;
 
-  if (!_cacheCarregada) {
+  if (!estado) {
     tbody.innerHTML = `<tr><td colspan="7" class="loading-cell">Carregando...</td></tr>`;
-    carregarCacheClientes().then(() => renderListaClientesCadastro(termoBusca));
-    return;
+    const termo = termoBusca.trim().toLowerCase();
+    try {
+      estado = await paginasClientes.iniciar(query(collection(db,COL_CLIENTES_CADASTRO),orderBy('nome')), c => !termo || [c.nome,c.documento,c.telefone,c.celular].some(v => String(v || '').toLowerCase().includes(termo)));
+    } catch(e) { tbody.innerHTML = '<tr><td colspan="7">Não foi possível consultar os clientes.</td></tr>'; window.mostrarToast?.(e.message,'error'); return; }
   }
+  _cacheClientes = estado.itens; _cacheCarregada = true;
+  montarPaginacao(tbody, estado, async delta => renderListaClientesCadastro(termoBusca, delta ? await paginasClientes.mover(delta) : null));
 
   const termo = termoBusca.trim().toLowerCase();
   let lista = _cacheClientes;
@@ -97,7 +97,7 @@ export function renderListaClientesCadastro(termoBusca = "") {
   }
 
   if (contagem) {
-    contagem.textContent = `${lista.length} cliente${lista.length === 1 ? "" : "s"}`;
+    contagem.textContent = `${lista.length} cliente${lista.length === 1 ? "" : "s"} nesta página`;
   }
 
   if (!lista.length) {
@@ -395,12 +395,17 @@ async function buscarEnderecoPorCep(e) {
 // Autocomplete de cliente na tela de Cotação
 // ============================================================
 export async function buscarClientesPorNome(termo) {
-  if (!_cacheCarregada) await carregarCacheClientes();
   const t = termo.trim().toLowerCase();
-  if (!t) return [];
-  return _cacheClientes
-    .filter(c => (c.nome || "").toLowerCase().startsWith(t))
-    .slice(0, 6);
+  if (t.length < 2) return [];
+  const base = collection(db,COL_CLIENTES_CADASTRO);
+  const capitalizado = t.charAt(0).toUpperCase() + t.slice(1);
+  const resultados = await Promise.all([
+    getDocs(query(base,where('nomeBusca','>=',t),where('nomeBusca','<=',t+'\uf8ff'),orderBy('nomeBusca'),limit(6))),
+    getDocs(query(base,where('nome','>=',capitalizado),where('nome','<=',capitalizado+'\uf8ff'),orderBy('nome'),limit(6)))
+  ]);
+  const unicos = new Map();
+  resultados.forEach(s => s.forEach(d => unicos.set(d.id,{...d.data(),id:d.id})));
+  return [...unicos.values()].slice(0,6);
 }
 
 function ativarAutocompleteCotacao() {
@@ -420,11 +425,14 @@ function ativarAutocompleteCotacao() {
     clearTimeout(timeoutBusca);
     const termo = input.value;
     timeoutBusca = setTimeout(async () => {
-      if (termo.trim().length < 1) {
+      if (termo.trim().length < 2) {
         dropdown.hidden = true;
         return;
       }
-      const resultados = await buscarClientesPorNome(termo);
+      let resultados;
+      try { resultados = await buscarClientesPorNome(termo); }
+      catch(e) { dropdown.hidden = true; window.mostrarToast?.(e.message,'error'); return; }
+      if(input.value !== termo) return;
       if (!resultados.length) {
         dropdown.hidden = true;
         return;

@@ -9,10 +9,12 @@ import {
   collection, doc, addDoc, getDoc, getDocs, setDoc,
   updateDoc, query, where, orderBy, limit,
   serverTimestamp, Timestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+} from "./firestore-operacoes.js";
 import { db } from "./firebase-config.js";
 import { formatarMoeda } from "./database.js";
 import { temCargo } from "./auth.js";
+import { criarPaginador, montarPaginacao } from './paginacao.js';
+const paginasVersoesCarta = criarPaginador({tamanho:15});
 
 const COL_CLIENTES   = "prom_clientes";
 const COL_COMPRAS    = "prom_compras";
@@ -747,7 +749,7 @@ function _resetarDocumento(dadosCliente) {
 }
 
 // ── Histórico de versões ────────────────────────────────────
-async function _abrirHistoricoVersoes() {
+async function _abrirHistoricoVersoes(estado = null) {
   if (!_cartaAtual.id) {
     window.mostrarToast?.("Salve a carta pelo menos uma vez antes de ver o histórico de versões.", "error");
     return;
@@ -763,13 +765,8 @@ async function _abrirHistoricoVersoes() {
   window.abrirModal?.("Histórico de Versões", body, footer);
 
   try {
-    const snap = await getDocs(query(
-      collection(db, COL_CARTAS, _cartaAtual.id, "versoes"),
-      orderBy("data", "desc"),
-      limit(15)
-    ));
-    const versoes = [];
-    snap.forEach(d => versoes.push({ id: d.id, ...d.data() }));
+    if(!estado) estado = await paginasVersoesCarta.iniciar(query(collection(db,COL_CARTAS,_cartaAtual.id,'versoes'),orderBy('data','desc')));
+    const versoes = estado.itens;
 
     const html = versoes.length === 0
       ? `<p style="font-size:var(--text-sm);color:var(--gray-500);padding:8px 0">Nenhuma versão anterior salva ainda. Toda vez que você salvar alterações, a versão anterior fica guardada aqui.</p>`
@@ -790,6 +787,7 @@ async function _abrirHistoricoVersoes() {
     const modalEl = document.getElementById("modalBody");
     if (modalEl) {
       modalEl.innerHTML = `<div class="form-usuario">${html}</div>`;
+      montarPaginacao(modalEl,estado,async delta => _abrirHistoricoVersoes(delta ? await paginasVersoesCarta.mover(delta) : null));
       versoes.forEach(v => {
         document.getElementById(`btnRestaurar_${v.id}`)?.addEventListener("click", () => _restaurarVersao(v));
         document.getElementById(`btnComparar_${v.id}`)?.addEventListener("click", () => _abrirComparacaoVersao(v));

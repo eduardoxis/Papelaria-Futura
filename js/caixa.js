@@ -11,7 +11,7 @@ import { salvarVendaComComissao } from "./vendas-comissoes-db.js";
 import {
   collection, doc, addDoc, getDoc, getDocs,
   updateDoc, query, where, orderBy, limit, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+} from "./firestore-operacoes.js";
 import { db } from "./firebase-config.js";
 import {
   formatarMoeda, formatarDataHora, listarComissoes, adicionarRegistroComissao, listarUsuarios,
@@ -69,7 +69,7 @@ export function iniciarCaixa(usuario, dadosUsuario) {
   _dadosUsuario = dadosUsuario;
   iniciarPdvUi(dadosUsuario);
 
-  atualizarStatusCaixa();
+  // Confirma a sessão ao entrar no caixa, sem ler sessões na tela inicial.
 
   document.getElementById("btnAbrirCaixa")?.addEventListener("click", abrirCaixaFluxo);
   document.getElementById("btnFecharCaixa")?.addEventListener("click", fecharCaixaFluxo);
@@ -82,7 +82,7 @@ export function iniciarCaixa(usuario, dadosUsuario) {
     }
   });
   window.addEventListener("focus", () => { if (!document.getElementById("page-caixa")?.hidden) atualizarStatusCaixa(); });
-  window.addEventListener("online", () => atualizarStatusCaixa());
+  window.addEventListener("online", () => { if (!document.getElementById('page-caixa')?.hidden) atualizarStatusCaixa(); });
 
   const terminal = document.getElementById("caixaTerminalInput");
   terminal?.addEventListener("keydown", onTerminalKeydown);
@@ -328,7 +328,7 @@ async function carregarProdutosCache(forcar = false) {
   const agora = Date.now();
   if (!forcar && _produtosCache && (agora - _produtosCacheEm) < 60000) return _produtosCache;
   try {
-    const snapServicos = await getDocs(collection(db, COL_SERVICOS));
+    const snapServicos = await getDocs(query(collection(db, COL_SERVICOS),orderBy('nome')));
     _produtosCache = snapServicos.docs
       .map(d => ({ id: d.id, tipo: "servico", ...d.data() }))
       .filter(s => s.ativo !== false); // só serviços ativos aparecem no Caixa
@@ -950,7 +950,7 @@ async function finalizarVenda(vendedor, nomeCliente = "") {
 
   window.mostrarToast?.('Venda finalizada e registros salvos.','success');
   resetarTerminal();
-  carregarProdutosCache(true); // atualiza estoque em cache
+  // Os serviços não têm estoque no PDV; a venda não exige reler o catálogo.
   window.fecharModal();
   try {await mostrarComprovante(vendaRef.id,true);}catch(e){window.mostrarToast?.('Venda salva. O comprovante pode ser acessado no histórico. '+e.message,'warning');}
   document.getElementById("caixaTerminalInput")?.focus();

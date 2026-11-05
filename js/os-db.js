@@ -12,7 +12,7 @@ import {
   runTransaction,
   serverTimestamp,
   Timestamp,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+} from "./firestore-operacoes.js";
 import { db, auth } from "./firebase-config.js";
 import {
   COL_OS,
@@ -294,7 +294,7 @@ export const buscarOs = async (id) => {
   return { ...s.data(), id: s.id };
 };
 export function observarFilaOs(
-  { admin = false, uid = usuario(), painel = false } = {},
+  { admin = false, uid = usuario(), painel = false, entrega = false } = {},
   sucesso,
   erro,
 ) {
@@ -306,6 +306,7 @@ export function observarFilaOs(
         where("ativo", "==", true),
         ...(!admin ? [where("responsavelId", "==", uid)] : []),
       ];
+  if(entrega && !painel) filtros.push(where('status','==','pronto'));
   return onSnapshot(
     query(collection(db, painel ? COL_OS.painel : COL_OS.ordens), ...filtros),
     { includeMetadataChanges: true },
@@ -347,9 +348,10 @@ export async function historicoOs({
     base.push(where("dataEntrada", "<", Timestamp.fromDate(fim)));
   }
   const itens = [];
+  let lotes = 0;
   let ultimo = cursor,
     mais = true;
-  while (itens.length < 40 && mais && continuar()) {
+  while (itens.length < 40 && mais && continuar() && lotes++ < 4) {
     const f = [...base, orderBy("dataEntrada", "desc"), limit(40)];
     if (ultimo) f.push(startAfter(ultimo));
     const s = await getDocs(query(collection(db, COL_OS.ordens), ...f));

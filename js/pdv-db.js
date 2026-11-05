@@ -12,7 +12,8 @@ import {
   runTransaction as transacaoFirestore,
   serverTimestamp,
   Timestamp,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  memorizarResumo,
+} from "./firestore-operacoes.js";
 import { db, auth } from "./firebase-config.js";
 import { executarFirebaseComLimite } from "./firebase-limites.js";
 const runTransaction = (banco, acao, opcoes) => executarFirebaseComLimite(() => transacaoFirestore(banco, acao, opcoes));
@@ -45,6 +46,9 @@ const uid = () => {
 const ref = (c, id) => doc(db, c, id);
 const stamp = () => serverTimestamp();
 export async function configuracaoPdv() {
+  return memorizarResumo('configuracao-pdv','config',lerConfiguracaoPdv,300000);
+}
+async function lerConfiguracaoPdv() {
   const s = await getDoc(ref("config", "pdv"));
   return {
     nome: "Papelaria Futura",

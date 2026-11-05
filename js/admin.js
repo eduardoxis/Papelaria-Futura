@@ -19,11 +19,14 @@ import {
   exportarExcel, buscarUltimoBackup, salvarUltimoBackup
 } from "./database.js";
 import { cargosDoUsuario, temCargo, criarContaUsuario } from "./auth.js";
-import { collection, collectionGroup, getDocs, getDocsFromServer, query, orderBy, limit, startAfter, documentId } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { collection, collectionGroup, getDocs, getDocsFromServer, query, orderBy, limit, startAfter, documentId } from "./firestore-operacoes.js";
 import { db } from "./firebase-config.js";
+import { criarPaginador, montarPaginacao } from './paginacao.js';
+const paginasUsuarios = criarPaginador();
 import { gerarPdfFechamentoCaixa, gerarPdfComissaoCriador } from "./pdf.js";
 
 let _dadosUsuario = null;
+let _painelAdminAtual = 'usuarios';
 
 // Paginação do Histórico de Alterações
 const HISTORICO_POR_PAGINA = 50;
@@ -47,12 +50,7 @@ export function iniciarAdmin(usuario, dadosUsuario) {
         window.mostrarToast?.("Acesso restrito a administradores.", "error");
         return;
       }
-      carregarUsuarios();
-      carregarCardSenhaCotacao();
-      carregarConfigLembreteCotacao();
-      carregarHistoricoCotacoes();
-      carregarVendas();
-      carregarStatusBackup();
+      trocarPainelAdmin(_painelAdminAtual);
     }
   });
 
@@ -156,11 +154,16 @@ export function iniciarAdmin(usuario, dadosUsuario) {
 // ================================================================
 // LISTAR USUÁRIOS
 // ================================================================
-async function carregarUsuarios() {
+async function carregarUsuarios(estado = null) {
   const tbody = document.getElementById("tbodyUsuarios");
   tbody.innerHTML = `<tr><td colspan="5" class="loading-cell">Carregando usuários...</td></tr>`;
 
-  const resultado = await listarUsuarios();
+  let resultado;
+  try {
+    if (!estado?.itens) estado = await paginasUsuarios.iniciar(query(collection(db,'usuarios'),orderBy(documentId())));
+    resultado = {sucesso:true,usuarios:estado.itens};
+    montarPaginacao(tbody,estado,async delta => carregarUsuarios(delta ? await paginasUsuarios.mover(delta) : null));
+  } catch(e) { resultado = {sucesso:false,erro:e.message}; }
 
   if (!resultado.sucesso) {
     tbody.innerHTML = `<tr><td colspan="5" class="loading-cell">Erro ao carregar usuários.</td></tr>`;
@@ -436,6 +439,12 @@ const TITULOS_ADMIN = {
 };
 
 function trocarPainelAdmin(painelId) {
+  _painelAdminAtual = painelId;
+  if(painelId === 'usuarios') carregarUsuarios();
+  if(painelId === 'senha') { carregarCardSenhaCotacao(); carregarConfigLembreteCotacao(); }
+  if(painelId === 'historico') carregarHistoricoCotacoes();
+  if(painelId === 'vendas') carregarVendas();
+  if(painelId === 'backup') carregarStatusBackup();
   if(painelId==='historicoCaixas')iniciarHistoricoCaixas().catch(e=>window.mostrarToast?.(e.message,'error'));
   if (painelId === 'vendasComissoes') abrirPainelComissoes(); else fecharPainelComissoes();
   document.querySelectorAll(".admin-menu-item").forEach(btn => {

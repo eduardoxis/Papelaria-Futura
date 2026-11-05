@@ -60,38 +60,8 @@ await assert.rejects(
   /negado/,
 );
 assert.equal(c.pausado(), false);
-const notificacoes = fs.readFileSync(
-  new URL("../js/notificacoes.js", import.meta.url),
-  "utf8",
-);
-const inicio = notificacoes.indexOf(
-    "async function atualizarBadgeNotificacoes()",
-  ),
-  fim = notificacoes.indexOf("\nlet _abaAtiva", inicio);
-let consultas = 0;
-const contexto = {
-  _carregando: false,
-  _cache: [],
-  _ultimaAtualizacao: 0,
-  document: { hidden: false, querySelectorAll: () => [] },
-  firebaseEmPausa: () => false,
-  calcularNotificacoes: async () => {
-    consultas++;
-    return [{ tipo: "cotacao" }];
-  },
-  Date,
-  console,
-};
-vm.createContext(contexto);
-vm.runInContext(notificacoes.slice(inicio, fim), contexto);
-await contexto.atualizarBadgeNotificacoes();
-await contexto.atualizarBadgeNotificacoes();
-await contexto.atualizarBadgeNotificacoes();
-assert.equal(consultas, 1);
-contexto._ultimaAtualizacao = 0;
-contexto.firebaseEmPausa = () => true;
-await contexto.atualizarBadgeNotificacoes();
-assert.equal(consultas, 1);
+const html = fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
+assert.doesNotMatch(html,/btnNotificacoes|iniciarNotificacoes|notificacoesPainel/);
 const fonteDashboard = fs.readFileSync(
   new URL("../js/index.js", import.meta.url),
   "utf8",
@@ -131,5 +101,5 @@ contextoDash.firebaseEmPausa = () => true;
 await contextoDash.carregarDashboard(true);
 assert.equal(cargas, 2);
 console.log(
-  "OK COTA: erro 429 classificado, pausa entre abas, retomada sem gravação fictícia, armazenamento indisponível, permissões preservadas, dashboard sem carga duplicada e notificações sem releitura ao alternar abas.",
+  "OK COTA: erro 429 classificado, pausa entre abas, retomada sem gravação fictícia, armazenamento indisponível, permissões preservadas, dashboard sem carga duplicada e notificações removidas.",
 );

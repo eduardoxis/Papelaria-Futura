@@ -5,7 +5,7 @@ import {
   collection, doc, addDoc, getDoc, getDocs,
   updateDoc, deleteDoc, query, orderBy, limit,
   serverTimestamp, Timestamp, where, writeBatch
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+} from "./firestore-operacoes.js";
 import { db } from "./firebase-config.js";
 import { formatarMoeda, formatarData, exportarExcel } from "./database.js";
 import { escHtml } from "./index.js";
@@ -225,9 +225,21 @@ export function iniciarProdutos(usuario, dadosUsuario) {
   });
 }
 
+const paginasProdutos = criarPaginador();
+import { criarPaginador, montarPaginacao } from './paginacao.js';
 async function carregarProdutosPage() {
   await Promise.all([carregarListaProdutos(), carregarMarcas()]);
-  atualizarIndicadoresProdutos();
+  const alvo = document.getElementById('tbodyProdutos');
+  if (!document.getElementById('btnResumoEstoque')) {
+    const botao = document.createElement('button');
+    botao.id = 'btnResumoEstoque'; botao.className = 'btn-secondary';
+    botao.textContent = 'Calcular indicadores completos do estoque';
+    botao.onclick = atualizarIndicadoresProdutos;
+    alvo.closest('table').parentElement.before(botao);
+    for (const id of ['indTotalProdutos','indTotalEstoque','indValorInventario','indAbaixoMinimo']) {
+      const el = document.getElementById(id); if(el) el.textContent = '—';
+    }
+  }
 }
 
 async function carregarMarcas() {
@@ -375,25 +387,24 @@ async function carregarListaProdutos(busca = "", categoria = "todos") {
   document.getElementById("prodPaginacao").hidden = true;
 
   try {
-    const snap = await getDocs(query(collection(db, COL), orderBy("nome")));
-    let produtos = [];
-    snap.forEach(d => produtos.push({ id: d.id, ...d.data() }));
-
-    if (busca) {
-      const t = busca.toLowerCase();
-      produtos = produtos.filter(p => p.nome?.toLowerCase().includes(t) || p.codigo?.toLowerCase().includes(t));
-    }
-    if (categoria !== "todos") {
-      produtos = produtos.filter(p => p.categoria === categoria);
-    }
-
-    _produtosFiltrados = produtos;
-    _paginaAtual = 1;
-    renderPaginaProdutos();
+    const t = busca.toLowerCase();
+    const consulta = query(collection(db, COL),orderBy('nome'));
+    const estado = await paginasProdutos.iniciar(consulta, p => (categoria === 'todos' || p.categoria === categoria) && (!t || p.nome?.toLowerCase().includes(t) || p.codigo?.toLowerCase().includes(t)));
+    mostrarPaginaProdutos(estado, busca, categoria);
   } catch (err) {
     console.error(err);
     tbody.innerHTML = `<tr><td colspan="12" class="empty-cell">Erro ao carregar produtos.</td></tr>`;
   }
+}
+
+function mostrarPaginaProdutos(estado, busca = '', categoria = 'todos') {
+  _produtosFiltrados = estado.itens; _paginaAtual = 1;
+  renderPaginaProdutos();
+  document.getElementById('prodPaginacao').hidden = true;
+  montarPaginacao(document.getElementById('tbodyProdutos'), estado, async delta => {
+    if (!delta) return carregarListaProdutos(busca, categoria);
+    mostrarPaginaProdutos(await paginasProdutos.mover(delta), busca, categoria);
+  });
 }
 
 // Renderiza apenas a página atual (fatia de até ITENS_POR_PAGINA produtos),
@@ -895,7 +906,11 @@ async function confirmarAjusteEstoque(id, estoqueAtual) {
 }
 
 // ── Histórico de movimentações de estoque ───────────────────
-async function abrirHistoricoEstoque(id) {
+const paginasHistEstoque = criarPaginador();
+const paginasHistCusto = criarPaginador();
+const paginasHistGeral = criarPaginador();
+let estadoHistGeral;
+async function abrirHistoricoEstoque(id, estado = null) {
   const snap = await getDoc(doc(db, COL, id)).catch(() => null);
   const nomeProd = snap?.exists() ? (snap.data().nome || "—") : "—";
 
@@ -905,12 +920,8 @@ async function abrirHistoricoEstoque(id) {
   document.getElementById("btnFechHistEst").onclick = () => window.fecharModal();
 
   try {
-    const histSnap = await getDocs(
-      query(collection(db, COL_HIST),
-        where("produtoId", "==", id),
-        orderBy("criadoEm", "desc"),
-        limit(100))
-    );
+    if(!estado) estado = await paginasHistEstoque.iniciar(query(collection(db,COL_HIST),where('produtoId','==',id),orderBy('criadoEm','desc')));
+    const histSnap = {empty:!estado.itens.length,docs:estado.itens.map(m => ({id:m.id,data:()=>m}))};
 
     if (histSnap.empty) {
       window.abrirModal(`Histórico — ${nomeProd}`,
@@ -971,6 +982,8 @@ async function abrirHistoricoEstoque(id) {
        </button>
        <button class="btn-ghost" id="btnFechHistEst3">Fechar</button>`);
     document.getElementById("btnFechHistEst3").onclick = () => window.fecharModal();
+    montarPaginacao(document.getElementById('modalBody'),estado,async delta => abrirHistoricoEstoque(id,delta ? await paginasHistEstoque.mover(delta) : null));
+    document.getElementById('btnExportHistEst').textContent = 'Exportar página Excel';
     document.getElementById("btnExportHistEst").onclick = () => {
       const cabAlhas = [["Data/Hora","Tipo","Delta","Antes","Depois","Motivo","Operador"]];
       const rows = histSnap.docs.map(d => {
@@ -996,7 +1009,7 @@ async function abrirHistoricoEstoque(id) {
 }
 
 // ── Histórico de Custo / Margem ───────────────────────────────
-async function abrirHistoricoCusto(id) {
+async function abrirHistoricoCusto(id, estado = null) {
   const snap = await getDoc(doc(db, COL, id)).catch(() => null);
   const p = snap?.exists() ? snap.data() : null;
   const nomeProd = p?.nome || "—";
@@ -1007,12 +1020,8 @@ async function abrirHistoricoCusto(id) {
   document.getElementById("btnFechHistCusto").onclick = () => window.fecharModal();
 
   try {
-    const histSnap = await getDocs(
-      query(collection(db, COL_CUSTO_HIST),
-        where("produtoId", "==", id),
-        orderBy("criadoEm", "desc"),
-        limit(50))
-    );
+    if(!estado) estado = await paginasHistCusto.iniciar(query(collection(db,COL_CUSTO_HIST),where('produtoId','==',id),orderBy('criadoEm','desc')));
+    const histSnap = {empty:!estado.itens.length,docs:estado.itens.map(m => ({id:m.id,data:()=>m}))};
 
     const { margemReais, margemPct } = calcularMargem(p?.preco, p?.precoCusto);
     const cm = corMargem(margemPct);
@@ -1079,6 +1088,7 @@ async function abrirHistoricoCusto(id) {
     window.abrirModal(`Histórico de Custo — ${nomeProd}`, body,
       `<button class="btn-ghost" id="btnFechHistCusto3">Fechar</button>`);
     document.getElementById("btnFechHistCusto3").onclick = () => window.fecharModal();
+    montarPaginacao(document.getElementById('modalBody'),estado,async delta => abrirHistoricoCusto(id,delta ? await paginasHistCusto.mover(delta) : null));
   } catch (err) {
     console.error(err);
     window.abrirModal(`Histórico de Custo — ${nomeProd}`,
@@ -1177,17 +1187,16 @@ const LABELS_HIST = {
 
 let _histGeralDocs = [];
 
-async function abrirHistoricoGeralEstoque() {
+async function abrirHistoricoGeralEstoque(estado = null) {
   window.abrirModal("Histórico do Estoque (Log Geral)",
     `<p class="loading-cell" style="padding:20px">Carregando movimentações...</p>`,
     `<button class="btn-ghost" id="btnFechHistGeral0">Fechar</button>`);
   document.getElementById("btnFechHistGeral0").onclick = () => window.fecharModal();
 
   try {
-    const snap = await getDocs(
-      query(collection(db, COL_HIST), orderBy("criadoEm", "desc"), limit(300))
-    );
-    _histGeralDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if(!estado?.itens) estado = await paginasHistGeral.iniciar(query(collection(db,COL_HIST),orderBy('criadoEm','desc')));
+    estadoHistGeral = estado;
+    _histGeralDocs = estado.itens;
     renderHistoricoGeralModal();
   } catch (err) {
     console.error(err);
@@ -1240,7 +1249,7 @@ function renderHistoricoGeralModal(filtroTipo = "todos", filtroBusca = "") {
           <option value="importacao" ${filtroTipo==="importacao"?"selected":""}>Importação</option>
         </select>
       </div>
-      <p style="font-size:var(--text-xs);color:var(--gray-400);margin:0">Mostrando ${docs.length} de ${_histGeralDocs.length} movimentações (últimas 300 registradas).</p>
+      <p style="font-size:var(--text-xs);color:var(--gray-400);margin:0">Mostrando ${docs.length} de ${_histGeralDocs.length} movimentações desta página. Os filtros abaixo atuam na página carregada.</p>
       <div class="table-wrap" style="max-height:440px;overflow:auto">
         <table class="data-table" style="font-size:var(--text-xs)">
           <thead>
@@ -1263,6 +1272,8 @@ function renderHistoricoGeralModal(filtroTipo = "todos", filtroBusca = "") {
      <button class="btn-ghost" id="btnFechHistGeral">Fechar</button>`);
 
   document.getElementById("btnFechHistGeral").onclick = () => window.fecharModal();
+  montarPaginacao(document.getElementById('modalBody'),estadoHistGeral,async delta => abrirHistoricoGeralEstoque(delta ? await paginasHistGeral.mover(delta) : null));
+  document.getElementById('btnExportHistGeral').textContent = 'Exportar página Excel';
 
   document.getElementById("mHistGeralBusca").addEventListener("input", (e) => {
     renderHistoricoGeralModal(document.getElementById("mHistGeralTipo").value, e.target.value);

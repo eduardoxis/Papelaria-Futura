@@ -1,6 +1,7 @@
 import { createRequire } from "node:module";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { fachadaFirebaseTeste } from './firebase-test-modulos.mjs';
 const require = createRequire(
   path.resolve(process.env.VC_TEST_DEPENDENCIES || "package.json"),
 );
@@ -60,6 +61,7 @@ try {
     ).toString("base64");
   const dataUrl = (s) =>
     "data:text/javascript;base64," + Buffer.from(s).toString("base64");
+  const fachada = fachadaFirebaseTeste(firestoreUrl,pathToFileURL(require.resolve('firebase/auth')).href,configUrl);
   const coreUrl = new URL("../js/vendas-comissoes-core.js", import.meta.url)
     .href;
   const pdvCoreUrl = dataUrl(
@@ -71,8 +73,8 @@ try {
     fs
       .readFileSync(new URL("../js/pdv-db.js", import.meta.url), "utf8")
       .replaceAll(
-        "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js",
-        firestoreUrl,
+        "./firestore-operacoes.js",
+        fachada,
       )
       .replaceAll("./firebase-config.js", configUrl)
       .replaceAll("./vendas-comissoes-core.js", coreUrl)
@@ -85,8 +87,8 @@ try {
   source = source.replaceAll("./pdv-db.js", pdvDbUrl);
   source = source
     .replace(
-      "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js",
-      firestoreUrl,
+      "./firestore-operacoes.js",
+      fachada,
     )
     .replace("./firebase-config.js", configUrl)
     .replace(

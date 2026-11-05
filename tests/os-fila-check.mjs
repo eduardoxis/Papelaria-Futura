@@ -24,7 +24,7 @@ const api = await import(
   url(
     ler("os-db.js")
       .replaceAll(
-        "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js",
+        "./firestore-operacoes.js",
         sdkUrl,
       )
       .replaceAll("./firebase-config.js", cfgUrl)
@@ -87,6 +87,9 @@ assert.deepEqual(
     .map((o) => o.id),
   ["a", "b", "x"],
 );
+const pararEntrega = api.observarFilaOs({admin:true,entrega:true},()=>{},e=>assert.fail(e.message));
+assert.ok(estado.ouvintes.at(-1).q.filtros.some(f=>f.campo==='status'&&f.valor==='pronto'));
+pararEntrega();
 const indice = core.erroConsultaOs({
   code: "failed-precondition",
   message:

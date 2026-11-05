@@ -12,7 +12,7 @@ import {
   onSnapshot,
   runTransaction,
   serverTimestamp,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+} from "./firestore-operacoes.js";
 import { db, auth } from "./firebase-config.js";
 import {
   COL_COM,

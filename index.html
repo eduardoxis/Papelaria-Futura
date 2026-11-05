@@ -170,10 +170,6 @@
     </button>
     <h1 class="topbar-title" id="topbarTitle">Dashboard</h1>
     <div class="topbar-actions">
-      <button class="btn-icon btn-notificacoes" id="btnNotificacoesDesktop" title="Notificações" aria-label="Notificações">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M5.25 9a6.75 6.75 0 0113.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 01-.297 1.206 24.585 24.585 0 01-4.831 1.244 3.75 3.75 0 11-7.48 0 24.585 24.585 0 01-4.831-1.244.75.75 0 01-.298-1.205A8.217 8.217 0 005.25 9.75V9zm4.502 8.9a2.25 2.25 0 104.496 0 25.057 25.057 0 01-4.496 0z" clip-rule="evenodd"/></svg>
-        <span class="notificacoes-badge" style="display:none">0</span>
-      </button>
       <button class="btn-icon" id="btnToggleValores" title="Ocultar valores" aria-pressed="false"></button>
       <button class="btn-primary" id="btnNovaCotacaoTop" data-page="nova-cotacao">
         <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
@@ -2227,28 +2223,9 @@ Minha lista de produtos:
 <!-- ============================================================ -->
 <!-- MOBILE HAMBURGER (abre o menu lateral)                       -->
 <!-- ============================================================ -->
-<button class="mobile-hamburger-btn mobile-hamburger-btn--notificacoes btn-notificacoes" id="btnNotificacoesMobile" aria-label="Notificações">
-  <svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M5.25 9a6.75 6.75 0 0113.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 01-.297 1.206 24.585 24.585 0 01-4.831 1.244 3.75 3.75 0 11-7.48 0 24.585 24.585 0 01-4.831-1.244.75.75 0 01-.298-1.205A8.217 8.217 0 005.25 9.75V9zm4.502 8.9a2.25 2.25 0 104.496 0 25.057 25.057 0 01-4.496 0z" clip-rule="evenodd"/></svg>
-  <span class="notificacoes-badge" style="display:none">0</span>
-</button>
 <button class="mobile-hamburger-btn" id="btnMobileHamburger" aria-label="Abrir menu">
   <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>
 </button>
-
-<!-- Painel de notificações — único, reposicionado por CSS conforme a tela -->
-<div class="notificacoes-painel" id="notificacoesPainel">
-  <div class="notificacoes-painel-header">Notificações</div>
-  <div class="notificacoes-tabs" id="notificacoesTabs">
-    <button type="button" class="notificacoes-tab notificacoes-tab--ativa" data-tipo="todas">Todas</button>
-    <button type="button" class="notificacoes-tab" data-tipo="cotacao">Cotações</button>
-    <button type="button" class="notificacoes-tab" data-tipo="cliente">Promissórias</button>
-    <button type="button" class="notificacoes-tab" data-tipo="estoque">Estoque</button>
-  </div>
-  <div class="notificacoes-lista" id="notificacoesLista">
-    <div class="notificacoes-vazio">Carregando...</div>
-  </div>
-</div>
-
 
 <!-- Scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -2260,6 +2237,7 @@ Minha lista de produtos:
 <script type="module">
   import { protegerRota, logoutUsuario, temCargo } from "./js/auth.js";
   import { iniciarDashboard }            from "./js/index.js";
+  import { iniciarPaginacaoTabelas } from './js/tabelas-paginadas.js';
   import { iniciarCotacao }              from "./js/cotacao.js";
   import { iniciarAdmin }                from "./js/admin.js";
   import { iniciarComissao }             from "./js/comissao.js";
@@ -2271,7 +2249,6 @@ Minha lista de produtos:
   import { iniciarPromissoria }          from "./js/promissoria.js";
   import { iniciarCartaAnuencia }        from "./js/carta-anuencia.js";
   import { iniciarAnuenciaModelos }      from "./js/anuencia-modelos.js";
-  import { iniciarNotificacoes }         from "./js/notificacoes.js";
 
   // ----------------------------------------------------------------
   // Proteção de rota + inicialização
@@ -2281,6 +2258,7 @@ Minha lista de produtos:
   });
 
   function iniciarApp(usuario, dadosUsuario) {
+    iniciarPaginacaoTabelas();
     // Dados do usuário no sidebar
     const nome   = dadosUsuario?.nome   || usuario.email.split("@")[0];
     const isAdmin = temCargo(dadosUsuario, "admin");
@@ -2321,7 +2299,6 @@ Minha lista de produtos:
     if (isAdmin) iniciarPromissoria(usuario, dadosUsuario);
     if (isAdmin) iniciarCartaAnuencia(usuario, dadosUsuario);
     if (isAdmin) iniciarAnuenciaModelos(usuario, dadosUsuario);
-    iniciarNotificacoes(usuario, dadosUsuario);
 
     // Navegação
     configurarNavegacao(isAdmin,isOperador,isOs);

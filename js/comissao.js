@@ -11,6 +11,10 @@ import {
 } from "./database.js";
 
 const CATEGORIAS = ["Dinheiro", "Débito", "Crédito", "Pix celular", "Pix maquininha", "Convênio", "Misto"];
+import { collection, query, orderBy } from './firestore-operacoes.js';
+import { db } from './firebase-config.js';
+import { criarPaginador, montarPaginacao } from './paginacao.js';
+const paginasPlanilhas = criarPaginador();
 
 let _usuario          = null;
 let _dadosUsuario      = null;
@@ -342,7 +346,7 @@ function mostrarPainelDetalhe(comissao, modoEdicao = false) {
 // ================================================================
 // LISTA DE PLANILHAS
 // ================================================================
-async function carregarListaComissoes() {
+async function carregarListaComissoes(estado = null) {
   const container = document.getElementById("comissaoCards");
   container.innerHTML = `<p class="loading-cell">Carregando...</p>`;
 
@@ -355,7 +359,13 @@ async function carregarListaComissoes() {
     setTimeout(() => resolve({ sucesso: false, erro: "tempo-esgotado" }), 12000)
   );
 
-  const resultado = await Promise.race([listarComissoes(), timeoutPromise]);
+  const resultado = await Promise.race([(async () => {
+    try {
+      if (!estado?.itens) estado = await paginasPlanilhas.iniciar(query(collection(db,'comissoes'),orderBy('dataCriacao','desc')));
+      montarPaginacao(container,estado,async delta => carregarListaComissoes(delta ? await paginasPlanilhas.mover(delta) : null));
+      return {sucesso:true,comissoes:estado.itens};
+    } catch(e) {return {sucesso:false,erro:e.message};}
+  })(), timeoutPromise]);
 
   if (!resultado.sucesso) {
     const msg = resultado.erro === "tempo-esgotado"

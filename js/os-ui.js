@@ -255,11 +255,14 @@ async function carregarHistorico(reiniciar = false) {
   preencherFiltros();
   render();
 }
-function conectar() {
-  if (desligar || !podeOs(perfil)) return;
+let modoConexao = null;
+function conectar(entrega = false) {
+  if (!podeOs(perfil) || (desligar && modoConexao === entrega)) return;
+  desconectar();
+  modoConexao = entrega;
   $("osConexao").textContent = "Conectando…";
   desligar = observarFilaOs(
-    { admin, uid: usuario.uid },
+    { admin, uid: usuario.uid, entrega },
     (itens, m) => {
       estadoFila = m.fromCache ? "carregando" : "pronta";
       ordens = itens;
@@ -329,11 +332,13 @@ export function iniciarOs(u, p) {
     consultaHistorico++;
     clearTimeout(filtroTimer);
     modo = "fila";
+    conectar();
     render();
   };
   $("osHistorico").onclick = (e) =>
     fazer(e.currentTarget, async () => {
       modo = "historico";
+      desconectar();
       await carregarHistorico(true);
     });
   $("osMais").onclick = (e) =>
@@ -341,8 +346,8 @@ export function iniciarOs(u, p) {
   $("osAtualizar").onclick = (e) =>
     fazer(e.currentTarget, async () => {
       desconectar();
-      conectar();
       if (modo === "historico") await carregarHistorico(true);
+      else conectar();
     });
   $("osLimpar").onclick = () => {
     document
@@ -373,13 +378,6 @@ export function iniciarOs(u, p) {
         }
       }),
     );
-  if (admin)
-    referenciasOs()
-      .then((r) => {
-        references = r;
-        preencherFiltros();
-      })
-      .catch((e) => toast(e.message));
   $("osNova")?.addEventListener("click", (e) =>
     fazer(e.currentTarget, () => formOs()),
   );
@@ -399,7 +397,9 @@ export function iniciarOs(u, p) {
   });
   document.addEventListener("navegacao", (e) => {
     if (["os", "entrega"].includes(e.detail.page)) {
-      conectar();
+      if(admin && e.detail.page === 'os') referenciasOs().then(r => { references = r; preencherFiltros(); }).catch(e => toast(e.message));
+      if(e.detail.page === 'entrega' || modo === 'fila') conectar(e.detail.page === 'entrega');
+      else desconectar();
       render();
       renderEntregas();
     } else desconectar();

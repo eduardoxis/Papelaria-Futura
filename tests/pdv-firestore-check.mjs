@@ -3,6 +3,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import fs from "node:fs";
 import assert from "node:assert/strict";
+import { fachadaFirebaseTeste } from './firebase-test-modulos.mjs';
 const require = createRequire(
     path.resolve(process.env.VC_TEST_DEPENDENCIES || "package.json"),
   ),
@@ -40,6 +41,7 @@ const cfg = url(
 );
 const ler = (p) =>
   fs.readFileSync(new URL("../js/" + p, import.meta.url), "utf8");
+const fachada = fachadaFirebaseTeste(sdk,pathToFileURL(require.resolve('firebase/auth')).href,cfg);
 const vcCore = url(ler("vendas-comissoes-core.js"));
 const pdvCore = url(
   ler("pdv-core.js").replaceAll("./vendas-comissoes-core.js", vcCore),
@@ -47,8 +49,8 @@ const pdvCore = url(
 const preparar = (s) =>
   s
     .replaceAll(
-      "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js",
-      sdk,
+      "./firestore-operacoes.js",
+      fachada,
     )
     .replaceAll("./firebase-config.js", cfg)
     .replaceAll("./vendas-comissoes-core.js", vcCore)

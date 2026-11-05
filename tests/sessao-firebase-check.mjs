@@ -54,7 +54,7 @@ const fonte = fs
     authAdaptado,
   )
   .replaceAll(
-    "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js",
+    "./firestore-operacoes.js",
     dbSdk,
   )
   .replaceAll(

@@ -7,9 +7,11 @@
 import {
   collection, doc, addDoc, getDoc, getDocs,
   updateDoc, deleteDoc, query, orderBy, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+} from "./firestore-operacoes.js";
 import { db } from "./firebase-config.js";
 import { escHtml } from "./index.js";
+import { criarPaginador, montarPaginacao } from './paginacao.js';
+const paginasServicos = criarPaginador();
 
 export const COL_SERVICOS = "pf_servicos";
 
@@ -30,13 +32,14 @@ export function iniciarServicos(usuario, dadosUsuario) {
 
   document.getElementById("filtroBuscaServicos")?.addEventListener("input", (e) => {
     _termoBusca = e.target.value;
-    renderizarTabelaServicos();
+    clearTimeout(_buscaTimer);
+    _buscaTimer = setTimeout(carregarListaServicos, 350);
   });
   document.getElementById("btnLimparBuscaServicos")?.addEventListener("click", () => {
     _termoBusca = "";
     const inp = document.getElementById("filtroBuscaServicos");
     if (inp) inp.value = "";
-    renderizarTabelaServicos();
+    carregarListaServicos();
   });
 
   document.getElementById("tbodyServicos")?.addEventListener("click", onTabelaClick);
@@ -46,15 +49,28 @@ async function carregarListaServicos() {
   const tbody = document.getElementById("tbodyServicos");
   if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="loading-cell">Carregando serviços...</td></tr>`;
   try {
-    const snap = await getDocs(query(collection(db, COL_SERVICOS), orderBy("nome")));
-    _servicosCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const termo = _termoBusca.trim().toLowerCase();
+    const estado = await paginasServicos.iniciar(query(collection(db, COL_SERVICOS), orderBy('nome')), s => !termo || [s.nome,s.categoria,s.codigo].some(v => String(v || '').toLowerCase().includes(termo)));
+    mostrarPaginaServicos(estado);
   } catch (err) {
     console.error("Erro ao carregar serviços:", err);
     window.mostrarToast?.("Erro ao carregar serviços.", "error");
     _servicosCache = [];
   }
-  atualizarIndicadoresServicos();
   renderizarTabelaServicos();
+}
+let _buscaTimer;
+function mostrarPaginaServicos(estado) {
+  _servicosCache = estado.itens;
+  renderizarTabelaServicos();
+  // Os indicadores exibem explicitamente a página, nunca um total global parcial.
+  for (const [id, valor] of [['indTotalServicos',estado.itens.length],['indServicosAtivos',estado.itens.filter(s => s.ativo !== false).length]]) {
+    const el = document.getElementById(id); if(el) { el.textContent = valor + ' nesta página'; }
+  }
+  montarPaginacao(document.getElementById('tbodyServicos'), estado, async delta => {
+    if (!delta) return carregarListaServicos();
+    mostrarPaginaServicos(await paginasServicos.mover(delta));
+  });
 }
 
 function atualizarIndicadoresServicos() {

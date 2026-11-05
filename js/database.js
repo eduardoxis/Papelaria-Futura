@@ -25,8 +25,9 @@ import {
   getAggregateFromServer,
   count,
   sum,
-  writeBatch
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  writeBatch,
+  memorizarResumo
+} from "./firestore-operacoes.js";
 
 import { db } from "./firebase-config.js";
 
@@ -240,6 +241,9 @@ export async function excluirCotacao(id) {
 // Totais para o Dashboard
 // ----------------------------------------------------------------
 export async function buscarEstatisticas(uidUsuario = null, apenasAdmin = false) {
+  return memorizarResumo('dashboard:'+(uidUsuario || 'todos')+':'+new Date().toISOString().slice(0,7),COLECAO_COTACOES,() => calcularEstatisticas(uidUsuario,apenasAdmin));
+}
+async function calcularEstatisticas(uidUsuario = null, apenasAdmin = false) {
   try {
     const agora       = new Date();
     const inicioMes   = new Date(agora.getFullYear(), agora.getMonth(), 1);
@@ -889,9 +893,9 @@ export async function listarRegistrosComissao(comissaoId, { limitQtd = 50, curso
   try {
     // Inclui também lançamentos antigos do caixa sem o campo ordem.
     // orderBy excluiria esses documentos; a ordenação ocorre abaixo, antes de paginar.
-    const snap = await getDocs(
+    const snap = await memorizarResumo('registros-planilha:'+comissaoId,COLECAO_COMISSOES,() => getDocs(
       collection(db, COLECAO_COMISSOES, comissaoId, "registros")
-    );
+    ),300000);
     const registros = snap.docs
       .map(d => ({ id: d.id, ...d.data() }))
       .sort(compararRegistrosComissao);

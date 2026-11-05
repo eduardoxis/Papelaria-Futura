@@ -4,6 +4,7 @@ Este manual reúne as orientações de operação, publicação e recuperação 
 
 - [Publicação](#publicacao)
 - [Cota de operações do Firebase](#cota)
+- [Leituras e paginação](#leituras)
 - [Backup e recuperação](#backup)
 - [Vendas e comissões](#comissoes)
 - [Caixa e comprovantes](#caixa)
@@ -375,8 +376,58 @@ Confira Firestore Database → Uso no Firebase Console para identificar o limite
 
 A aplicação pausa novas operações do PDV por 60 segundos ao receber esse erro, compartilhando somente o prazo da pausa entre abas do mesmo navegador. Não tenta reabrir o caixa automaticamente nem transforma o erro em venda concluída. Os itens e o pagamento permanecem na tela. Depois que a cota estiver disponível, feche o aviso de abertura e use Atualizar caixa para consultar novamente.
 
-Consultas do estado do caixa disparadas apenas por foco/navegação reutilizam a confirmação recente por até 15 segundos. A finalização mantém a conferência no servidor. As notificações respeitam o intervalo de cinco minutos também ao alternar abas e preservam os dados anteriores em caso de falha. O Dashboard evita cargas simultâneas e reutiliza sua consulta recente por até 30 segundos; o botão de atualização permite uma consulta explícita.
+Consultas do estado do caixa disparadas apenas por foco/navegação reutilizam a confirmação recente por até 15 segundos. A finalização mantém a conferência no servidor. As notificações foram removidas, inclusive as consultas periódicas de cotações, estoque e promissórias. O Dashboard evita cargas simultâneas e reutiliza sua consulta recente por até 30 segundos; o botão de atualização permite uma consulta explícita.
 
 Essa redução evita leituras repetidas desnecessárias, mas não garante que o projeto sempre fique dentro da cota: o consumo inclui todos os usuários, abas e demais acessos ao banco. Enquanto o Firebase continuar recusando gravações, as vendas não poderão ser concluídas.
 
 Verificações: tests/firebase-limites-check.mjs, tests/caixa-sessao-check.mjs e os testes de persistência de PDV e comissões.
+
+<a id="leituras"></a>
+## Leituras e paginação
+
+### Revisão das áreas
+
+| Área | Comportamento de leitura |
+|---|---|
+| Notificações | Removidas: botões desktop/mobile, painel, estilos, módulo e consultas periódicas. |
+| Estoque | Lista por cursor, 30 produtos por página, sem baixar todo o estoque para mostrar a primeira página. Marcas reaproveitadas. Indicadores completos são calculados somente pelo botão específico. Exportação de produtos continua consultando os dados completos sob demanda. |
+| Histórico de estoque, custos e log geral | Páginas por cursor em vez de cortes fixos nas últimas 50/100/300 movimentações. Anteriores continuam acessíveis. Excel desses históricos é identificado como exportação da página. Os filtros do log geral atuam na página carregada. |
+| Serviços | Lista por cursor e pesquisa com limite de varredura. Indicadores identificam os valores da página. O catálogo completo necessário à busca do PDV é compartilhado em memória por até cinco minutos. Não há recarga do catálogo após cada venda. |
+| Clientes cadastrados | Lista por cursor. Autocomplete exige dois caracteres e consulta até seis sugestões por consulta, sem baixar todos os clientes. Consulta adicional por nome mantém suporte a cadastros antigos sem nomeBusca. |
+| Promissórias | Página de 30 clientes; compras e pagamentos consultados somente para os IDs desses clientes, em grupos de dez. Filtros financeiros continuam calculando o saldo completo de cada cliente, com dados reais. Indicadores gerais e dashboard completos são carregados por ação do usuário. |
+| Entregas | Lista por cursor; resumo completo somente ao abrir o dashboard. Integração de OS acompanha apenas ordens prontas. Não consulta funcionários da tela de OS. |
+| ADM | Carrega somente a seção aberta. Usuários por cursor. Históricos de orçamentos, vendas, pagamentos, auditoria e caixas mantêm seus cursores. Sem baixar vendas e históricos ao abrir apenas Usuários. |
+| Planilhas de comissão | Lista de planilhas por cursor. Lançamentos têm paginação na interface; o snapshot completo da planilha é reaproveitado por até cinco minutos para preservar a ordenação manual e registros antigos sem campo ordem. Alterações invalidam esse resultado. |
+| Orçamentos Futura/FM3/HTL | Mantêm paginação por cursor e buscas limitadas. Consultas equivalentes são reaproveitadas entre navegação, filtros e dashboard. Estatísticas usam agregações no servidor com reaproveitamento temporário. |
+| OS | Fila em tempo real apenas na área correspondente. Histórico limita a quatro lotes por ação; registros seguintes ficam acessíveis por Carregar mais. Abrir o histórico desliga a fila, inclusive ao atualizar o histórico. Cadastros auxiliares são consultados ao abrir a área. |
+| Vendas e comissões dos vendedores | Consultas restritas ao período; acompanhamento é desligado ao sair da área. Totais e percentuais históricos continuam usando todos os registros necessários do período. Não se aplica um limite arbitrário que cortaria as comissões do relatório. |
+| Caixa | Sessão consultada ao entrar no PDV; conferência obrigatória no servidor antes da venda. Seletores reaproveitam consultas. Transações financeiras mantêm leituras atuais e idempotência. |
+| Cartas de anuência | Versões por cursor, com acesso às anteriores às primeiras 15 versões. Dados financeiros completos do cliente continuam disponíveis ao gerar a carta. |
+| Backup, relatórios e exportações | Leituras completas apenas quando necessárias para a operação solicitada. Backup continua usando getDocsFromServer e páginas, sem receber resultados do cache de listas. Nenhuma coleção foi removida do backup. |
+
+### Como o reaproveitamento funciona
+
+Todas as áreas que acessam o Firestore passam por js/firestore-operacoes.js. Consultas de lista idênticas usam a mesma promessa durante uma carga concorrente e o mesmo resultado confirmado durante seu prazo de validade. O SDK compara as consultas, incluindo filtros, ordem e cursor; páginas e permissões distintas não são misturadas.
+
+O prazo é de um minuto para listas comuns e cinco minutos para catálogos de serviços, marcas, usuários, clientes cadastrados e percentuais cadastrados. O conteúdo fica somente na memória da aba, separado por usuário e limitado a 80 entradas por cache. Não é gravado em localStorage ou em arquivos. Sair da conta limpa os resultados. Resultados offline ou com gravações pendentes não são guardados como confirmação do servidor.
+
+Gravações simples, lotes e transações invalidam as listas afetadas. Outras abas da mesma origem recebem somente um aviso de invalidação, sem conteúdo de vendas ou clientes. Atualizar explicitamente limpa o cache antes da consulta. Alterações feitas em outro computador ficam visíveis na próxima consulta após o prazo ou pela atualização explícita. Voltar às páginas já abertas usa as páginas da navegação atual; use Atualizar para refazer a consulta do servidor.
+
+getDoc, getDocFromServer, getDocsFromServer e as leituras das transações não foram transformados em cache de listas. A verificação de perfil, sessão, pagamentos, comissões e estoque continua sujeita às regras do banco e aos controles existentes. Não há confirmação fictícia de gravações nem funcionamento financeiro baseado apenas no navegador.
+
+### Paginação e limites
+
+Listas comuns mostram 30 registros e buscam um documento extra para identificar a próxima página. Não usam offset nem fazem pré-carregamento de páginas que o usuário não abriu. A busca por trecho de texto continua compatível com os dados antigos; quando não existe um campo pesquisável no servidor, verifica até quatro lotes por ação. Uma página pode não encontrar resultados e ainda oferecer Próxima. Isso evita varrer toda a coleção automaticamente e não descarta os registros restantes.
+
+Há paginação de apresentação para tabelas longas de detalhes que já precisaram ser carregadas integralmente para calcular saldos ou montar relatórios. Ela não é apresentada como economia de leituras: apenas divide a tela, mantém os dados para os cálculos e mostra todas as linhas na impressão. Tabelas editáveis de orçamento e comissão preservam seus controles próprios.
+
+Não é possível zerar as leituras mantendo dados financeiros atuais. Acompanhamento em tempo real, permissões do banco, relatórios completos, importação e backup ainda consomem operações. A redução real depende do tamanho dos dados e da utilização; não há promessa de permanecer sempre dentro da cota gratuita. [Cobrança de consultas, agregações e listeners](https://firebase.google.com/docs/firestore/pricing).
+
+### Validação
+
+- tests/leituras-paginacao-check.mjs: 100 solicitações simultâneas equivalentes geram uma consulta; abertura de uma lista de 450 registros busca 31 documentos; retorno a página anterior não consulta novamente; percorre todos os registros sem perda ou duplicação; cobre expiração, isolamento por usuário, falhas, respostas offline e invalidação durante uma leitura.
+- tests/leituras-firestore-check.mjs: SDK real e Firestore local, cache seletivo após gravação simples/lote/transação, paginação de 75 serviços, retorno sem consulta e acesso anônimo recusado.
+- tests/leituras-interface-check.mjs: Chrome isolado, dados de teste e sem conexão ao Firebase real. Verifica navegação nas listas, próxima/anterior, histórico do estoque, detalhes longos, ausência das notificações e de consultas às seções ocultas. CHROME_BIN permite indicar outro executável Chromium.
+- Regressões de caixa, sessão, backup, OS, pagamentos e comissões, incluindo testes com regras reais em emuladores locais.
+
+Os números dos testes são cenários controlados, não medições do consumo do projeto de produção. Acompanhe o resultado real em Firestore Database → Uso após publicar.

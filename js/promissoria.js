@@ -7,10 +7,12 @@ import {
   collection, doc, addDoc, getDoc, getDocs, setDoc,
   updateDoc, deleteDoc, query, where, orderBy,
   serverTimestamp, Timestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+} from "./firestore-operacoes.js";
 import { db } from "./firebase-config.js";
 import { formatarMoeda } from "./database.js";
 import { temCargo } from "./auth.js";
+import { criarPaginador, montarPaginacao } from './paginacao.js';
+const paginasPromissoria = criarPaginador();
 
 // ── Constantes ──────────────────────────────────────────────
 const COL_CLIENTES     = "prom_clientes";
@@ -256,7 +258,16 @@ function trocarAbaProm(aba) {
 // ── Carregamento inicial da página ───────────────────────────
 async function carregarPromissoriaPage() {
   mostrarPainel("lista");
-  await Promise.all([carregarIndicadores(), carregarListaClientes()]);
+  await carregarListaClientes();
+  if (!document.getElementById('btnResumoPromissoria')) {
+    const botao = document.createElement('button'); botao.id = 'btnResumoPromissoria';
+    botao.className = 'btn-secondary'; botao.textContent = 'Calcular indicadores financeiros completos';
+    botao.onclick = carregarIndicadores;
+    document.getElementById('tbodyClientesProm').closest('table').parentElement.before(botao);
+    for(const id of ['indTotalVendido','indTotalRecebido','indTotalAberto','indInadimplentes','indClientesTotal']) {
+      const el = document.getElementById(id); if(el) el.textContent = '—';
+    }
+  }
 }
 
 // ── Indicadores financeiros ──────────────────────────────────
@@ -904,17 +915,18 @@ function _contagemPorMes(lista, campoData, mesRef) {
 }
 
 // ── Listagem de clientes ─────────────────────────────────────
-async function carregarListaClientes(busca = "", filtroStatus = "todos") {
+async function carregarListaClientes(busca = "", filtroStatus = "todos", estado = null) {
   const tbody = document.getElementById("tbodyClientesProm");
   if (!tbody) return;
   tbody.innerHTML = `<tr><td colspan="7" class="loading-cell">Carregando...</td></tr>`;
 
   try {
-    const [clientesSnap, comprasSnap, pagamentosSnap] = await Promise.all([
-      getDocs(query(collection(db, COL_CLIENTES), orderBy("nome"))),
-      getDocs(collection(db, COL_COMPRAS)),
-      getDocs(collection(db, COL_PAGAMENTOS))
-    ]);
+    const termo = busca.toLowerCase();
+    const digitos = busca.replace(/\D/g,'');
+    if (!estado) estado = await paginasPromissoria.iniciar(query(collection(db,COL_CLIENTES),orderBy('nome')), c => !termo || [c.nome,c.telefone,c.documento].some(v => String(v || '').toLowerCase().includes(termo)) || (digitos && String(c.documento || '').replace(/\D/g,'').includes(digitos)));
+    montarPaginacao(tbody, estado, async delta => carregarListaClientes(busca,filtroStatus,delta ? await paginasPromissoria.mover(delta) : null));
+    const clientesSnap = { forEach: fn => estado.itens.forEach(c => fn({id:c.id,data:()=>c})) };
+    const [comprasSnap,pagamentosSnap] = await Promise.all([documentosDosClientes(COL_COMPRAS,estado.itens),documentosDosClientes(COL_PAGAMENTOS,estado.itens)]);
 
     const hoje = new Date();
 
@@ -970,7 +982,7 @@ async function carregarListaClientes(busca = "", filtroStatus = "todos") {
     }
 
     if (!clientes.length) {
-      tbody.innerHTML = `<tr><td colspan="7" class="empty-cell">Nenhum cliente encontrado.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="empty-cell">Nenhum cliente encontrado nesta página. Use Próxima para continuar, se disponível.</td></tr>`;
       return;
     }
 
@@ -1005,6 +1017,16 @@ async function carregarListaClientes(busca = "", filtroStatus = "todos") {
     console.error("Erro ao carregar clientes:", err);
     tbody.innerHTML = `<tr><td colspan="7" class="empty-cell">Erro ao carregar dados.</td></tr>`;
   }
+}
+
+async function documentosDosClientes(colecao, clientes) {
+  const docs = [];
+  // Compatível com o limite de consultas IN de versões anteriores do projeto.
+  for (let i = 0; i < clientes.length; i += 10) {
+    const s = await getDocs(query(collection(db,colecao),where('clienteId','in',clientes.slice(i,i+10).map(c => c.id))));
+    docs.push(...s.docs);
+  }
+  return { docs, forEach: fn => docs.forEach(fn) };
 }
 
 // ── Painel de detalhes do cliente ────────────────────────────

@@ -6,10 +6,13 @@
 import {
   collection, doc, addDoc, getDocs,
   updateDoc, deleteDoc, query, where, orderBy, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+} from "./firestore-operacoes.js";
 import { db } from "./firebase-config.js";
 import { escHtml } from "./index.js";
 import { temCargo } from "./auth.js";
+import { criarPaginador, montarPaginacao } from './paginacao.js';
+const paginasEntregas = criarPaginador();
+let _buscaTimerEntrega;
 
 export const COL_ENTREGAS = "pf_entregas";
 
@@ -33,18 +36,19 @@ export function iniciarEntrega(usuario, dadosUsuario) {
 
   document.getElementById("filtroBuscaEntrega")?.addEventListener("input", (e) => {
     _termoBusca = e.target.value;
-    renderizarTabelaEntrega();
+    clearTimeout(_buscaTimerEntrega);
+    _buscaTimerEntrega = setTimeout(carregarListaEntregas, 350);
   });
-  document.getElementById("btnBuscarEntrega")?.addEventListener("click", renderizarTabelaEntrega);
+  document.getElementById("btnBuscarEntrega")?.addEventListener("click", carregarListaEntregas);
   document.getElementById("btnLimparBuscaEntrega")?.addEventListener("click", () => {
     _termoBusca = "";
     const inp = document.getElementById("filtroBuscaEntrega");
     if (inp) inp.value = "";
-    renderizarTabelaEntrega();
+    carregarListaEntregas();
   });
 
   document.getElementById("tbodyEntrega")?.addEventListener("click", onTabelaClick);
-  document.addEventListener("os:atualizada", () => carregarListaEntregas());
+  document.addEventListener("os:atualizada", () => { if (!document.getElementById('page-entrega')?.hidden) carregarListaEntregas(); });
 }
 
 async function carregarListaEntregas() {
@@ -57,16 +61,34 @@ async function carregarListaEntregas() {
     if (!temCargo(_dadosUsuario, "admin")) {
       restricoes.unshift(where("criadoPor", "==", _usuario?.uid || ""));
     }
-    const snap = await getDocs(query(collection(db, COL_ENTREGAS), ...restricoes));
-    _entregasCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const termo = _termoBusca.trim().toLowerCase();
+    const estado = await paginasEntregas.iniciar(query(collection(db, COL_ENTREGAS), ...restricoes), en => !termo || [en.cliente,en.local].some(v => String(v || '').toLowerCase().includes(termo)));
+    mostrarPaginaEntregas(estado);
   } catch (err) {
     console.error("Erro ao carregar entregas:", err);
     window.mostrarToast?.("Erro ao carregar entregas.", "error");
     _entregasCache = [];
   }
   renderizarTabelaEntrega();
-  renderizarIndicadoresEntrega();
-  renderizarDashboardEntrega();
+}
+function mostrarPaginaEntregas(estado) {
+  _entregasCache = estado.itens;
+  renderizarTabelaEntrega();
+  for (const id of ['entIndTotal','entIndHoje','entIndSemana','entIndTempoMedio']) {
+    const el = document.getElementById(id); if(el) el.textContent = 'Consulte o dashboard';
+  }
+  montarPaginacao(document.getElementById('tbodyEntrega'), estado, async delta => {
+    if (!delta) return carregarListaEntregas();
+    mostrarPaginaEntregas(await paginasEntregas.mover(delta));
+  });
+}
+async function carregarResumoEntregas() {
+  try {
+    const f = temCargo(_dadosUsuario,'admin') ? [] : [where('criadoPor','==',_usuario.uid)];
+    const s = await getDocs(query(collection(db,COL_ENTREGAS),...f,orderBy('data','desc')));
+    _entregasCache = s.docs.map(d => ({...d.data(),id:d.id}));
+    renderizarIndicadoresEntrega(); renderizarDashboardEntrega();
+  } catch(e) { window.mostrarToast?.(e.message,'error'); }
 }
 
 function trocarAbaEntrega(aba) {
@@ -76,7 +98,8 @@ function trocarAbaEntrega(aba) {
   document.getElementById("tabEntregaDashboard")?.setAttribute("aria-selected", String(aba === "dashboard"));
   document.getElementById("entregaListaPanel").hidden = aba !== "lista";
   document.getElementById("entregaDashboardPanel").hidden = aba !== "dashboard";
-  if (aba === "dashboard") renderizarDashboardEntrega();
+  if (aba === "dashboard") carregarResumoEntregas();
+  else mostrarPaginaEntregas(paginasEntregas.estado());
 }
 
 // ----------------------------------------------------------------
