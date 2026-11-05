@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 const fonte = readFileSync(new URL('../js/backup.js', import.meta.url), 'utf8');
-const { coletarBackup, codificarValor, decodificarValor, COLECOES_BACKUP } = await import('data:text/javascript;base64,' + Buffer.from(fonte).toString('base64'));
+const { coletarBackup, codificarValor, decodificarValor, COLECOES_BACKUP, COLECOES_INATIVAS } = await import('data:text/javascript;base64,' + Buffer.from(fonte).toString('base64'));
 class Timestamp { constructor(s,n){this.seconds=s;this.nanoseconds=n;} toDate(){return new Date(this.seconds*1000);} }
 class GeoPoint { constructor(a,b){this.latitude=a;this.longitude=b;} }
 class Bytes { toBase64(){return 'AQID';} }
@@ -23,6 +23,16 @@ assert.equal(backup.documentos[0].path,'comissoes/a');
 assert.equal(backup.documentos[2].path,'comissoes/sem-pai/registros/antigo');
 assert.equal(Object.keys(backup.contagens).length,COLECOES_BACKUP.length+3);
 assert.equal(backup.preferencias.comissao_autosave,'1');
+const consultasAtivas = [];
+const gruposAtivos = [];
+const backupAtivo = await coletarBackup({
+  projectId: 'teste', storage, excluirColecoes: COLECOES_INATIVAS,
+  lerColecao: async nome => { consultasAtivas.push(nome); return []; },
+  lerGrupo: async nome => { gruposAtivos.push(nome); return []; }
+});
+assert.deepEqual(backupAtivo.colecoesExcluidas, COLECOES_INATIVAS);
+assert.deepEqual(consultasAtivas, COLECOES_BACKUP.filter(nome => !COLECOES_INATIVAS.includes(nome)));
+assert.deepEqual(gruposAtivos, ['lembretes', 'registros']);
 await assert.rejects(()=>coletarBackup({projectId:'teste',storage,lerColecao:async()=>{throw Error('permission-denied');},lerGrupo:async()=>[]}),/permission-denied/);
 // Testa paginação real do adaptador, sem Firebase de produção.
 const admin=readFileSync(new URL('../js/admin.js',import.meta.url),'utf8');
@@ -30,10 +40,14 @@ const trecho=admin.slice(admin.indexOf('async function buscarColecaoCompletaBack
 const documentos=Array.from({length:1001},(_,i)=>({id:String(i),ref:{path:'comissoes/'+i},data:()=>({valor:i})}));
 let chamadas=0;
 const contexto={ db:{}, collection:(db,p)=>p,collectionGroup:(db,p)=>p,orderBy:()=>null,documentId:()=>null,limit:()=>null,startAfter:cursor=>cursor,query:(origem,...filtros)=>({origem,cursor:filtros.find(f=>f?.id)}),getDocsFromServer:async q=>{chamadas++;const inicio=q.cursor?Number(q.cursor.id)+1:0;return {docs:documentos.slice(inicio,inicio+500)};} };
+const exclusoesConfig = [];
+contexto.where = (campo, operador, id) => { exclusoesConfig.push([operador, id]); return null; };
 vm.createContext(contexto);vm.runInContext(trecho,contexto);
 const lista=await contexto.buscarColecaoCompletaBackup('comissoes');
 assert.equal(lista.length,1001);assert.equal(chamadas,3);assert.equal(lista[1000].dados.valor,1000);
 const listaGrupo=await contexto.buscarColecaoCompletaBackup('registros',true);assert.equal(listaGrupo.length,1001);
+await contexto.buscarColecaoCompletaBackup('config');
+assert.deepEqual(exclusoesConfig, Array.from({length:3}, () => ['!=', 'prom_metas']));
 // Cada coleção declarada nos módulos e nas regras deve estar no inventário.
 const { readdirSync } = await import('node:fs');
 for(const file of readdirSync(new URL('../js',import.meta.url)).filter(f=>f.endsWith('.js'))) {

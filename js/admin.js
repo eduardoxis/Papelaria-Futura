@@ -1,7 +1,7 @@
 import {listarVendasPdv} from './pdv-db.js';
 import {iniciarPdvUi,iniciarHistoricoCaixas,mostrarComprovante,acaoVendaPdv} from './pdv-ui.js';
 import { iniciarVendasComissoes, abrirPainelComissoes, fecharPainelComissoes } from "./vendas-comissoes.js";
-import { coletarBackup } from "./backup.js";
+import { coletarBackup, COLECOES_INATIVAS } from "./backup.js";
 // ============================================================
 // admin.js — Painel Administrativo (somente admin)
 // ============================================================
@@ -19,7 +19,7 @@ import {
   exportarExcel, buscarUltimoBackup, salvarUltimoBackup
 } from "./database.js";
 import { cargosDoUsuario, temCargo, criarContaUsuario } from "./auth.js";
-import { collection, collectionGroup, getDocs, getDocsFromServer, query, orderBy, limit, startAfter, documentId } from "./firestore-operacoes.js";
+import { collection, collectionGroup, getDocs, getDocsFromServer, query, where, orderBy, limit, startAfter, documentId } from "./firestore-operacoes.js";
 import { db } from "./firebase-config.js";
 import { criarPaginador, montarPaginacao } from './paginacao.js';
 const paginasUsuarios = criarPaginador();
@@ -567,6 +567,9 @@ async function buscarColecaoCompletaBackup(caminho, grupo = false) {
   let cursor = null;
   while (true) {
     const restricoes = [orderBy(documentId()), limit(500)];
+    if (!grupo && caminho === "config") {
+      restricoes.push(where(documentId(), "!=", "prom_metas"));
+    }
     if (cursor) restricoes.push(startAfter(cursor));
     const origem = grupo ? collectionGroup(db, caminho) : collection(db, caminho);
     // Não aceita cache offline como se fosse uma cópia completa do servidor.
@@ -586,12 +589,14 @@ async function gerarBackupCompleto() {
   let baixado = false;
   try {
     const backup = await coletarBackup({
+      excluirColecoes: COLECOES_INATIVAS,
       lerColecao: caminho => buscarColecaoCompletaBackup(caminho),
       lerGrupo: nome => buscarColecaoCompletaBackup(nome, true),
       projectId: db.app.options.projectId,
       storage: localStorage,
       progresso: nome => { btn.textContent = `Lendo ${nome}...`; }
     });
+    backup.documentosExcluidos = ["config/prom_metas"];
     const texto = JSON.stringify(backup, null, 2);
     const verificado = JSON.parse(texto);
     if (verificado.documentos.length !== backup.totalDocumentos) throw new Error("Falha ao verificar o arquivo.");
@@ -599,7 +604,7 @@ async function gerarBackupCompleto() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `Backup_Completo_Papelaria_Futura_${backup.concluidoEm.replace(/[:.]/g, "-")}.json`;
+    link.download = `Backup_Areas_Ativas_Papelaria_Futura_${backup.concluidoEm.replace(/[:.]/g, "-")}.json`;
     document.body.appendChild(link);
     try { link.click(); baixado = true; }
     finally { link.remove(); window.setTimeout(() => URL.revokeObjectURL(url), 60000); }
@@ -607,7 +612,7 @@ async function gerarBackupCompleto() {
     window.mostrarToast?.(`Backup preparado: ${backup.totalDocumentos} documentos completos. Confira o arquivo nos downloads.${status?.sucesso === false ? ' Não foi possível atualizar a data do último backup.' : ''}`, "success", 10000);
     carregarStatusBackup();
   } catch (err) {
-    console.error("Erro ao gerar backup completo:", err);
+    console.error("Erro ao gerar backup:", err);
     window.mostrarToast?.(baixado
       ? "Arquivo enviado para download, mas não foi possível atualizar o status. Confira seus downloads."
       : `Backup não concluído: ${err.message || 'falha na leitura'}. Nenhum arquivo parcial foi gerado.`, "error", 12000);

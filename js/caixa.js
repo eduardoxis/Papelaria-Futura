@@ -5,12 +5,10 @@ import {ehCotaFirebase, MENSAGEM_COTA_FIREBASE} from './firebase-limites.js';
 import { salvarVendaComComissao } from "./vendas-comissoes-db.js";
 // ============================================================
 // caixa.js — Módulo Caixa (PDV) — Papelaria Futura
-// Integra baixa de estoque (pf_produtos) e lançamento
-// automático de comissão (comissoes/{id}/registros)
+// Registra serviços e lança a comissão na planilha selecionada.
 // ============================================================
 import {
-  collection, doc, addDoc, getDoc, getDocs,
-  updateDoc, query, where, orderBy, limit, serverTimestamp
+  collection, doc, getDocs, query, where, orderBy, limit, serverTimestamp
 } from "./firestore-operacoes.js";
 import { db } from "./firebase-config.js";
 import {
@@ -22,8 +20,6 @@ import { COL_SERVICOS } from "./servicos.js";
 import { escHtml } from "./index.js";
 import { temCargo } from "./auth.js";
 
-const COL_PRODUTOS = "pf_produtos";
-const COL_HIST     = "pf_estoque_historico";
 const COL_VENDAS   = "pf_vendas";
 
 // Mapa forma de pagamento do Caixa → categoria usada na Comissão
@@ -330,7 +326,7 @@ async function carregarProdutosCache(forcar = false) {
   try {
     const snapServicos = await getDocs(query(collection(db, COL_SERVICOS),orderBy('nome')));
     _produtosCache = snapServicos.docs
-      .map(d => ({ id: d.id, tipo: "servico", ...d.data() }))
+      .map(d => ({ ...d.data(), id: d.id, tipo: "servico" }))
       .filter(s => s.ativo !== false); // só serviços ativos aparecem no Caixa
     _produtosCacheEm = agora;
   } catch (err) {
@@ -880,7 +876,7 @@ async function prepararFinalizacaoVenda() {
 }
 
 // ----------------------------------------------------------------
-// Persistência: venda + baixa de estoque + registro de comissão
+// Persistência: venda + registro de comissão
 // ----------------------------------------------------------------
 async function finalizarVenda(vendedor, nomeCliente = "") {
   if (!await atualizarStatusCaixa(true)) throw Error("Não foi possível confirmar o caixa. Os itens da venda foram preservados. Tente novamente após conferir a conexão e o acesso.");
@@ -919,34 +915,7 @@ async function finalizarVenda(vendedor, nomeCliente = "") {
   if (formaPagamento === 'Misto') vendaDoc.pagamentos = Object.fromEntries(['dinheiro','pix','debito','credito','outros','fiado'].map(f => [f, f === 'fiado' ? 0 : centavos(document.getElementById('pdvMisto_'+f)?.value || 0)]));
   const recebido = document.getElementById('inputValorRecebido')?.value.trim();
   vendaDoc.recebidoCentavos = recebido ? centavos(recebido) : centavos(total);
-  // 1) Salvar a venda
   const vendaRef = await salvarVendaComComissao(vendaDoc, _vendaPersistenciaId);
-
-  // 2) Baixar estoque apenas dos itens do tipo "produto" — serviços
-  //    personalizados não têm estoque físico (best-effort, não bloqueia a venda)
-  await Promise.all(_itens.filter(i => i.tipo !== "servico").map(async (item) => {
-    try {
-      const prodRef = doc(db, COL_PRODUTOS, item.produtoId);
-      const snap = await getDoc(prodRef);
-      if (!snap.exists()) return;
-      const estoqueAntes = Number(snap.data().estoque) || 0;
-      const estoqueDepois = Math.max(0, estoqueAntes - item.qtd);
-      await updateDoc(prodRef, { estoque: estoqueDepois });
-      await addDoc(collection(db, COL_HIST), {
-        produtoId: item.produtoId,
-        nomeProduto: item.nome,
-        tipo: "venda",
-        qtdAntes: estoqueAntes,
-        qtdDepois: estoqueDepois,
-        delta: estoqueDepois - estoqueAntes,
-        motivo: `Venda #${numeroVenda} (Caixa)`,
-        operador: _dadosUsuario?.nome || _usuario?.email || "—",
-        criadoEm: serverTimestamp()
-      });
-    } catch (err) {
-      console.error(`Erro ao baixar estoque do item ${item.nome}:`, err);
-    }
-  }));
 
   window.mostrarToast?.('Venda finalizada e registros salvos.','success');
   resetarTerminal();

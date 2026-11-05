@@ -3,7 +3,7 @@
 // ============================================================
 // Sobe a versão do cache sempre que alterar arquivos estáticos
 // para forçar os usuários a receberem a versão nova.
-const CACHE_VERSION = "pf-cache-leituras-paginadas-v6";
+const CACHE_VERSION = "pf-cache-areas-ativas-v7";
 const CACHE_NAME = `papelaria-futura-${CACHE_VERSION}`;
 
 const APP_SHELL = [
@@ -52,8 +52,6 @@ const APP_SHELL = [
   "./css/vendas-comissoes.css",
   "./js/comissao.js",
   "./js/comissao-ordem.js",
-  "./js/produtos.js",
-  "./js/promissoria.js",
   "./js/servicos.js",
   "./js/entrega.js",
   "./js/clientes.js",

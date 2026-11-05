@@ -12,6 +12,11 @@ export const COLECOES_BACKUP = [
 export const SUBCOLECOES_BACKUP = {
   cotacoes: ['lembretes'], comissoes: ['registros'], prom_cartas_anuencia: ['versoes']
 };
+export const COLECOES_INATIVAS = [
+  'pf_produtos', 'pf_marcas', 'pf_estoque_historico', 'pf_custo_historico',
+  'prom_clientes', 'prom_compras', 'prom_pagamentos', 'prom_historico',
+  'prom_cartas_anuencia'
+];
 export const CHAVES_LOCAIS_BACKUP = [
   'cotacao_sugestoes_descricao', 'cotacao_sugestoes_marca',
   'comissao_sugestoes_descricao', 'comissao_autosave'
@@ -54,10 +59,11 @@ export function decodificarValor(no, tipos) {
   }
 }
 
-export async function coletarBackup({ lerColecao, lerGrupo, projectId, storage, progresso = () => {} }) {
+export async function coletarBackup({ lerColecao, lerGrupo, projectId, storage, progresso = () => {}, excluirColecoes = [] }) {
   const inicio = new Date().toISOString();
   const documentos = [];
   const contagens = {};
+  const excluidas = new Set(excluirColecoes);
   async function coletar(caminho, subcolecoes = []) {
     progresso(caminho);
     const registros = await lerColecao(caminho);
@@ -68,9 +74,12 @@ export async function coletarBackup({ lerColecao, lerGrupo, projectId, storage, 
       for (const sub of subcolecoes) await coletar(path + '/' + sub);
     }
   }
-  for (const raiz of COLECOES_BACKUP) await coletar(raiz);
+  for (const raiz of COLECOES_BACKUP) {
+    if (!excluidas.has(raiz)) await coletar(raiz);
+  }
   // Collection groups incluem também registros cujo documento pai foi excluído.
   for (const [raiz, grupos] of Object.entries(SUBCOLECOES_BACKUP)) {
+    if (excluidas.has(raiz)) continue;
     for (const grupo of grupos) {
       progresso(grupo);
       const registros = await lerGrupo(grupo);
@@ -88,8 +97,10 @@ export async function coletarBackup({ lerColecao, lerGrupo, projectId, storage, 
     formato: 'papelaria-futura-backup', versao: 1, projectId,
     iniciadoEm: inicio, concluidoEm: new Date().toISOString(),
     totalDocumentos: documentos.length, contagens, documentos, preferencias,
+    colecoesExcluidas: [...excluidas],
     observacoes: [
-      'Inclui todos os campos das coleções usadas pelo projeto e suas subcoleções conhecidas.',
+      'Inclui todos os campos das coleções selecionadas e suas subcoleções conhecidas.',
+      ...(excluidas.size ? ['As coleções listadas em colecoesExcluidas ficaram fora da coleta.'] : []),
       'Inclui anexos armazenados nos documentos. Não inclui contas/senhas do Firebase Authentication, regras, índices, código ou arquivos externos.',
       'Preferências locais são apenas as deste navegador. A coleta não é uma transação: evite alterações durante o backup.',
       'Inclui subcoleções conhecidas mesmo sem documento pai. Coleções criadas fora do projeto exigem exportação administrativa separada.'

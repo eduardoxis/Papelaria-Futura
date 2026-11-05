@@ -170,9 +170,15 @@ try {
     const linhas=id=>document.getElementById(id)?.querySelectorAll('tr').length;
     await esperar(()=>document.getElementById('userName')?.textContent==='Admin Teste');
     checar(!document.querySelector('.btn-notificacoes'),'Sino ainda presente');
-    checar(!window.__leituras.some(l=>['pf_produtos','prom_compras','prom_pagamentos'].includes(l.colecao)),'Leitura pesada no início');
+    const {COLECOES_INATIVAS}=await import('/js/backup.js');
+    for(const pagina of ['estoque','promissoria','modelos-anuencia']){
+      checar(!document.querySelector('[data-page="'+pagina+'"]'),'Área ainda no menu: '+pagina);
+      checar(!document.getElementById('page-'+pagina),'Área ainda no HTML: '+pagina);
+      window.navegar(pagina);
+      checar(document.querySelector('.page--active')?.id==='page-dashboard','Rota removida alterou o painel');
+    }
     const relatorio=[];
-    for(const [pagina,tbody,colecao] of [['estoque','tbodyProdutos','pf_produtos'],['servicos','tbodyServicos','pf_servicos'],['entrega','tbodyEntrega','pf_entregas'],['promissoria','tbodyClientesProm','prom_clientes'],['comissao','comissaoCards','comissoes'],['admin','tbodyUsuarios','usuarios']]){
+    for(const [pagina,tbody,colecao] of [['servicos','tbodyServicos','pf_servicos'],['entrega','tbodyEntrega','pf_entregas'],['comissao','comissaoCards','comissoes'],['admin','tbodyUsuarios','usuarios']]){
       window.navegar(pagina);await esperar(()=>document.getElementById(tbody+'Paginador')?.querySelector('[data-pag="1"]')?.disabled===false);
       const primeira=document.getElementById(tbody).textContent;
       const antes=window.__leituras.length;
@@ -193,13 +199,7 @@ try {
     await esperar(()=>document.getElementById('tabelaClientesCadastroPaginador').textContent.includes('Página 2'));
     const sugestoes=await clientes.buscarClientesPorNome('Cliente 000');checar(sugestoes.length===6,'Autocomplete sem limite');
     checar(!window.__leituras.some(l=>l.colecao==='pf_vendas'),'ADM consultou vendas com painel oculto');
-    checar(window.__leituras.filter(l=>l.colecao==='prom_compras').every(l=>l.quantidade<=20),'Promissórias baixou compras de toda a loja');
-    window.navegar('estoque');await esperar(()=>document.getElementById('tbodyProdutos').textContent.includes('Produto 0000'));
-    document.querySelector('#tbodyProdutos [data-action="historico-estoque"]').click();
-    await esperar(()=>document.getElementById('modalBodyPaginador')?.querySelector('[data-pag="1"]')?.disabled===false);
-    document.querySelector('#modalBodyPaginador [data-pag="1"]').click();
-    await esperar(()=>document.getElementById('modalBodyPaginador')?.textContent.includes('Página 2'));
-    window.fecharModal();
+    checar(!window.__leituras.some(l=>COLECOES_INATIVAS.includes(l.colecao)),'Consulta em área removida');
     const tabela=document.createElement('div');tabela.innerHTML='<table><tbody id="qaDetalhes">'+Array.from({length:65},(_,i)=>'<tr><td>'+i+'</td></tr>').join('')+'</tbody></table>';document.body.append(tabela);
     await esperar(()=>tabela.parentElement.querySelector('[data-paginacao-local-controles]'));
     checar([...document.querySelectorAll('#qaDetalhes tr')].filter(r=>r.style.display!=='none').length===30,'Paginação local incorreta');
@@ -212,7 +212,7 @@ try {
     JSON.stringify(resultado, null, 2),
   );
   console.log(
-    "OK INTERFACE/CHROME: sete listas, próxima/anterior, autocomplete, histórico do estoque, paginação dos detalhes, sem consultas de áreas ocultas e sem notificações. " +
+    "OK INTERFACE/CHROME: listas ativas, próxima/anterior, autocomplete, paginação dos detalhes e áreas removidas sem consultas. " +
       JSON.stringify(resultado),
   );
 } finally {
