@@ -44,6 +44,11 @@ function textoValidadeOrcamento(validade, hoje = new Date()) {
   return dias + (dias === 1 ? ' dia' : ' dias');
 }
 
+function formatarUnidadeOrcamento(unidade) {
+  const texto = String(unidade ?? "").trim().toUpperCase();
+  return texto && texto !== "-" ? texto : "UN";
+}
+
 export async function gerarPDF(cotacao, modelo = "original", retornarArquivo = false) {
   if (modelo === "fw3") return gerarPDFFW3(cotacao, retornarArquivo);
   if (modelo === "avenida") return gerarPDFAvenida(cotacao, retornarArquivo);
@@ -373,7 +378,7 @@ async function gerarPDFOriginal(cotacao, retornarArquivo = false) {
       String(i+1),
       (it.descricao||"—").toUpperCase(),
       (it.marca||"-").toUpperCase(),
-      (it.unidade||"-").toUpperCase(),
+      formatarUnidadeOrcamento(it.unidade),
       fmtNum(it.quantidade),
       fmtMoeda(it.valorUnitario),
       fmtMoeda(it.valorTotal),
@@ -645,7 +650,7 @@ async function gerarPDFFW3(cotacao, retornarArquivo = false) {
       if (indice) doc.addPage();
       desenharCabecalho(indice + 1, paginas.length);
       const linhas = itensPagina.map((item, numero) => [
-        String(indice * itensPorPagina + numero + 1), fmtQtd(item.quantidade), String(item.unidade || "UN").toUpperCase(),
+        String(indice * itensPorPagina + numero + 1), fmtQtd(item.quantidade), formatarUnidadeOrcamento(item.unidade),
         String(item.descricao || "").toUpperCase(), fmtMoeda(item.valorUnitario), fmtMoeda(item.valorTotal)
       ]);
       doc.autoTable({
@@ -729,7 +734,7 @@ async function gerarPDFAvenida(cotacao, retornarArquivo = false) {
       desenharCabecalho(indice + 1, paginas.length);
       const linhas = itensPagina.map((item, numero) => [
         String(indice * 16 + numero + 1),
-        `${String(item.descricao || "").toUpperCase()}${item.unidade ? ` (${String(item.unidade).toUpperCase()})` : ""}`,
+        `${String(item.descricao || "").toUpperCase()} (${formatarUnidadeOrcamento(item.unidade)})`,
         fmtQtd(item.quantidade), fmtMoeda(item.valorUnitario), fmtMoeda(item.valorTotal), String(item.entrega || "IMEDIATA").toUpperCase()
       ]);
       doc.autoTable({
