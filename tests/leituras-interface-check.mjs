@@ -20,6 +20,12 @@ export class Timestamp {constructor(seconds){this.seconds=seconds;this.nanosecon
 const ts=Timestamp.fromDate(new Date('2026-11-04T12:00:00Z'));
 const registros={pf_produtos:Array.from({length:450},(_,i)=>({id:String(i).padStart(4,'0'),nome:'Produto '+String(i).padStart(4,'0'),codigo:String(i),estoque:5,preco:10,precoCusto:5,categoria:'Papelaria'})),pf_servicos:Array.from({length:75},(_,i)=>({id:String(i).padStart(4,'0'),nome:'Serviço '+String(i).padStart(4,'0'),codigo:String(i),ativo:true})),usuarios:Array.from({length:65},(_,i)=>({id:String(i).padStart(4,'0'),nome:'Pessoa '+i,email:'teste'+i+'@example.test',roles:['vendedor']})),comissoes:Array.from({length:65},(_,i)=>({id:String(i).padStart(4,'0'),titulo:'Planilha '+i,dataCriacao:ts,criadoPor:'admin'})),pf_entregas:Array.from({length:65},(_,i)=>({id:String(i).padStart(4,'0'),cliente:'Cliente '+i,data:'2026-11-04',horaSaida:'10:00',horaVolta:'11:00',local:'Centro',criadoPor:'admin'})),prom_clientes:Array.from({length:75},(_,i)=>({id:String(i).padStart(4,'0'),nome:'Cliente '+String(i).padStart(4,'0'),ativo:true})),prom_compras:Array.from({length:150},(_,i)=>({id:String(i),clienteId:String(Math.floor(i/2)).padStart(4,'0'),valor:10,vencimento:ts})),prom_pagamentos:Array.from({length:75},(_,i)=>({id:String(i),clienteId:String(i).padStart(4,'0'),valor:5})),pf_estoque_historico:Array.from({length:120},(_,i)=>({id:String(i).padStart(4,'0'),produtoId:'0000',nomeProduto:'Produto 0000',tipo:'entrada',qtdAntes:i,qtdDepois:i+1,delta:1,criadoEm:ts,operador:'Admin'}))};
 registros.clientes_cadastro=registros.prom_clientes.map(c=>({...c,nomeBusca:c.nome.toLowerCase()}));
+registros.cotacoes=Array.from({length:65},(_,i)=>
+  [['Futura',undefined],['FM3','fm3'],['HTL','htl']].map(([modelo,tipoOrcamento])=>({
+    id:modelo+i,cliente:modelo+' '+(i>=30?'Grupo ':'')+i,tipoOrcamento,
+    status:'ativa',criadoPor:'admin',dataCriacao:new Timestamp(ts.seconds+i),valorTotal:10
+  }))
+).flat();
 export const collection=(db,...p)=>({type:'collection',path:p.join('/')});
 export const collectionGroup=collection;
 export const doc=(base,...p)=>({type:'document',path:base?.path ? base.path+'/'+(p.join('/')||'novo') : p.join('/'),id:p.at(-1)||'novo'});
@@ -200,6 +206,40 @@ try {
     const sugestoes=await clientes.buscarClientesPorNome('Cliente 000');checar(sugestoes.length===6,'Autocomplete sem limite');
     checar(!window.__leituras.some(l=>l.colecao==='pf_vendas'),'ADM consultou vendas com painel oculto');
     checar(!window.__leituras.some(l=>COLECOES_INATIVAS.includes(l.colecao)),'Consulta em área removida');
+    const botaoCotacao=delta=>document.querySelector('#tbodyCotacoesPaginador [data-pag="'+delta+'"]');
+    const paginaCotacao=async n=>esperar(()=>!document.querySelector('#page-cotacoes .pf-loader')&&
+      document.querySelector('#tbodyCotacoesPaginador [role="status"]')?.textContent==='Página '+n);
+    const nomesCotacao=()=>[...document.querySelectorAll('#tbodyCotacoes .td-cliente-row strong')].map(el=>el.textContent);
+    for(const [rota,modelo,tipo] of [['cotacoes','Futura','original'],['cotacoes-fw3','FM3','fw3'],['cotacoes-avenida','HTL','avenida']]){
+      window.navegar(rota,tipo);
+      await paginaCotacao(1);
+      const primeira=nomesCotacao();
+      checar(primeira.length===30&&primeira.every(nome=>nome.startsWith(modelo+' ')),'Primeira página incorreta: '+modelo);
+      const antes=window.__leituras.length;
+      botaoCotacao(1).click();
+      await paginaCotacao(2);
+      const segunda=nomesCotacao();
+      checar(segunda.length===30&&segunda.every(nome=>nome.startsWith(modelo+' ')&&!primeira.includes(nome)),'Segunda página incorreta: '+modelo);
+      if(tipo==='original')checar(window.__leituras.slice(antes).some(l=>l.colecao==='cotacoes'&&l.limitada),'Próxima página não consultou o Firestore');
+      botaoCotacao(1).click();
+      await paginaCotacao(3);
+      const terceira=nomesCotacao();
+      checar(terceira.length===5&&botaoCotacao(1).disabled&&new Set([...primeira,...segunda,...terceira]).size===65,'Última página incorreta: '+modelo);
+      const depois=window.__leituras.length;
+      botaoCotacao(-1).click();
+      await paginaCotacao(2);
+      checar(window.__leituras.length===depois&&nomesCotacao().join()===segunda.join(),'Voltar releu ou mudou a página');
+      document.getElementById('filtroBusca').value='Grupo';
+      document.getElementById('btnBuscarCotacoes').click();
+      await paginaCotacao(1);
+      checar(nomesCotacao().length===30&&botaoCotacao(-1).disabled,'Busca não reiniciou a paginação');
+      botaoCotacao(1).click();
+      await paginaCotacao(2);
+      checar(nomesCotacao().length===5&&nomesCotacao().every(nome=>nome.startsWith(modelo+' Grupo '))&&botaoCotacao(1).disabled,'Filtro perdido na próxima página');
+      document.getElementById('btnLimparBusca').click();
+      await paginaCotacao(1);
+      checar(nomesCotacao().join()===primeira.join(),'Limpar não restaurou a lista');
+    }
     const tabela=document.createElement('div');tabela.innerHTML='<table><tbody id="qaDetalhes">'+Array.from({length:65},(_,i)=>'<tr><td>'+i+'</td></tr>').join('')+'</tbody></table>';document.body.append(tabela);
     await esperar(()=>tabela.parentElement.querySelector('[data-paginacao-local-controles]'));
     checar([...document.querySelectorAll('#qaDetalhes tr')].filter(r=>r.style.display!=='none').length===30,'Paginação local incorreta');

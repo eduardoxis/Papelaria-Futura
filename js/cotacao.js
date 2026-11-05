@@ -11,6 +11,7 @@ import { badgeStatus, escHtml } from "./index.js";
 import { gerarPDF } from "./pdf.js";
 import { temCargo } from "./auth.js";
 import { startListLoading } from "./loading.js";
+import { montarPaginacao } from "./paginacao.js";
 
 let _usuario      = null;
 let _dadosUsuario = null;
@@ -236,10 +237,7 @@ function detectarTipoPessoaPorDocumento(documento) {
 
 // Paginação da lista de cotações
 const COTACOES_POR_PAGINA = 30;
-let _cotFiltroAtual   = { termoBusca: "", dataInicio: null, dataFim: null };
-let _cotPaginaCursor  = null;
-let _cotTemMais       = false;
-let _cotCarregandoMais = false;
+let consultaCotacoesAtual = null;
 
 export function iniciarCotacao(usuario, dadosUsuario) {
   _usuario      = usuario;
@@ -354,8 +352,6 @@ export function iniciarCotacao(usuario, dadosUsuario) {
     if (e.key === "Enter") carregarListaCotacoes(e.target.value.trim());
   });
 
-  document.getElementById("btnCarregarMaisCotacoes")?.addEventListener("click", carregarMaisCotacoes);
-
   // Busca por intervalo de datas
   document.getElementById("btnAplicarFiltroDataCotacoes")?.addEventListener("click", () => {
     const termo     = document.getElementById("filtroBusca").value.trim();
@@ -399,90 +395,89 @@ export function iniciarCotacao(usuario, dadosUsuario) {
 // LISTA DE COTAÇÕES
 // ================================================================
 async function carregarListaCotacoes(termoBusca = "", dataInicio = null, dataFim = null) {
-  const tbody = document.getElementById("tbodyCotacoes");
-  const concluirLoading = startListLoading(tbody.closest(".table-wrap"), "Carregando orçamentos");
-  const filtro = { termoBusca, dataInicio, dataFim };
-  _cotFiltroAtual  = filtro;
-  _cotPaginaCursor = null;
-  _cotTemMais      = false;
-  atualizarBotaoCarregarMais();
-
-  try {
-    const resultado = await listarCotacoes({
+  const consulta = {
+    filtros: {
       uidUsuario: filtroDoUsuarioAtual(),
       cliente: termoBusca || null,
       dataInicio,
       dataFim,
       limitQtd: COTACOES_POR_PAGINA,
       tipoOrcamento: _tipoOrcamentoAtual
-    });
-    if (_cotFiltroAtual !== filtro) return;
-    if (!resultado.sucesso) throw new Error(resultado.erro);
-    const { cotacoes, proximoCursor, temMais } = resultado;
-    _cotPaginaCursor = proximoCursor;
-    _cotTemMais = !!temMais;
-    tbody.innerHTML = cotacoes.length
-      ? cotacoes.map(linhaCotacaoHtml).join("")
-      : `<tr><td colspan="5" class="empty-cell">Nenhuma cotação encontrada.</td></tr>`;
-  } catch (erro) {
-    if (_cotFiltroAtual !== filtro) return;
-    console.error(erro);
-    tbody.innerHTML = `<tr><td colspan="5" class="empty-cell" role="alert">Não foi possível carregar os orçamentos. Clique em Buscar para tentar novamente.</td></tr>`;
-  } finally {
-    await concluirLoading();
-    if (_cotFiltroAtual === filtro) atualizarBotaoCarregarMais();
-  }
+    },
+    paginas: [],
+    indice: 0,
+    carregando: false
+  };
+  consultaCotacoesAtual = consulta;
+  await carregarPaginaCotacoes(consulta, 0);
 }
 
-// ----------------------------------------------------------------
-// Carregar mais — busca a próxima página (mesmo filtro atual) e
-// acrescenta as linhas no final da tabela, sem recarregar tudo.
-// ----------------------------------------------------------------
-async function carregarMaisCotacoes() {
-  if (_cotCarregandoMais || !_cotTemMais) return;
-  _cotCarregandoMais = true;
+async function carregarPaginaCotacoes(consulta, indice) {
+  if (consultaCotacoesAtual !== consulta || consulta.carregando || indice < 0) return;
+  if (consulta.paginas[indice]) {
+    consulta.indice = indice;
+    mostrarPaginaCotacoes(consulta);
+    return;
+  }
 
-  const btn = document.getElementById("btnCarregarMaisCotacoes");
-  if (btn) { btn.disabled = true; btn.textContent = "Carregando..."; }
-
-  const filtro = _cotFiltroAtual;
-  const { termoBusca, dataInicio, dataFim } = filtro;
+  const anterior = consulta.paginas[indice - 1];
+  if (indice > 0 && (!anterior?.temMais || !anterior.proximoCursor)) return;
   const tbody = document.getElementById("tbodyCotacoes");
   const concluirLoading = startListLoading(tbody.closest(".table-wrap"), "Carregando orçamentos");
+  consulta.carregando = true;
   try {
     const resultado = await listarCotacoes({
-      uidUsuario: filtroDoUsuarioAtual(),
-      cliente: termoBusca || null,
-      dataInicio,
-      dataFim,
-      limitQtd: COTACOES_POR_PAGINA,
-      cursor: _cotPaginaCursor,
-      tipoOrcamento: _tipoOrcamentoAtual
+      ...consulta.filtros,
+      cursor: anterior?.proximoCursor ?? null
     });
-    if (_cotFiltroAtual !== filtro) return;
+    if (consultaCotacoesAtual !== consulta) return;
     if (!resultado.sucesso) throw new Error(resultado.erro);
-    const { cotacoes, proximoCursor, temMais } = resultado;
-    _cotPaginaCursor = proximoCursor;
-    _cotTemMais = !!temMais;
-    tbody.insertAdjacentHTML("beforeend", cotacoes.map(linhaCotacaoHtml).join(""));
+
+    // Com filtros locais, o último lote pode ter sido completo mesmo quando
+    // não restam resultados. Mantém a página anterior se a busca se esgotou.
+    if (indice > 0 && !resultado.temMais && !resultado.cotacoes.length) {
+      anterior.temMais = false;
+    } else {
+      consulta.paginas[indice] = resultado;
+      consulta.indice = indice;
+    }
+    mostrarPaginaCotacoes(consulta);
   } catch (erro) {
-    if (_cotFiltroAtual !== filtro) return;
+    if (consultaCotacoesAtual !== consulta) return;
     console.error(erro);
-    window.mostrarToast?.("Não foi possível carregar mais orçamentos. Tente novamente.", "error");
+    mostrarPaginaCotacoes(consulta, indice === 0);
+    if (indice > 0) {
+      window.mostrarToast?.("Não foi possível carregar a próxima página. Tente novamente.", "error");
+    }
   } finally {
     await concluirLoading();
-    _cotCarregandoMais = false;
-    if (_cotFiltroAtual === filtro) atualizarBotaoCarregarMais();
+    consulta.carregando = false;
   }
 }
 
-function atualizarBotaoCarregarMais() {
-  const wrap = document.getElementById("wrapCarregarMaisCotacoes");
-  const btn  = document.getElementById("btnCarregarMaisCotacoes");
-  if (!wrap || !btn) return;
-  wrap.style.display = _cotTemMais ? "flex" : "none";
-  btn.disabled = false;
-  btn.textContent = "Carregar mais orçamentos";
+function mostrarPaginaCotacoes(consulta, falhou = false) {
+  const tbody = document.getElementById("tbodyCotacoes");
+  const { cotacoes = [], temMais = false } = consulta.paginas[consulta.indice] ?? {};
+  let mensagem = temMais ? "Nenhum orçamento encontrado neste trecho." : "Nenhum orçamento encontrado.";
+  if (falhou) mensagem = "Não foi possível carregar os orçamentos. Clique em Atualizar para tentar novamente.";
+  tbody.innerHTML = cotacoes.length
+    ? cotacoes.map(linhaCotacaoHtml).join("")
+    : `<tr><td colspan="5" class="empty-cell"${falhou ? ' role="alert"' : ""}>${mensagem}</td></tr>`;
+
+  montarPaginacao(tbody, {
+    itens: cotacoes,
+    pagina: consulta.indice + 1,
+    anterior: consulta.indice > 0,
+    proxima: temMais
+  }, async delta => {
+    if (consultaCotacoesAtual !== consulta || consulta.carregando) return;
+    if (!delta) {
+      const { cliente, dataInicio, dataFim } = consulta.filtros;
+      await carregarListaCotacoes(cliente ?? "", dataInicio, dataFim);
+      return;
+    }
+    await carregarPaginaCotacoes(consulta, consulta.indice + delta);
+  });
 }
 
 function linhaCotacaoHtml(c) {
