@@ -3,7 +3,7 @@
 // ============================================================
 // Sobe a versão do cache sempre que alterar arquivos estáticos
 // para forçar os usuários a receberem a versão nova.
-const CACHE_VERSION = "pf-cache-areas-ativas-v7";
+const CACHE_VERSION = "pf-cache-modulos-locais-v8";
 const CACHE_NAME = `papelaria-futura-${CACHE_VERSION}`;
 
 const APP_SHELL = [
@@ -62,9 +62,10 @@ const APP_SHELL = [
 // ── INSTALL — cacheia o "app shell" ────────────────────────────
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(APP_SHELL))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
 // ── ACTIVATE — remove caches de versões antigas ────────────────
@@ -73,17 +74,16 @@ self.addEventListener("activate", (event) => {
     caches.keys().then((nomes) =>
       Promise.all(
         nomes
-          .filter((nome) => nome !== CACHE_NAME)
+          .filter((nome) => nome.startsWith("papelaria-futura-") && nome !== CACHE_NAME)
           .map((nome) => caches.delete(nome))
       )
-    )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 // ── FETCH — estratégia:
 //    • Firebase / APIs externas / Google Fonts → sempre rede (dados dinâmicos)
-//    • Arquivos estáticos do próprio site → cache primeiro, com atualização em segundo plano
+//    • Arquivos do próprio site → rede primeiro, cache quando a rede falha
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
@@ -92,7 +92,7 @@ self.addEventListener("fetch", (event) => {
   if (!/^https?:$/.test(url.protocol) || url.hostname === 'ext-cdn.cuponomia.com.br') return;
 
   const ehExterno = url.origin !== self.location.origin;
-  const ehFirebase = /firestore|firebaseio|googleapis|gstatic\.com\/firebasejs|identitytoolkit/.test(url.href);
+  const ehFirebase = ehExterno && /firestore|firebaseio|googleapis|gstatic\.com\/firebasejs|identitytoolkit/.test(url.href);
 
   if (ehFirebase) {
     // Dados do Firebase: nunca cachear, sempre buscar da rede
@@ -124,7 +124,11 @@ self.addEventListener("fetch", (event) => {
   // hora, sem depender de trocar o CACHE_VERSION toda vez.
   event.respondWith(
     fetch(request)
-      .then((resposta) => {
+      .then(async (resposta) => {
+        if (resposta.status >= 500) {
+          const copia = await caches.match(request, { cacheName: CACHE_NAME });
+          return copia || resposta;
+        }
         if (resposta && resposta.status === 200) {
           const copiaParaCache = resposta.clone();
           caches.open(CACHE_NAME)
@@ -133,7 +137,7 @@ self.addEventListener("fetch", (event) => {
         }
         return resposta;
       })
-      .catch(() => caches.match(request).then((cached) =>
+      .catch(() => caches.match(request, { cacheName: CACHE_NAME }).then((cached) =>
         cached || new Response("Recurso indisponível", { status: 503, statusText: "Offline" })
       ))
   );
