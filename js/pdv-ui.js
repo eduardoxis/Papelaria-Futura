@@ -71,7 +71,7 @@ export function iniciarPdvUi(dados) {
 }
 async function obterComprovante(id, vendaCarregada) {
   if (vendaCarregada?.id === id && vendaCarregada.comprovante?.versao === 2) {
-    return vendaCarregada.comprovante;
+    return comprovanteDaVenda(vendaCarregada);
   }
   return comprovanteDaVenda(await buscarVenda(id));
 }

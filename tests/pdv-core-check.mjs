@@ -7,6 +7,18 @@ const b=m.aplicarContribuicao({...s,resumo:a.resumo,vendedores:a.vendedores},{..
 assert.equal(m.conferirFechamento(s,10010).situacao,'Sobra');assert.equal(m.conferirFechamento(s,9990).situacao,'Falta');assert.equal(m.conferirFechamento(s,10000).situacao,'Sem diferença');assert.throws(()=>m.conferirFechamento(s,-1));
 const recibo=m.dadosComprovante(v,{nome:'Papelaria Futura'},'2026-11-04');assert.equal(recibo.totalCentavos,3240);assert.equal(recibo.trocoCentavos,1760);assert.equal(recibo.itens[0].codigo,'SKU1');v.itens[0].nome='Nome modificado';v.vendedorNome='Outra pessoa';assert.equal(recibo.itens[0].nome,'Produto com descrição completa');assert.equal(recibo.vendedor,'Nome original');
 const legado=m.dadosComprovante({...v,recebidoCentavos:undefined,trocoCentavos:undefined,valorRecebido:50,troco:17.6},{nome:'Papelaria Futura'},'2026-11-04');assert.equal(legado.recebidoCentavos,5000);assert.equal(legado.trocoCentavos,1760);
+const moduloPdv = new URL('../js/pdv-core.js', import.meta.url).href;
+const documentos = await import(url(fs.readFileSync(new URL('../js/pdv-documentos.js', import.meta.url), 'utf8').replaceAll('./pdv-core.js', moduloPdv)));
+globalThis.location = { href: 'https://papelaria.test/' };
+const vendaAntiga = { ...v, clienteNome: 'Cliente de teste', cpfCnpj: '00123456789', comprovante: { ...recibo, cliente: 'Cliente de teste', observacao: 'Retirar <na loja>' } };
+delete vendaAntiga.comprovante.cpfCnpj;
+const comprovanteAntigo = documentos.comprovanteDaVenda(vendaAntiga);
+for (const formato of ['a4', '58', '80']) {
+  const html = documentos.htmlComprovante(comprovanteAntigo, formato);
+  assert.match(html, /CPF do cliente: 001\.234\.567-89/);
+  assert.match(html, /Cliente de teste/);
+  assert.match(html, /Observação:<\/b> Retirar &lt;na loja&gt;/);
+}
 const caixa=fs.readFileSync(new URL('../js/caixa.js',import.meta.url),'utf8');const inicio=caixa.indexOf('function calcularTotais() {'),fim=caixa.indexOf('\nfunction renderTudo()',inicio);const contexto={_itens:[{unitario:.1,qtd:3,descontoValor:0}],_descontoTotalTipo:'PCT',_descontoTotalValor:2.345,_acrescimoTipo:'RS',_acrescimoValor:0,centavos:n=>Math.round((n+Number.EPSILON)*100)};vm.createContext(contexto);vm.runInContext(caixa.slice(inicio,fim),contexto);assert.equal(contexto.calcularTotais().total,.29);
 const code=fs.readFileSync(new URL('../js/pdv-ui.js',import.meta.url),'utf8');assert.ok(code.includes('value="a4">A4'));assert.ok(code.includes('value="58"'));assert.ok(code.includes('value="80"'));assert.ok(!caixa.includes('_pedirSenhaComissao('));
 console.log('OK PDV/CORE: centavos, pagamentos mistos, troco, comissão fora da gaveta, cancelamento, devolução, sobra/falta, snapshots independentes de cadastros, dados antigos e A4/58/80.');

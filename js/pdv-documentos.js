@@ -22,14 +22,40 @@ export const escapeHtml = (s) =>
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
 export function comprovanteDaVenda(v) {
-  return (
-    v.comprovante ||
-    dadosComprovante(
+  if (!v.comprovante) {
+    return dadosComprovante(
       v,
       { nome: "Papelaria Futura", logo: "./img/logo.png" },
       v.criadoEm,
-    )
-  );
+    );
+  }
+
+  const comprovante = v.comprovante;
+  const cpfCnpj = String(comprovante.cpfCnpj ?? v.cpfCnpj ?? "").trim();
+  // As vendas antigas usavam o próprio documento no lugar do nome em branco.
+  const cliente = !v.clienteNome && String(comprovante.cliente ?? "").trim() === cpfCnpj
+    ? ""
+    : comprovante.cliente;
+  return {
+    ...comprovante,
+    cliente,
+    cpfCnpj,
+    observacao: comprovante.observacao ?? v.observacao ?? "",
+    formaPagamento: comprovante.formaPagamento ?? v.formaPagamento ?? "",
+  };
+}
+
+function textoDocumentoCliente(cpfCnpj) {
+  const texto = String(cpfCnpj ?? "").trim();
+  if (!texto) return "";
+  const numero = texto.toUpperCase().replace(/[.\/\s-]/g, "");
+  if (/^\d{11}$/.test(numero)) {
+    return "CPF do cliente: " + numero.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
+  }
+  if (/^[A-Z0-9]{12}\d{2}$/.test(numero)) {
+    return "CNPJ do cliente: " + numero.replace(/^(.{2})(.{3})(.{3})(.{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+  }
+  return "CPF/CNPJ do cliente: " + texto;
 }
 const percentuais = (v) =>
   Object.keys(v.percentuais || {})
@@ -60,17 +86,33 @@ function marca(e) {
 }
 const linha = (a, b, destaque = false) =>
   `<div class="doc-linha ${destaque ? "doc-total" : ""}"><strong>${escapeHtml(a)}</strong><span>${escapeHtml(b)}</span></div>`;
+
+function htmlObservacao(valor) {
+  const observacao = String(valor ?? "").trim();
+  return observacao
+    ? `<p style="white-space:pre-wrap;overflow-wrap:anywhere"><b>Observação:</b> ${escapeHtml(observacao)}</p>`
+    : "";
+}
+
+function linhasPagamento(c) {
+  const linhas = FORMAS_PDV.filter(f => c.pagamentos[f] > 0).map(f => {
+    const forma = f === "fiado" && ["Fiado", "Convênio"].includes(c.formaPagamento)
+      ? c.formaPagamento
+      : FORMAS_NOMES[f];
+    return [forma, reais(c.pagamentos[f])];
+  });
+  if (c.formaPagamento && (c.formaPagamento === "Misto" || !linhas.length)) {
+    linhas.unshift(["Forma de pagamento", c.formaPagamento]);
+  }
+  return linhas;
+}
 export function htmlComprovante(c, formato = "a4") {
   if (formato !== "a4") return htmlComprovanteTermico(c, formato);
-  return `<article class="papel comprovante-pdv">${marca(c.empresa || {})}<h1 class="doc-titulo">COMPROVANTE DE VENDA - NÃO FISCAL</h1><div class="doc-metadados"><div><b>Nº da venda:</b> ${escapeHtml(c.numero)}<br><b>Data / horário:</b> ${escapeHtml(horario(c.emitidoEm))}</div><div><b>Vendedor:</b> ${escapeHtml(c.vendedor)}${c.operador && c.operador !== c.vendedor ? "<br><b>Operador:</b> " + escapeHtml(c.operador) : ""}${c.cliente ? "<br><b>Cliente:</b> " + escapeHtml(c.cliente) : ""}</div></div><p class="doc-id">Identificador único: ${escapeHtml(c.vendaId)}</p><table class="doc-tabela"><colgroup><col style="width:12%"><col style="width:34%"><col style="width:8%"><col style="width:16%"><col style="width:14%"><col style="width:16%"></colgroup><thead><tr><th>Código</th><th>Produto</th><th>Qtd.</th><th>Unitário</th><th>Desconto</th><th>Total</th></tr></thead><tbody>${c.itens.map((i) => `<tr><td>${escapeHtml(i.codigo)}</td><td>${escapeHtml(i.nome)}</td><td>${i.qtd.toLocaleString("pt-BR")}</td><td class="numero">${reais(i.unitarioCentavos)}</td><td class="numero">${reais(i.descontoCentavos)}</td><td class="numero">${reais(i.totalCentavos)}</td></tr>`).join("")}</tbody></table><div class="doc-totais">${linha("Subtotal", reais(c.subtotalCentavos))}${linha("Descontos", reais(c.descontoCentavos))}${linha("Acréscimos", reais(c.acrescimoCentavos))}${linha("Total da venda", reais(c.totalCentavos), true)}${FORMAS_PDV.filter(
-    (f) => c.pagamentos[f] > 0,
-  )
-    .map((f) => linha(FORMAS_NOMES[f], reais(c.pagamentos[f])))
-    .join(
-      "",
-    )}${linha(c.pagamentos.fiado ? "Valor a receber" : "Valor recebido", reais(c.recebidoCentavos))}${c.trocoCentavos > 0 ? linha("Troco", reais(c.trocoCentavos)) : ""}</div>${c.observacao ? "<p>" + escapeHtml(c.observacao) + "</p>" : ""}<div class="doc-agradecimento">${escapeHtml(c.empresa?.agradecimento || "Obrigado pela preferência! Papelaria Futura - Volte sempre!")}</div><div class="doc-rodape">Documento comercial não fiscal. Emissão: ${escapeHtml(horario(c.emitidoEm))}</div></article>`;
+  const documento = textoDocumentoCliente(c.cpfCnpj);
+  return `<article class="papel comprovante-pdv">${marca(c.empresa || {})}<h1 class="doc-titulo">COMPROVANTE DE VENDA - NÃO FISCAL</h1><div class="doc-metadados"><div><b>Nº da venda:</b> ${escapeHtml(c.numero)}<br><b>Data / horário:</b> ${escapeHtml(horario(c.emitidoEm))}</div><div><b>Vendedor:</b> ${escapeHtml(c.vendedor)}${c.operador && c.operador !== c.vendedor ? "<br><b>Operador:</b> " + escapeHtml(c.operador) : ""}${c.cliente ? "<br><b>Cliente:</b> " + escapeHtml(c.cliente) : ""}${documento ? "<br>" + escapeHtml(documento) : ""}</div></div><p class="doc-id">Identificador único: ${escapeHtml(c.vendaId)}</p><table class="doc-tabela"><colgroup><col style="width:12%"><col style="width:34%"><col style="width:8%"><col style="width:16%"><col style="width:14%"><col style="width:16%"></colgroup><thead><tr><th>Código</th><th>Produto</th><th>Qtd.</th><th>Unitário</th><th>Desconto</th><th>Total</th></tr></thead><tbody>${c.itens.map((i) => `<tr><td>${escapeHtml(i.codigo)}</td><td>${escapeHtml(i.nome)}</td><td>${i.qtd.toLocaleString("pt-BR")}</td><td class="numero">${reais(i.unitarioCentavos)}</td><td class="numero">${reais(i.descontoCentavos)}</td><td class="numero">${reais(i.totalCentavos)}</td></tr>`).join("")}</tbody></table><div class="doc-totais">${linha("Subtotal", reais(c.subtotalCentavos))}${linha("Descontos", reais(c.descontoCentavos))}${linha("Acréscimos", reais(c.acrescimoCentavos))}${linha("Total da venda", reais(c.totalCentavos), true)}${linhasPagamento(c).map(([forma, valor]) => linha(forma, valor)).join("")}${linha(c.pagamentos.fiado ? "Valor a receber" : "Valor recebido", reais(c.recebidoCentavos))}${c.trocoCentavos > 0 ? linha("Troco", reais(c.trocoCentavos)) : ""}</div>${htmlObservacao(c.observacao)}<div class="doc-agradecimento">${escapeHtml(c.empresa?.agradecimento || "Obrigado pela preferência! Papelaria Futura - Volte sempre!")}</div><div class="doc-rodape">Documento comercial não fiscal. Emissão: ${escapeHtml(horario(c.emitidoEm))}</div></article>`;
 }
 function htmlComprovanteTermico(c, formato) {
+  const documento = textoDocumentoCliente(c.cpfCnpj);
   const item = (i) =>
     '<section style="break-inside:avoid;border-bottom:1px dashed #9ca3af;padding:8px 0"><strong style="display:block">' +
     escapeHtml(i.nome) +
@@ -107,20 +149,20 @@ function htmlComprovanteTermico(c, formato) {
       ? "<br>Operador: " + escapeHtml(c.operador)
       : "") +
     (c.cliente ? "<br>Cliente: " + escapeHtml(c.cliente) : "") +
+    (documento ? "<br>" + escapeHtml(documento) : "") +
     "</p>" +
     c.itens.map(item).join("") +
     linha("Subtotal", reais(c.subtotalCentavos)) +
     linha("Descontos", reais(c.descontoCentavos)) +
     linha("Acréscimos", reais(c.acrescimoCentavos)) +
     linha("TOTAL", reais(c.totalCentavos), true) +
-    FORMAS_PDV.filter((f) => c.pagamentos[f] > 0)
-      .map((f) => linha(FORMAS_NOMES[f], reais(c.pagamentos[f])))
-      .join("") +
+    linhasPagamento(c).map(([forma, valor]) => linha(forma, valor)).join("") +
     linha(
       c.pagamentos.fiado ? "A receber" : "Recebido",
       reais(c.recebidoCentavos),
     ) +
     (c.trocoCentavos ? linha("Troco", reais(c.trocoCentavos)) : "") +
+    htmlObservacao(c.observacao) +
     '<p style="text-align:center;font-weight:bold;color:#074274">' +
     escapeHtml(
       c.empresa?.agradecimento ||
@@ -267,6 +309,7 @@ export async function pdfComprovante(c, formato = "a4", baixar = true) {
   const logo = await imagemLogo();
   if (formato !== "a4") return pdfTermico(c, logo, formato, baixar);
   const doc = new jsPDF({ format: "a4" });
+  const documento = textoDocumentoCliente(c.cpfCnpj);
   cabecalho(doc, logo, "COMPROVANTE DE VENDA - NÃO FISCAL", c.empresa);
   doc.setFontSize(9);
   const esquerda = doc.splitTextToSize(
@@ -279,7 +322,8 @@ export async function pdfComprovante(c, formato = "a4", baixar = true) {
       "\nOperador: " +
       (c.operador || c.vendedor) +
       "\nCliente: " +
-      (c.cliente || "Não informado"),
+      (c.cliente || "Não informado") +
+      (documento ? "\n" + documento : ""),
     88,
   );
   doc.text(esquerda, 12, 66);
@@ -335,10 +379,7 @@ export async function pdfComprovante(c, formato = "a4", baixar = true) {
     ["Descontos", reais(c.descontoCentavos)],
     ["Acréscimos", reais(c.acrescimoCentavos)],
     ["TOTAL DA VENDA", reais(c.totalCentavos)],
-    ...FORMAS_PDV.filter((f) => c.pagamentos[f] > 0).map((f) => [
-      FORMAS_NOMES[f],
-      reais(c.pagamentos[f]),
-    ]),
+    ...linhasPagamento(c),
     [
       c.pagamentos.fiado ? "Valor a receber" : "Valor recebido",
       reais(c.recebidoCentavos),
@@ -367,6 +408,17 @@ export async function pdfComprovante(c, formato = "a4", baixar = true) {
     },
   });
   y = doc.lastAutoTable.finalY + 12;
+  const observacao = String(c.observacao ?? "").trim();
+  if (observacao) {
+    doc.autoTable({
+      startY: y,
+      margin: { left: 12, right: 12, top: 22, bottom: 23 },
+      body: [["Observação: " + observacao]],
+      theme: "plain",
+      styles: { fontSize: 9, cellPadding: 0, overflow: "linebreak" },
+    });
+    y = doc.lastAutoTable.finalY + 12;
+  }
   if (y > 254) {
     doc.addPage();
     y = 24;
@@ -423,6 +475,8 @@ function pdfTermico(c, logo, formato, baixar, altura = 297) {
   texto("Vendedor: " + c.vendedor);
   if (c.operador && c.operador !== c.vendedor) texto("Operador: " + c.operador);
   if (c.cliente) texto("Cliente: " + c.cliente);
+  const documento = textoDocumentoCliente(c.cpfCnpj);
+  if (documento) texto(documento);
   for (const i of c.itens) {
     doc.setFontSize(8);
     const linhasItem = [
@@ -457,10 +511,12 @@ function pdfTermico(c, logo, formato, baixar, altura = 297) {
       a === "TOTAL" ? 11 : 8,
       a === "TOTAL" ? "bold" : "normal",
     );
-  for (const f of FORMAS_PDV)
-    if (c.pagamentos[f]) texto(FORMAS_NOMES[f] + ": " + reais(c.pagamentos[f]));
-  texto("Valor recebido: " + reais(c.recebidoCentavos));
+  for (const [forma, valor] of linhasPagamento(c)) texto(forma + ": " + valor);
+  const rotuloRecebido = c.pagamentos.fiado ? "Valor a receber" : "Valor recebido";
+  texto(rotuloRecebido + ": " + reais(c.recebidoCentavos));
   if (c.trocoCentavos > 0) texto("Troco: " + reais(c.trocoCentavos));
+  const observacao = String(c.observacao ?? "").trim();
+  if (observacao) texto("Observação: " + observacao);
   texto(c.empresa?.agradecimento || "Obrigado pela preferência! Volte sempre!");
   texto("Documento não fiscal", 7);
   if (altura === 297 && doc.getNumberOfPages() === 1 && y + 18 < 297)

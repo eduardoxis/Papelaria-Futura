@@ -179,7 +179,8 @@ export function dadosComprovante(v, empresa, emissao) {
     emitidoEm: emissao,
     vendedor: v.vendedorNome || "Vendedor não identificado",
     operador: v.operadorNome || "",
-    cliente: v.clienteNome || v.cpfCnpj || "",
+    cliente: v.clienteNome || "",
+    cpfCnpj: String(v.cpfCnpj ?? "").trim(),
     itens: (v.itens || []).map((i) => ({
       nome: i.nome || "Produto",
       codigo: i.codigo || i.produtoId || "",
@@ -202,6 +203,7 @@ export function dadosComprovante(v, empresa, emissao) {
     acrescimoCentavos: centavos(v.acrescimo || 0),
     totalCentavos: totalCentavos(v),
     pagamentos: pagamentosVenda(v),
+    formaPagamento: v.formaPagamento || "",
     recebidoCentavos:
       v.recebidoCentavos ??
       (v.valorRecebido ? centavos(v.valorRecebido) : totalCentavos(v)),
