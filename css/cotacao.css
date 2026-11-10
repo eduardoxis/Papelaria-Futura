@@ -2,6 +2,78 @@
    cotacao.css — Mini Excel e formulário de cotação
    ============================================================ */
 
+/* Paginação da lista de orçamentos */
+#tbodyCotacoesPaginador {
+  padding: 12px;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  background: var(--gray-050);
+}
+
+#tbodyCotacoesPaginador > button {
+  justify-content: center;
+  min-height: 44px;
+  padding-inline: 12px;
+}
+
+#tbodyCotacoesPaginador > [data-pag="-1"]::before,
+#tbodyCotacoesPaginador > [data-pag="1"]::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
+  transform: rotate(-45deg);
+}
+
+#tbodyCotacoesPaginador > [data-pag="-1"]::before {
+  transform: rotate(135deg);
+}
+
+#tbodyCotacoesPaginador > [data-pag="1"]:enabled {
+  color: var(--white);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+#tbodyCotacoesPaginador > [data-pag="1"]:enabled:hover {
+  background: var(--color-primary-dark);
+  border-color: var(--color-primary-dark);
+}
+
+#tbodyCotacoesPaginador > button:disabled {
+  color: var(--gray-500);
+  background: var(--gray-100);
+  border-color: var(--gray-200);
+  cursor: not-allowed;
+}
+
+#tbodyCotacoesPaginador > [role="status"] {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--blue-050);
+  color: var(--blue-700);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+#tbodyCotacoesPaginador > [data-pag="0"] {
+  margin-inline-start: auto;
+}
+
+@media (max-width: 600px) {
+  #tbodyCotacoesPaginador > [role="status"] {
+    order: -1;
+    flex-basis: 100%;
+  }
+
+  #tbodyCotacoesPaginador > button {
+    flex: 1 0 auto;
+  }
+}
+
 /* ----------------------------------------------------------------
    Form grid
    ---------------------------------------------------------------- */
