@@ -811,7 +811,7 @@ function prepararNovaCotacao() {
   const tituloMobile = document.getElementById("titleFormCotacaoMobile");
   if (tituloMobile) tituloMobile.textContent = titulo;
 
-  ["cotCliente","cotCnpj","cotObs"].forEach(id => {
+  ["cotCliente","cotCnpj","cotEmail","cotObs"].forEach(id => {
     document.getElementById(id).value = "";
   });
   definirTipoPessoa("pf");
@@ -1188,13 +1188,14 @@ function coletarDadosCotacao() {
   const cliente  = document.getElementById("cotCliente").value.trim();
   const cnpj     = document.getElementById("cotCnpj").value.trim();
   const telefone = document.getElementById("cotTelefone")?.value.trim() || "";
+  const email    = document.getElementById("cotEmail").value.trim();
   const validade = document.getElementById("cotValidade").value;
   const obs      = document.getElementById("cotObs").value.trim();
   const status   = document.getElementById("cotStatus").value;
   const itens    = coletarItens();
   const valorTotal = itens.reduce((s, i) => s + i.valorTotal, 0);
 
-  return { cliente, cnpj, telefone, validade, observacoes: obs, status, itens, valorTotal, funcionario: nomeFuncionarioLogado(), tipoOrcamento: _tipoOrcamentoAtual };
+  return { cliente, cnpj, telefone, email, validade, observacoes: obs, status, itens, valorTotal, funcionario: nomeFuncionarioLogado(), tipoOrcamento: _tipoOrcamentoAtual };
 }
 
 // ================================================================
@@ -1243,7 +1244,10 @@ async function oferecerEnvioCotacao(cotacao) {
        <div class="envio-orcamento-contador" id="envioCotacaoContador" aria-live="polite"></div>
        <label for="envioCotacaoTelefone">WhatsApp do cliente</label>
        <input id="envioCotacaoTelefone" type="tel" autocomplete="tel" class="field-input--plain" value="${escHtml(cotacao.telefone || "")}" />
-       <label for="envioCotacaoEmail">E-mail do cliente</label>
+       <div class="envio-orcamento-label-row">
+         <label for="envioCotacaoEmail">E-mail do cliente</label>
+         <button class="btn-secondary" id="envioCotacaoSalvarEmail" type="button">Salvar e-mail no orçamento</button>
+       </div>
        <input id="envioCotacaoEmail" type="email" autocomplete="email" required class="field-input--plain" placeholder="Ex.: cliente@email.com" value="${escHtml(cotacao.email || "")}" />
        <div class="envio-orcamento-aviso">${iconeEnvio("info")}<p id="envioCotacaoStatus" role="status">Preparando PDF...</p></div>
      </div>`,
@@ -1253,6 +1257,29 @@ async function oferecerEnvioCotacao(cotacao) {
      <button class="btn-primary" id="envioCotacaoWhats" disabled>${iconeEnvio("whats")}WhatsApp + PDF</button>
      <button class="btn-primary" id="envioCotacaoMail" disabled>${iconeEnvio("email")}E-mail + PDF</button>`);
   const campoTextoEnvio = document.getElementById("envioCotacaoTexto");
+  const campoEmailEnvio = document.getElementById("envioCotacaoEmail");
+  const botaoSalvarEmail = document.getElementById("envioCotacaoSalvarEmail");
+  botaoSalvarEmail.onclick = async () => {
+    campoEmailEnvio.value = campoEmailEnvio.value.trim();
+    if (!campoEmailEnvio.reportValidity()) return;
+    if (campoEmailEnvio.value === (cotacao.email || "")) return;
+    botaoSalvarEmail.disabled = true;
+    campoEmailEnvio.disabled = true;
+    try {
+      const resultado = await atualizarCotacao(cotacao.id, { email: campoEmailEnvio.value }, nomeFuncionarioLogado());
+      if (!resultado.sucesso) throw new Error(resultado.erro);
+      cotacao.email = campoEmailEnvio.value;
+      if (document.getElementById("cotacaoEditandoId").value === cotacao.id) {
+        document.getElementById("cotEmail").value = cotacao.email;
+      }
+      window.mostrarToast?.("E-mail salvo no orçamento.", "success");
+    } catch {
+      window.mostrarToast?.("Não foi possível salvar o e-mail. Tente novamente.", "error");
+    } finally {
+      botaoSalvarEmail.disabled = false;
+      campoEmailEnvio.disabled = false;
+    }
+  };
   const atualizarContadorEnvio = () => { document.getElementById("envioCotacaoContador").textContent = `${campoTextoEnvio.value.length}/2000`; };
   campoTextoEnvio.addEventListener("input", atualizarContadorEnvio);
   atualizarContadorEnvio();
@@ -1326,6 +1353,10 @@ async function oferecerEnvioCotacao(cotacao) {
 }
 async function salvarCotacao() {
   const dados = coletarDadosCotacao();
+
+  const campoEmail = document.getElementById("cotEmail");
+  campoEmail.value = dados.email;
+  if (!campoEmail.reportValidity()) return;
 
   if (!dados.cliente) {
     window.mostrarToast?.("Informe o nome do cliente.", "warning");
@@ -1405,7 +1436,7 @@ async function abrirCotacaoSomenteLeitura(id) {
   const tituloMobile = document.getElementById("titleFormCotacaoMobile");
   if (tituloMobile) tituloMobile.textContent = tituloVisualizacao;
 
-  ["cotCliente","cotCnpj","cotTelefone","cotValidade","cotStatus","cotObs"].forEach(campoId => {
+  ["cotCliente","cotCnpj","cotTelefone","cotEmail","cotValidade","cotStatus","cotObs"].forEach(campoId => {
     const el = document.getElementById(campoId);
     if (el) el.disabled = true;
   });
@@ -1413,6 +1444,7 @@ async function abrirCotacaoSomenteLeitura(id) {
   definirTipoPessoa(detectarTipoPessoaPorDocumento(c.cnpj));
   document.getElementById("cotCnpj").value     = c.cnpj        || "";
   document.getElementById("cotTelefone").value = c.telefone    || "";
+  document.getElementById("cotEmail").value    = c.email       || "";
   document.getElementById("cotValidade").value = c.validade    || "";
   document.getElementById("cotObs").value      = c.observacoes || "";
   document.getElementById("cotStatus").value   = c.status      || "ativa";
@@ -1440,7 +1472,7 @@ async function abrirCotacaoSomenteLeitura(id) {
 function restaurarModoEdicao() {
   if (!_modoSomenteLeitura) return;
   _modoSomenteLeitura = false;
-  ["cotCliente","cotCnpj","cotTelefone","cotValidade","cotStatus","cotObs"].forEach(campoId => {
+  ["cotCliente","cotCnpj","cotTelefone","cotEmail","cotValidade","cotStatus","cotObs"].forEach(campoId => {
     const el = document.getElementById(campoId);
     if (el) el.disabled = false;
   });
@@ -1475,6 +1507,7 @@ async function editarCotacaoById(id) {
   definirTipoPessoa(detectarTipoPessoaPorDocumento(c.cnpj));
   document.getElementById("cotCnpj").value     = c.cnpj       || "";
   document.getElementById("cotTelefone").value = c.telefone   || "";
+  document.getElementById("cotEmail").value    = c.email      || "";
   document.getElementById("cotValidade").value = c.validade   || "";
   document.getElementById("cotObs").value      = c.observacoes || "";
   document.getElementById("cotStatus").value   = c.status     || "ativa";

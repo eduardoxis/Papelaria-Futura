@@ -438,7 +438,7 @@ function ativarAutocompleteCotacao() {
         return;
       }
       dropdown.innerHTML = resultados.map(c => `
-        <div class="cli-autocomplete-item" data-nome="${escAttr(c.nome)}" data-doc="${escAttr(c.documento)}">
+        <div class="cli-autocomplete-item" data-nome="${escAttr(c.nome)}" data-doc="${escAttr(c.documento)}" data-email="${escAttr(c.email)}">
           <strong>${escHtml(c.nome)}</strong>
           ${c.documento ? `<span>${escHtml(c.documento)}</span>` : ""}
         </div>
@@ -449,6 +449,8 @@ function ativarAutocompleteCotacao() {
         item.addEventListener("click", () => {
           input.value = item.dataset.nome;
           if (inputDoc) inputDoc.value = item.dataset.doc || "";
+          const inputEmail = document.getElementById("cotEmail");
+          if (inputEmail) inputEmail.value = item.dataset.email || "";
           dropdown.hidden = true;
         });
       });

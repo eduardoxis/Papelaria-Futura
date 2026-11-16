@@ -92,13 +92,13 @@ export async function criarCotacao(dados, uidUsuario, diasParaPrimeiroLembrete =
 // ----------------------------------------------------------------
 // Atualizar cotação existente
 // ----------------------------------------------------------------
-export async function atualizarCotacao(id, dados) {
+export async function atualizarCotacao(id, dados, usuarioHistorico = dados.funcionario || "—") {
   try {
     await updateDoc(doc(db, COLECAO_COTACOES, id), {
       ...dados,
       updatedAt: serverTimestamp(),
       historico: arrayUnion({
-        usuario: dados.funcionario || "—",
+        usuario: usuarioHistorico,
         data:    new Date().toISOString(),
         acao:    "edição"
       })
