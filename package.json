@@ -1,0 +1,17 @@
+{
+  "name": "papelaria-futura",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test:escalas": "node --test tests/escalas-*.test.mjs",
+    "test:feriados": "node --test tests/feriados.test.mjs"
+  },
+  "dependencies": {
+    "cheerio": "^1.2.0",
+    "firebase-admin": "^13.0.0",
+    "pdf-parse": "^2.4.5"
+  }
+}

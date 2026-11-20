@@ -10,6 +10,18 @@ service cloud.firestore {
     function ehDono(uid) {
       return estaAutenticado() && request.auth.uid == uid;
     }
+    function gestorEscalas() {
+      return ehAdmin() || (estaAutenticado() && (
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.get('roles',[]).hasAny(['gestor_escalas']) ||
+        get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.get('role','') == 'gestor_escalas'));
+    }
+    // Escritas de escalas passam exclusivamente pela API com Firebase Admin.
+    // As leituras diretas ficam restritas ao gestor (incluindo o backup).
+    match /{colecao}/{id} {
+      allow read: if colecao in ['pf_feriados_anos','pf_feriados_versoes','pf_calendario_decisoes','pf_calendario_avisos'] && gestorEscalas();
+      allow read: if colecao in ['pf_escala_config','pf_escala_pessoas','pf_escala_historico','pf_escalas','pf_escalas_versoes','pf_escalas_publicadas','pf_escala_publicacoes','pf_escala_auditoria','pf_escala_controle'] && gestorEscalas();
+      allow write: if false;
+    }
     function donoDoDocumento() {
       return estaAutenticado() && resource.data.criadoPor == request.auth.uid;
     }

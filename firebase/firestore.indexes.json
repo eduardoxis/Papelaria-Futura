@@ -377,6 +377,24 @@
       ],
       "queryScope": "COLLECTION",
       "collectionGroup": "pf_os"
+    },
+    {
+      "collectionGroup": "pf_escalas_versoes",
+      "fields": [
+        {
+          "order": "ASCENDING",
+          "fieldPath": "semana"
+        },
+        {
+          "order": "DESCENDING",
+          "fieldPath": "criadoEm"
+        },
+        {
+          "order": "DESCENDING",
+          "fieldPath": "__name__"
+        }
+      ],
+      "queryScope": "COLLECTION"
     }
   ],
   "fieldOverrides": []

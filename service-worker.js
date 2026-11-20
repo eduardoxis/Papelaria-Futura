@@ -3,10 +3,12 @@
 // ============================================================
 // Sobe a versão do cache sempre que alterar arquivos estáticos
 // para forçar os usuários a receberem a versão nova.
-const CACHE_VERSION = "pf-cache-modulos-locais-v9";
+const CACHE_VERSION = "pf-cache-calendario-v11";
 const CACHE_NAME = `papelaria-futura-${CACHE_VERSION}`;
 
 const APP_SHELL = [
+  './js/calendario-core.js', './js/calendario-ui.js', './css/calendario.css',
+  './js/escalas-core.js', './js/escalas-ui.js', './css/escalas.css',
   "./css/loading.css", "./js/loading.js",
   "./css/animations.css", "./js/utils/intro.js", "./assets/images/logo-intro.webp",
   './js/operacoes-banco.js', './js/leituras-cache.js', './js/paginacao.js', './js/tabelas-paginadas.js',
@@ -89,6 +91,11 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
+  // Respostas autenticadas da API nunca entram no cache do dispositivo.
+  if (url.origin === self.location.origin && url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(request));
+    return;
+  }
   if (!/^https?:$/.test(url.protocol) || url.hostname === 'ext-cdn.cuponomia.com.br') return;
 
   const ehExterno = url.origin !== self.location.origin;

@@ -251,7 +251,7 @@ function abrirModalNovoUsuario() {
             <input type="checkbox" name="novoCargo" value="vendedor" /> Vendedor
           </label>
           <label class="checkbox-cargo">
-            <input type="checkbox" name="novoCargo" value="operador_caixa" /> Operador de caixa</label><label class="checkbox-cargo"><input type="checkbox" name="novoCargo" value="operador_os" /> Operador de OS</label><label class="checkbox-cargo"><input type="checkbox" name="novoCargo" value="painel_os" /> Painel de OS (somente exibição)</label><label class="checkbox-cargo"><input type="checkbox" name="novoCargo" value="admin" /> Administrador
+            <input type="checkbox" name="novoCargo" value="operador_caixa" /> Operador de caixa</label><label class="checkbox-cargo"><input type="checkbox" name="novoCargo" value="operador_os" /> Operador de OS</label><label class="checkbox-cargo"><input type="checkbox" name="novoCargo" value="painel_os" /> Painel de OS (somente exibição)</label><label class="checkbox-cargo"><input type="checkbox" name="novoCargo" value="gestor_escalas" /> Gestor de escalas</label><label class="checkbox-cargo"><input type="checkbox" name="novoCargo" value="admin" /> Administrador
           </label>
         </div>
       </div>
@@ -340,7 +340,7 @@ function abrirModalEditarUsuario(usuario) {
             <input type="checkbox" name="editCargo" value="vendedor" ${cargosAtuais.includes("vendedor") ? "checked" : ""} /> Vendedor
           </label>
           <label class="checkbox-cargo">
-            <input type="checkbox" name="editCargo" value="operador_caixa" ${cargosAtuais.includes("operador_caixa") ? "checked" : ""} /> Operador de caixa</label><label class="checkbox-cargo"><input type="checkbox" name="editCargo" value="operador_os" ${cargosAtuais.includes("operador_os") ? "checked" : ""} /> Operador de OS</label><label class="checkbox-cargo"><input type="checkbox" name="editCargo" value="painel_os" ${cargosAtuais.includes("painel_os") ? "checked" : ""} /> Painel de OS (somente exibição)</label><label class="checkbox-cargo"><input type="checkbox" name="editCargo" value="admin" ${cargosAtuais.includes("admin") ? "checked" : ""} /> Administrador
+            <input type="checkbox" name="editCargo" value="operador_caixa" ${cargosAtuais.includes("operador_caixa") ? "checked" : ""} /> Operador de caixa</label><label class="checkbox-cargo"><input type="checkbox" name="editCargo" value="operador_os" ${cargosAtuais.includes("operador_os") ? "checked" : ""} /> Operador de OS</label><label class="checkbox-cargo"><input type="checkbox" name="editCargo" value="painel_os" ${cargosAtuais.includes("painel_os") ? "checked" : ""} /> Painel de OS (somente exibição)</label><label class="checkbox-cargo"><input type="checkbox" name="editCargo" value="gestor_escalas" ${cargosAtuais.includes("gestor_escalas") ? "checked" : ""} /> Gestor de escalas</label><label class="checkbox-cargo"><input type="checkbox" name="editCargo" value="admin" ${cargosAtuais.includes("admin") ? "checked" : ""} /> Administrador
           </label>
         </div>
       </div>
@@ -485,7 +485,7 @@ function trocarPainelAdmin(painelId) {
 // ================================================================
 function roleBadge(usuario) {
   const cargos = cargosDoUsuario(usuario);
-  const rotulos = { admin: "Administrador", vendedor: "Vendedor", operador_caixa: "Operador de caixa", operador_os:"Operador de OS", painel_os:"Painel de OS", user: "Usuário" };
+  const rotulos = { admin: "Administrador", gestor_escalas: "Gestor de escalas", vendedor: "Vendedor", operador_caixa: "Operador de caixa", operador_os:"Operador de OS", painel_os:"Painel de OS", user: "Usuário" };
   const classes = { admin: "role-badge--admin", vendedor: "role-badge--vendedor", user: "role-badge--user" };
   return cargos.map(c =>
     `<span class="role-badge ${classes[c] || "role-badge--user"}">${rotulos[c] || c}</span>`
