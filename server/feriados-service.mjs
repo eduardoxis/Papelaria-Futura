@@ -294,13 +294,13 @@ export async function garantirCalendario(db, anos) {
     );
     if (!existe) {
       const seed = await calendarioInicial(ano);
-      if (seed.eventos.length)
-        await db.runTransaction(async (tx) => {
-          const ref = db.doc("pf_feriados_anos/" + chaveAno(ano)),
-            snap = await tx.get(ref);
-          if (!snap.exists) tx.set(ref, seed);
-        });
-      await sincronizarAno(db, ano);
+      // A primeira consulta é atendida pela base oficial embarcada. A busca
+      // externa ocorre no cron ou na atualização explícita, fora da abertura.
+      await db.runTransaction(async (tx) => {
+        const ref = db.doc("pf_feriados_anos/" + chaveAno(ano)),
+          snap = await tx.get(ref);
+        if (!snap.exists) tx.set(ref, seed);
+      });
     }
   }
 }

@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
 import { load } from "cheerio";
-import { PDFParse } from "pdf-parse";
 import { dataValida } from "../js/escalas-core.js";
 import { normalizar, consolidarEventos } from "../js/calendario-core.js";
 
@@ -117,6 +116,9 @@ export async function lerDocumento(doc) {
     doc.tipo.includes("pdf") ||
     doc.bytes.subarray(0, 5).toString() === "%PDF-"
   ) {
+    // O leitor depende de binários/worker. Uma falha nele não pode derrubar
+    // a inicialização das APIs nem as consultas aos dados já consolidados.
+    const { PDFParse } = await import("pdf-parse");
     const leitor = new PDFParse({ data: new Uint8Array(doc.bytes) });
     try {
       const resultado = await leitor.getText();

@@ -52,10 +52,16 @@ Os leitores acessam HTTPS de uma lista de portais oficiais, conferem redireciona
 
 A interface reutiliza dados anuais por cinco minutos. As listagens consultam dados consolidados no Firestore; não baixam PDFs a cada troca de mês. Sincronizações simultâneas do mesmo ano na mesma instância são unificadas. O agendamento evita depender de consultas diárias feitas pelo operador. Os novos dados integram o backup completo existente.
 
+Na primeira abertura, a base oficial já consultada e embarcada é gravada automaticamente no Firestore, sem esperar os portais externos. Para anos futuros, as fontes anuais não consultadas permanecem pendentes até a atualização diária ou o botão Atualizar agora. A escala lê o calendário em sua própria transação; falhar a API específica do calendário não impede abrir as demais abas.
+
+O leitor de PDF é carregado somente ao processar documentos durante uma atualização. O pacote de publicação inclui explicitamente seu worker e as dependências nativas. Se o leitor falhar, a atualização registra a fonte pendente e preserva os dados anteriores, sem derrubar as APIs. Essa inclusão segue a [configuração de arquivos das funções da Vercel](https://vercel.com/docs/project-configuration/vercel-json).
+
 ## Verificação local
 
 `npm run test:feriados` executa 18 testes de extração de documentos oficiais, persistência, autorização, concorrência, revisão, falhas de fonte, ano novo, domingos, cobertura e compensação. Em ambiente com restrição a subprocessos: `node --test --test-isolation=none tests/escalas-*.test.mjs tests/feriados.test.mjs`.
 
 O cenário Chrome executado em `tests/escalas-interface.mjs` salva 30/11/2026 das 08:00 às 13:00, recarrega a página, confere o texto persistido e gera a semana com cobertura de 300 minutos. Também verifica larguras de 390 e 1440 px, além dos fluxos de edição/publicação da escala. O serviço utiliza banco em memória, sem acessar produção.
+
+`node tests/feriados-inicializacao-check.mjs` simula o leitor PDF indisponível em um processo novo: ambas as APIs devem iniciar e responder JSON, e a primeira carga do calendário deve funcionar. O teste Chrome também simula HTTP 500 no calendário, verifica que a escala abre e testa a recuperação pelo botão Tentar novamente.
 
 Para repetir somente a consulta externa: `node tools/consultar-feriados.mjs 2026`. Esse comando atualiza o arquivo de evidências inicial e depende da disponibilidade dos portais oficiais; não altera o Firestore.

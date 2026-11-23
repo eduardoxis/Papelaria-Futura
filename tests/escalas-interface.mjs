@@ -84,8 +84,22 @@ export async function verificar({ avaliar, comando, pausa, pasta }) {
     document.querySelector('#tabelaClientesCadastro')?.closest('body > div')?.remove();
     document.querySelector('#qaDetalhes')?.closest('body > div')?.remove();
     document.querySelectorAll('body > [data-paginacao-local-controles]').forEach(e=>e.remove());
+    const fetchOriginal=window.fetch;
+    let chamadasCalendario=0;
+    window.fetch=async (...args)=>{
+      if(String(args[0]).startsWith('/api/feriados')){chamadasCalendario++;return new Response('FUNCTION_INVOCATION_FAILED',{status:500});}
+      return fetchOriginal(...args);
+    };
     window.navegar('escalas');
     await esperar(()=>document.getElementById('esSemana')&&livre());
+    checar(chamadasCalendario===0,'A abertura da escala ainda depende da API de calendário');
+    document.querySelector('[data-es-acao="aba"][data-aba="calendario"]').click();
+    await esperar(()=>document.querySelector('[data-cal="recarregar"]')&&livre());
+    checar(document.querySelector('[data-es-acao="aba"][data-aba="equipe"]'),'Falha do calendário removeu as demais abas');
+    window.fetch=fetchOriginal;
+    document.querySelector('[data-cal="recarregar"]').click();
+    await esperar(()=>document.getElementById('calMes')&&!document.getElementById('esCalendarioLoja').hasAttribute('aria-busy'));
+    document.querySelector('[data-es-acao="aba"][data-aba="semana"]').click();await esperar(livre);
     const data=document.getElementById('esSemana');data.value='2027-01-04';data.dispatchEvent(new Event('change',{bubbles:true}));
     await esperar(()=>livre()&&document.getElementById('escalasConteudo').textContent.includes('04/01/2027'));
     clicar('gerar');await submeter();

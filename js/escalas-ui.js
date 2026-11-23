@@ -4,7 +4,6 @@ import { escHtml } from "./index.js";
 import { showLoading, hideLoading } from "./loading.js";
 import {
   montarCalendarioLoja,
-  garantirCalendarioDaSemana,
   invalidarCalendario,
   selecionarDataCalendario,
 } from "./calendario-ui.js";
@@ -198,7 +197,8 @@ export function iniciarEscalas(usuario, perfil) {
 async function carregar() {
   const loader = showLoading(root, "Carregando escalas");
   try {
-    if (gestor) await garantirCalendarioDaSemana(semanaAtual);
+    // A API da escala já lê o calendário consolidado na mesma transação.
+    // Não condicionar toda a seção a uma segunda chamada de inicialização.
     const dados = await api(gestor ? "carregar" : "minha", {
       semana: semanaAtual,
     });
