@@ -1,36 +1,38 @@
 {
-  "functions": {
-    "api/escalas.js": {
-      "maxDuration": 60,
-      "includeFiles": "{data/feriados-inicial-*.json,node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs,node_modules/@napi-rs/canvas*/**}"
-    },
-    "api/feriados.js": {
-      "maxDuration": 60,
-      "includeFiles": "{data/feriados-inicial-*.json,node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs,node_modules/@napi-rs/canvas*/**}"
-    }
-  },
-  "crons": [{ "path": "/api/feriados?acao=cron", "schedule": "0 9 * * *" }],
   "rewrites": [
     {
-      "source": "/api/feriados/status",
-      "destination": "/api/feriados?acao=status"
+      "source": "/os/painel",
+      "destination": "/os/painel.html"
     },
     {
-      "source": "/api/feriados/sincronizar",
-      "destination": "/api/feriados?acao=sincronizar"
+      "source": "/dashboard",
+      "destination": "/index.html"
     },
-    { "source": "/os/painel", "destination": "/os/painel.html" },
-    { "source": "/dashboard", "destination": "/index.html" },
-    { "source": "/login", "destination": "/login.html" },
-    { "source": "/", "destination": "/login.html" }
+    {
+      "source": "/login",
+      "destination": "/login.html"
+    },
+    {
+      "source": "/",
+      "destination": "/login.html"
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "X-XSS-Protection", "value": "1; mode=block" },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
         {
           "key": "Referrer-Policy",
           "value": "strict-origin-when-cross-origin"
@@ -47,15 +49,30 @@
     },
     {
       "source": "/service-worker.js",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
     },
     {
       "source": "/js/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
     },
     {
       "source": "/css/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
     }
   ]
 }

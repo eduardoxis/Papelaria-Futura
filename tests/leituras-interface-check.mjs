@@ -14,7 +14,6 @@ const chrome =
   process.env.CHROME_BIN ||
   "C:/Program Files/Google/Chrome/Application/chrome.exe";
 const pausa = (ms) => new Promise((r) => setTimeout(r, ms));
-const cenarioEscalas = process.env.PF_TEST_ESCALAS === '1' ? await import('./escalas-interface.mjs') : null;
 const sdk = `
 window.__leituras=[];
 export class Timestamp {constructor(seconds){this.seconds=seconds;this.nanoseconds=0;}static fromDate(d){return new Timestamp(d.getTime()/1000);}static now(){return Timestamp.fromDate(new Date());}toDate(){return new Date(this.seconds*1000);}valueOf(){return this.seconds*1000;}}
@@ -48,8 +47,6 @@ export const addDoc=runTransaction,setDoc=runTransaction,updateDoc=runTransactio
 `;
 const servidor = http.createServer(async (req, res) => {
   let p = new URL(req.url, "http://localhost").pathname;
-  if (p === '/api/escalas' && cenarioEscalas) return cenarioEscalas.apiTeste(req, res);
-  if (p === '/api/feriados' && cenarioEscalas) return cenarioEscalas.apiCalendarioTeste(req, res);
   if (p === "/__sdk.js") {
     res.setHeader("content-type", "text/javascript");
     return res.end(sdk);
@@ -180,7 +177,7 @@ try {
     await esperar(()=>document.getElementById('userName')?.textContent==='Admin Teste');
     checar(!document.querySelector('.btn-notificacoes'),'Sino ainda presente');
     const {COLECOES_INATIVAS}=await import('/js/backup.js');
-    for(const pagina of ['estoque','promissoria','modelos-anuencia']){
+    for(const pagina of ['estoque','promissoria','modelos-anuencia','escalas']){
       checar(!document.querySelector('[data-page="'+pagina+'"]'),'Área ainda no menu: '+pagina);
       checar(!document.getElementById('page-'+pagina),'Área ainda no HTML: '+pagina);
       window.navegar(pagina);
@@ -250,7 +247,6 @@ try {
     return {relatorio,erros:window.__erros,consultas:window.__leituras.length};
   })()`);
   assert.equal(resultado.erros.length, 0);
-  if (cenarioEscalas) await cenarioEscalas.verificar({ avaliar, comando, pausa, pasta });
   fs.writeFileSync(
     path.join(pasta, "resultado.json"),
     JSON.stringify(resultado, null, 2),

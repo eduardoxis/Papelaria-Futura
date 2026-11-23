@@ -20,8 +20,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/main.css" />
   <link rel="stylesheet" href="css/loading.css" />
-  <link rel="stylesheet" href="css/escalas.css" />
-  <link rel="stylesheet" href="css/calendario.css" />
   <link rel="stylesheet" href="css/index.css" />
   <link rel="stylesheet" href="css/cotacao.css" />
   <link rel="stylesheet" href="css/caixa.css" />
@@ -123,13 +121,6 @@
         <a href="#" class="nav-item" data-page="entrega">
           <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M8 16a2 2 0 11-4 0 2 2 0 014 0zM18 16a2 2 0 11-4 0 2 2 0 014 0z"/><path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM12 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0114.95 16H15a1 1 0 001-1v-2h1.5a1 1 0 00.83-.445l1.5-2.25A1 1 0 0020 9.75V8a1 1 0 00-1-1h-7z"/></svg>
           Entrega
-        </a>
-      </li>
-
-      <li>
-        <a href="#" class="nav-item" data-page="escalas">
-          <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5 1h2v2h6V1h2v2h2a2 2 0 012 2v12a2 2 0 01-2 2H3a2 2 0 01-2-2V5a2 2 0 012-2h2V1zM3 8v9h14V8H3zm2 2h3v3H5v-3zm5 0h5v2h-5v-2zm0 4h5v1h-5v-1z"/></svg>
-          Gestão de Escalas
         </a>
       </li>
       <li class="nav-item-admin" hidden>
@@ -1680,10 +1671,6 @@ Minha lista de produtos:
       </div>
 
     </section>
-
-    <section id="page-escalas" class="page" aria-label="Gestão de Escalas" hidden>
-      <div id="escalasConteudo"></div>
-    </section>
   </main>
 </div>
 
@@ -1742,7 +1729,6 @@ Minha lista de produtos:
   import { iniciarOs } from "./js/os-ui.js";
   import { iniciarEntrega }              from "./js/entrega.js";
   import { iniciarServicos }             from "./js/servicos.js";
-  import { iniciarEscalas } from "./js/escalas-ui.js";
 
   // ----------------------------------------------------------------
   // Proteção de rota + inicialização
@@ -1764,9 +1750,6 @@ Minha lista de produtos:
     document.getElementById("userName").textContent  = nome;
     document.getElementById("userRole").textContent  = isAdmin ? "Administrador" : (isOperador ? "Operador de caixa" : (isOs ? "Operador de OS" : (isVendedor ? "Vendedor" : "Usuário")));
     document.getElementById("userAvatar").textContent = nome.charAt(0).toUpperCase();
-    if (!isAdmin && temCargo(dadosUsuario, "gestor_escalas")) {
-      document.getElementById("userRole").textContent = "Gestor de escalas";
-    }
 
     // Saudação dinâmica
     const hora = new Date().getHours();
@@ -1790,7 +1773,6 @@ Minha lista de produtos:
     if (isAdmin || isOperador) iniciarCaixa(usuario, dadosUsuario);
     if(isOperador) document.querySelectorAll('[data-page="caixa"]').forEach(el=>{el.hidden=false;const li=el.closest('.nav-item-admin');if(li)li.hidden=false;});
     iniciarEntrega(usuario, dadosUsuario);
-    iniciarEscalas(usuario, dadosUsuario);
     if (isOs) iniciarOs(usuario, dadosUsuario);
     if (isAdmin) iniciarServicos(usuario, dadosUsuario);
 
@@ -1816,11 +1798,10 @@ Minha lista de produtos:
       "entrega":       "Entrega",
       "comissao":      "Comissão",
       "servicos":      "Serviços Personalizados",
-      "escalas":       "Gestão de Escalas",
       "admin":         "Administração"
     };
 
-    const paginasPermitidasUsuario = new Set(["dashboard", "cotacoes", "cotacoes-fw3", "cotacoes-avenida", "nova-cotacao", "entrega", "comissao", "escalas"]);
+    const paginasPermitidasUsuario = new Set(["dashboard", "cotacoes", "cotacoes-fw3", "cotacoes-avenida", "nova-cotacao", "entrega", "comissao"]);
     if(isOperador)paginasPermitidasUsuario.add("caixa");
     if(isOs)paginasPermitidasUsuario.add("os");
     const paginasOrcamento = {
