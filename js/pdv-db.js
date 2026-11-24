@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   getDoc,
+  onSnapshot,
   getDocs,
   getDocsFromServer,
   query,
@@ -30,6 +31,7 @@ import {
   validarMovimento,
   pagamentosVenda,
   dadosComprovante,
+  empresaPdv,
   contribuicaoVenda,
 } from "./pdv-core.js";
 export const COL_PDV = {
@@ -56,7 +58,7 @@ async function lerConfiguracaoPdv() {
     formato: "a4",
     agradecimento:
       "Obrigado pela preferência! Papelaria Futura - Volte sempre!",
-    ...(s.exists() ? s.data() : {}),
+    ...empresaPdv(s.exists() ? s.data() : {}),
   };
 }
 export async function salvarConfiguracaoPdv(dados) {
@@ -82,24 +84,31 @@ export async function salvarConfiguracaoPdv(dados) {
   });
 }
 export async function sessaoAtual() {
-  // Consulta a sessão efetiva do operador no servidor, sem confundir cache,
+  uid();
+  // Consulta o caixa compartilhado no servidor, sem confundir cache,
   // falha de leitura ou um controle antigo ausente com caixa fechado.
   const sessoes = await executarFirebaseComLimite(() => getDocsFromServer(
     query(
       collection(db, "pf_caixa_sessoes"),
-      where("operadorAberturaUid", "==", uid()),
       where("status", "==", "aberto"),
       limit(2),
     ),
   ));
-  if (sessoes.size > 1)
+  if (sessoes.size > 1 && sessoes.docs[0].data().caixaNumero === sessoes.docs[1].data().caixaNumero)
     throw Error(
-      "Há mais de um caixa aberto para este usuário. Peça ao administrador para conferir as sessões antes de continuar.",
+      "Há mais de uma sessão aberta para o mesmo caixa. Peça ao administrador para conferir as sessões antes de continuar.",
     );
-  const ss = sessoes.docs[0];
+  const ss = sessoes.docs.find(d=>d.data().operadorAberturaUid===uid()) || sessoes.docs.find(d=>d.data().caixaNumero==="CX-01") || sessoes.docs[0];
   return ss
     ? { ...ss.data(), id: ss.id, legado: ss.data().versaoPdv !== 2 }
     : null;
+}
+export function acompanharCaixa(numero, sessaoId, aoMudar, aoErro) {
+  let anterior=sessaoId || null;
+  return onSnapshot(ref(COL_PDV.controle, numero || "CX-01"), snapshot=>{
+    const atual=snapshot.exists()?snapshot.data().sessaoId || null:null;
+    if(atual!==anterior){anterior=atual;aoMudar();}
+  },aoErro);
 }
 export async function abrirSessaoPdv({ numero = "CX-01", inicial = 0, nome }) {
   const id = doc(collection(db, "pf_caixa_sessoes")).id,
@@ -153,8 +162,7 @@ export async function salvarVendaPdv(venda, id) {
     if (ex.exists()) return vr;
     if (
       !snap.exists() ||
-      snap.data().status !== "aberto" ||
-      snap.data().operadorAberturaUid !== autor
+      snap.data().status !== "aberto"
     )
       throw Error("Abra um caixa autorizado antes de concluir a venda.");
     const s = snap.data(),
@@ -217,7 +225,7 @@ export async function salvarVendaPdv(venda, id) {
     const empresa = {
       nome: "Papelaria Futura",
       logo: "./img/logo.png",
-      ...(loja.exists() ? loja.data() : {}),
+      ...empresaPdv(loja.exists() ? loja.data() : {}),
     };
     v.comprovante = dadosComprovante({ ...v, id }, empresa, stamp());
     tx.set(vr, v);
@@ -344,8 +352,7 @@ export async function confirmarFechamento(id, revisao, contado, nome) {
       if (f.exists()) return id;
       if (
         !s.exists() ||
-        s.data().status !== "aberto" ||
-        s.data().operadorAberturaUid !== autor
+        s.data().status !== "aberto"
       )
         throw Error("Sessão fechada ou não autorizada.");
       const sessao = s.data();
@@ -385,7 +392,7 @@ export async function confirmarFechamento(id, revisao, contado, nome) {
         sessaoId: null,
         operadorUid: autor,
       });
-      tx.set(ref(COL_PDV.operadores, autor), { sessaoId: null });
+      tx.set(ref(COL_PDV.operadores, sessao.operadorAberturaUid), { sessaoId: null });
       return id;
     });
   } catch (erro) {

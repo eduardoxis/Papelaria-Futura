@@ -40,7 +40,8 @@ function ambiente({
   let atual = sessao,
     consultas = 0,
     aberturas = 0,
-    vendedores = 0;
+    vendedores = 0,
+    mudouControle = null;
   const campo = (id) => {
     if (!campos.has(id))
       campos.set(id, {
@@ -70,6 +71,7 @@ function ambiente({
     _itens: itens,
     _vendedorSelecionadoId: null,
     _comissaoSelecionadaId: null,
+    acompanharCaixa: (numero,id,mudou) => {mudouControle=mudou;return ()=>{};},
     sessaoAtual: async () => {
       consultas++;
       if (erro) throw erro;
@@ -107,6 +109,7 @@ function ambiente({
     modais,
     contagens: () => ({ consultas, aberturas, vendedores }),
     trocarSessao: (v) => (atual = v),
+    notificarControle: () => mudouControle(),
     estado: () =>
       vm.runInContext("({sessao:_sessaoCaixa,estado:_estadoSessaoCaixa})", ctx),
   };
@@ -205,3 +208,14 @@ function ambiente({
 console.log(
   "OK CAIXA/SESSÃO: falha de consulta não vira caixa fechado; abertura solicitada ao finalizar, retomada da venda, itens e pagamento preservados, sessão existente reconhecida e clique duplo protegido.",
 );
+
+{
+ const a=ambiente();
+ await a.ctx.atualizarStatusCaixa(true);
+ a.trocarSessao({id:"compartilhado",caixaNumero:"CX-01",status:"aberto",operadorAberturaUid:"outro",operadorAberturaNome:"Outro operador"});
+ await a.notificarControle();
+ assert.equal(a.campos.get("caixaStatusTexto").textContent,"Aberto");
+ assert.equal(a.campos.get("btnAbrirCaixa").style.display,"none");
+ a.trocarSessao(null);await a.notificarControle();
+ assert.equal(a.campos.get("caixaStatusTexto").textContent,"Fechado");
+}

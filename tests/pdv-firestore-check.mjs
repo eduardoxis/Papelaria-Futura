@@ -117,7 +117,7 @@ try {
     const s = (await getDoc(doc(db, "pf_caixa_sessoes", sid))).data();
     await setDoc(doc(db, "pf_caixa_sessoes", "sessao-duplicada-teste"), s);
   });
-  await assert.rejects(() => pdv.sessaoAtual(), /mais de um caixa/);
+  await assert.rejects(() => pdv.sessaoAtual(), /mais de uma sessão/);
   await env.withSecurityRulesDisabled((contexto) =>
     deleteDoc(
       doc(contexto.firestore(), "pf_caixa_sessoes", "sessao-duplicada-teste"),
@@ -125,9 +125,9 @@ try {
   );
   usar(op2, "op2");
   assert.equal(
-    await pdv.sessaoAtual(),
-    null,
-    "não utiliza a sessão de outro operador",
+    (await pdv.sessaoAtual()).id,
+    sid,
+    "utiliza o caixa aberto compartilhado",
   );
   await assert.rejects(() =>
     pdv.abrirSessaoPdv({ numero: "CX-01", inicial: 0, nome: "Operador 2" }),
@@ -236,9 +236,17 @@ try {
     "outra-sessao",
   );
   await assertFails(getDoc(doc(op2, "pf_vendas", "v1")));
-  await assertFails(getDoc(doc(op2, "pf_caixa_sessoes", sid)));
+  await assertSucceeds(getDoc(doc(op2, "pf_caixa_sessoes", sid)));
+  // Dois operadores usam a mesma sessão, cada venda preserva seu autor.
+  await pdv.salvarVendaPdv(venda({total:1,subtotal:1,formaPagamento:"Pix"}),"compartilhada-op2");
+  assert.equal((await pdv.buscarVenda("compartilhada-op2")).operadorUid,"op2");
+  assert.equal((await pdv.buscarVenda("compartilhada-op2")).comprovante.empresa.cnpj,"01.064.836/0001-12");
+  await assertFails(getDoc(doc(vend,"pf_caixa_sessoes",sid)));
+  await assertFails(getDoc(doc(anon,"pf_caixa_sessoes",sid)));
   console.log("Etapa: cancelamento");
   usar(admin, "admin");
+  await vc.ajustarVenda("compartilhada-op2",{status:"cancelada",pago:true,estornoCentavos:0,motivo:"Teste"});
+
   await vc.ajustarVenda("v1", {
     status: "cancelada",
     pago: true,
@@ -288,7 +296,7 @@ try {
   );
   let sessao = await pdv.conferirSessao(sid);
   assert.equal(sessao.resumo.dinheiro, 13000);
-  assert.equal(sessao.resumo.pix, 10000);
+  assert.equal(sessao.resumo.pix, 10100);
   assert.equal(sessao.resumo.debito, 4000);
   assert.equal(sessao.resumo.credito, 3000);
   assert.equal(sessao.resumo.devolucoesDinheiro, 10000);
@@ -297,6 +305,7 @@ try {
   await assertFails(
     updateDoc(doc(op1, "pf_caixa_sessoes", sid), { "resumo.dinheiro": 999999 }),
   );
+  sessao=await pdv.conferirSessao(sid);
   const revisaoAntiga = sessao.revisao;
   await pdv.salvarVendaPdv(
     venda({ total: 10, subtotal: 10, formaPagamento: "Pix" }),
@@ -316,7 +325,7 @@ try {
   assert.equal(fechado.situacao, "Sobra");
   assert.equal(fechado.resumo.dinheiro, 13000);
   assert.equal(fechado.resumo.comissaoValida, 1250);
-  assert.equal(await pdv.sessaoAtual(), null);
+  assert.equal((await pdv.sessaoAtual()).id, sid2);
   await assert.rejects(() => pdv.salvarVendaPdv(venda(), "apos-fechamento"));
   await assertFails(
     updateDoc(doc(op1, "pf_caixa_fechamentos", sid), { contadoCentavos: 0 }),
@@ -376,7 +385,7 @@ try {
     },
     "admin-sang",
   );
-  usar(op2, "op2");
+  usar(op1, "op1");
   sessao = await pdv.conferirSessao(sid2);
   await pdv.confirmarFechamento(sid2, sessao.revisao, 89900, "Operador 2");
   assert.equal((await pdv.buscarFechamento(sid2)).situacao, "Falta");
@@ -428,7 +437,7 @@ try {
   );
   await assertFails(getDocs(collection(op1, "pf_comissoes_vendas")));
   console.log(
-    "OK PDV/FIRESTORE: abertura exclusiva, sessão por operador, venda/planilha/comissão/caixa atômicos, dinheiro e troco, PIX, débito, crédito, misto, descontos, cancelamento, devolução limitada e idempotente, suprimento, sangria, vendedores, comissão sem desconto da gaveta, conferência obsoleta, fechamento concorrente único, sobra/falta, relatório imutável, ajuste pós-fechamento, histórico e permissões.",
+    "OK PDV/FIRESTORE: abertura exclusiva, sessão compartilhada, venda/planilha/comissão/caixa atômicos, dinheiro e troco, PIX, débito, crédito, misto, descontos, cancelamento, devolução limitada e idempotente, suprimento, sangria, vendedores, comissão sem desconto da gaveta, conferência obsoleta, fechamento concorrente único, sobra/falta, relatório imutável, ajuste pós-fechamento, histórico e permissões.",
   );
 } finally {
   await env.cleanup();

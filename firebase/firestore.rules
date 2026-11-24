@@ -211,7 +211,7 @@ service cloud.firestore {
       let a = get(/databases/$(database)/documents/pf_caixa_sessoes/$(v.sessaoId)).data;
       let n = getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(v.sessaoId)).data;
       let c = getAfter(/databases/$(database)/documents/pf_comissoes_vendas/$(id)).data;
-      return a.status == 'aberto' && a.operadorAberturaUid == request.auth.uid && n.status == 'aberto' &&
+      return a.status == 'aberto' && podeOperar() && n.status == 'aberto' &&
         n.revisao == a.revisao+1 && n.ultimaOperacao == id && n.tipoUltimaOperacao == 'venda' && v.idPdv == id &&
         contribuicaoPdv(v,v.contribuicaoPdv,c) && somaPdv(n.resumo,a.resumo,v.contribuicaoPdv) &&
         vendedorPdv(n.vendedores,a.vendedores,v,v.contribuicaoPdv,zeroVendedorPdv());
@@ -237,7 +237,7 @@ service cloud.firestore {
       return s.inicialCentavos+s.resumo.dinheiro+s.resumo.suprimentos-s.resumo.sangrias-s.resumo.devolucoesDinheiro-s.resumo.pagamentosComissaoDinheiro;
     }
     function fechamentoPdv(id,f,s) {
-      return s.status == 'aberto' && s.operadorAberturaUid == request.auth.uid && f.sessaoId == id &&
+      return s.status == 'aberto' && podeOperar() && f.sessaoId == id &&
         f.operadorUid == request.auth.uid && f.fechadoEm == request.time && f.abertoEm == s.abertoEm && f.status == 'confirmado' &&
         f.caixaNumero == s.caixaNumero && f.inicialCentavos == s.inicialCentavos && f.resumo == s.resumo && f.vendedores == s.vendedores &&
         f.revisao == s.revisao && f.esperadoCentavos == saldoDinheiroPdv(s) && f.contadoCentavos is int && f.contadoCentavos >= 0 &&
@@ -266,7 +266,7 @@ service cloud.firestore {
     match /pf_caixa_controle/{numero} {
       allow read: if podeOperar();
       allow create, update: if podeOperar() && (request.resource.data.sessaoId == null ?
-        (resource.data.operadorUid == request.auth.uid && getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(resource.data.sessaoId)).data.status == 'fechado') :
+        (getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(resource.data.sessaoId)).data.status == 'fechado') :
         (getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(request.resource.data.sessaoId)).data.caixaNumero == numero &&
          getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(request.resource.data.sessaoId)).data.operadorAberturaUid == request.auth.uid &&
          (!exists(/databases/$(database)/documents/pf_caixa_controle/$(numero)) ? true : (resource.data.sessaoId == null ? true : getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(resource.data.sessaoId)).data.status == 'fechado'))));
@@ -274,9 +274,9 @@ service cloud.firestore {
     }
     match /pf_caixa_operadores/{operadorId} {
       allow read: if ehAdmin() || ehDono(operadorId);
-      allow create, update: if podeOperar() && ehDono(operadorId) && (request.resource.data.sessaoId == null ?
-        getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(resource.data.sessaoId)).data.status == 'fechado' :
-        (getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(request.resource.data.sessaoId)).data.operadorAberturaUid == operadorId &&
+      allow create, update: if podeOperar() && (request.resource.data.sessaoId == null ?
+        (getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(resource.data.sessaoId)).data.status == 'fechado' && getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(resource.data.sessaoId)).data.operadorAberturaUid == operadorId) :
+        (ehDono(operadorId) && getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(request.resource.data.sessaoId)).data.operadorAberturaUid == operadorId &&
          (!exists(/databases/$(database)/documents/pf_caixa_operadores/$(operadorId)) ? true : (resource.data.sessaoId == null ? true : getAfter(/databases/$(database)/documents/pf_caixa_sessoes/$(resource.data.sessaoId)).data.status == 'fechado'))));
       allow delete: if false;
     }
@@ -524,7 +524,7 @@ service cloud.firestore {
       allow delete: if ehAdmin() && !exists(/databases/$(database)/documents/pf_comissoes_vendas/$(vendaId));
     }
     match /pf_caixa_sessoes/{sessaoId} {
-      allow read: if ehAdmin() || (podeOperar() && resource.data.operadorAberturaUid == request.auth.uid);
+      allow read: if ehAdmin() || (podeOperar() && (resource.data.status == 'aberto' || resource.data.operadorAberturaUid == request.auth.uid));
       allow create: if podeOperar() && request.resource.data.versaoPdv == 2 && request.resource.data.status == 'aberto' &&
         request.resource.data.operadorAberturaUid == request.auth.uid && request.resource.data.abertoEm == request.time &&
         request.resource.data.inicialCentavos is int && request.resource.data.inicialCentavos >= 0 && request.resource.data.resumo == resumoPdvZero() &&

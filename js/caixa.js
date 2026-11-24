@@ -1,4 +1,4 @@
-import {sessaoAtual,abrirSessaoPdv} from './pdv-db.js';
+import {sessaoAtual,abrirSessaoPdv,acompanharCaixa} from './pdv-db.js';
 import {mostrarComprovante,fecharPdv,movimentarPdv,historicoVendasPdv,iniciarPdvUi} from './pdv-ui.js';
 import {centavos} from './vendas-comissoes-core.js';
 import {ehCotaFirebase, MENSAGEM_COTA_FIREBASE} from './firebase-limites.js';
@@ -56,6 +56,8 @@ let _consultaSessaoCaixa = null;
 let _preparandoFinalizacao = false;
 let _sessaoFinalizacaoId = null;
 let _ultimaConsultaSessaoCaixa = 0;
+let _desligarControleCaixa = null;
+let _controleCaixaNumero = null;
 
 // ----------------------------------------------------------------
 // Inicialização
@@ -72,11 +74,13 @@ export function iniciarCaixa(usuario, dadosUsuario) {
   document.getElementById("btnAtualizarSessaoCaixa")?.addEventListener("click", () => atualizarStatusCaixa(true));
 
   document.addEventListener("navegacao", (e) => {
+    if (e.detail.page !== "caixa") { _desligarControleCaixa?.(); _desligarControleCaixa=null; _controleCaixaNumero=null; }
     if (e.detail.page === "caixa") {
-      atualizarStatusCaixa();
+      atualizarStatusCaixa(true);
       document.getElementById("caixaTerminalInput")?.focus();
     }
   });
+  window.addEventListener("pagehide",()=>_desligarControleCaixa?.());
   window.addEventListener("focus", () => { if (!document.getElementById("page-caixa")?.hidden) atualizarStatusCaixa(); });
   window.addEventListener("online", () => { if (!document.getElementById('page-caixa')?.hidden) atualizarStatusCaixa(); });
 
@@ -141,6 +145,12 @@ async function atualizarStatusCaixa(forcar = false) {
       _sessaoCaixa = await sessaoAtual();
       _ultimaConsultaSessaoCaixa = Date.now();
       _estadoSessaoCaixa = "confirmado";
+      const numero = _sessaoCaixa?.caixaNumero || "CX-01";
+      if (!_desligarControleCaixa || _controleCaixaNumero !== numero) {
+        _desligarControleCaixa?.();
+        _controleCaixaNumero=numero;
+        _desligarControleCaixa=acompanharCaixa(numero,_sessaoCaixa?.id,()=>atualizarStatusCaixa(true),(erro)=>{_desligarControleCaixa=null;_controleCaixaNumero=null;_estadoSessaoCaixa=ehCotaFirebase(erro)?"cota":"erro";renderStatusCaixa();});
+      }
       return true;
     } catch(e) {
       _estadoSessaoCaixa = ehCotaFirebase(e) ? "cota" : "erro";

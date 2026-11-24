@@ -2,6 +2,7 @@ import {
   FORMAS_PDV,
   FORMAS_NOMES,
   dadosComprovante,
+  empresaPdv,
   dinheiroEsperado,
 } from "./pdv-core.js";
 const azul = [7, 66, 116],
@@ -82,6 +83,7 @@ function logoUrl() {
 }
 export const ESTILO_DOCUMENTOS = `*{box-sizing:border-box}body{font:14px Arial,sans-serif;color:#111827;margin:0;background:#fff}.papel{max-width:210mm;margin:auto;padding:10mm;color:#111827}.doc-logo{width:28mm;height:28mm;object-fit:contain}.doc-cabecalho{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #07599c;padding-bottom:15px;gap:16px}.doc-marca{display:flex;align-items:center;gap:16px;color:#074274}.doc-marca span{display:block;letter-spacing:3px;font-size:18px}.doc-marca strong{font-size:36px}.doc-contatos{font-size:12px;line-height:1.6;max-width:42%;overflow-wrap:anywhere}.doc-titulo{color:#074274;text-align:center;font-size:22px;padding:20px 0;border-bottom:1px solid #7dacca;margin:0 0 20px}.doc-metadados{display:grid;grid-template-columns:1fr 1fr;gap:10px 30px;margin:20px 0;overflow-wrap:anywhere}.doc-tabela{width:100%;border-collapse:collapse;margin:16px 0;table-layout:fixed}.doc-tabela th{background:#07599c;color:white;padding:10px 6px;text-align:left;font-size:12px}.doc-tabela td{border-bottom:1px solid #b6c9dc;padding:8px 5px;font-size:12px;overflow-wrap:anywhere;vertical-align:top}.doc-tabela td.numero{text-align:right}.doc-tabela thead{display:table-header-group}.doc-tabela tr{break-inside:avoid}.doc-totais{width:58%;margin:24px 0 24px auto}.doc-linha{display:flex;justify-content:space-between;border-bottom:1px solid #b6c9dc;padding:7px 0;gap:12px;break-inside:avoid}.doc-total{background:#cce8fa;color:#073b69;font-size:21px;font-weight:bold;padding:12px;border-radius:7px;margin:6px -6px}.doc-agradecimento{border-top:2px solid #07599c;text-align:center;color:#074274;font-size:20px;font-weight:bold;font-style:italic;margin-top:36px;padding-top:20px}.doc-rodape{color:#6b7280;text-align:center;font-size:11px;margin:20px 0}.doc-grade{display:grid;grid-template-columns:1fr 1fr;gap:16px}.doc-painel{border:1px solid #7ca7ca;border-radius:8px;overflow:hidden;break-inside:avoid;margin-bottom:16px}.doc-painel h3{color:#074274;background:#daedfa;margin:0;padding:10px;font-size:16px}.doc-painel>div{padding:10px}.doc-conferido{text-align:center;padding:24px!important;font-size:24px;color:#0c5a25;background:#edfaf1}.doc-divergencia{color:#9a3412;background:#fff4e6}.doc-id{font-size:10px;overflow-wrap:anywhere}.doc-painel .doc-tabela{margin:0}.doc-painel .doc-tabela td{font-size:10px}@media print{body{margin:0}.papel{padding:0;max-width:none}button{display:none}img{print-color-adjust:exact}th,.doc-total,.doc-painel h3{print-color-adjust:exact;-webkit-print-color-adjust:exact}}`;
 function marca(e) {
+  e = empresaPdv(e);
   return `<header class="doc-cabecalho"><div class="doc-marca"><img class="doc-logo" src="${logoUrl()}" alt="Logo Papelaria Futura"><div><span>PAPELARIA</span><strong>FUTURA</strong></div></div><div class="doc-contatos">${[e.endereco, e.telefone, e.cnpj ? "CNPJ: " + e.cnpj : ""].filter(Boolean).map(escapeHtml).join("<br>")}</div></header>`;
 }
 const linha = (a, b, destaque = false) =>
@@ -107,6 +109,7 @@ function linhasPagamento(c) {
   return linhas;
 }
 export function htmlComprovante(c, formato = "a4") {
+  c = {...c, empresa: empresaPdv(c.empresa)};
   if (formato !== "a4") return htmlComprovanteTermico(c, formato);
   const documento = textoDocumentoCliente(c.cpfCnpj);
   return `<article class="papel comprovante-pdv">${marca(c.empresa || {})}<h1 class="doc-titulo">COMPROVANTE DE VENDA - NÃO FISCAL</h1><div class="doc-metadados"><div><b>Nº da venda:</b> ${escapeHtml(c.numero)}<br><b>Data / horário:</b> ${escapeHtml(horario(c.emitidoEm))}</div><div><b>Vendedor:</b> ${escapeHtml(c.vendedor)}${c.operador && c.operador !== c.vendedor ? "<br><b>Operador:</b> " + escapeHtml(c.operador) : ""}${c.cliente ? "<br><b>Cliente:</b> " + escapeHtml(c.cliente) : ""}${documento ? "<br>" + escapeHtml(documento) : ""}</div></div><p class="doc-id">Identificador único: ${escapeHtml(c.vendaId)}</p><table class="doc-tabela"><colgroup><col style="width:12%"><col style="width:34%"><col style="width:8%"><col style="width:16%"><col style="width:14%"><col style="width:16%"></colgroup><thead><tr><th>Código</th><th>Produto</th><th>Qtd.</th><th>Unitário</th><th>Desconto</th><th>Total</th></tr></thead><tbody>${c.itens.map((i) => `<tr><td>${escapeHtml(i.codigo)}</td><td>${escapeHtml(i.nome)}</td><td>${i.qtd.toLocaleString("pt-BR")}</td><td class="numero">${reais(i.unitarioCentavos)}</td><td class="numero">${reais(i.descontoCentavos)}</td><td class="numero">${reais(i.totalCentavos)}</td></tr>`).join("")}</tbody></table><div class="doc-totais">${linha("Subtotal", reais(c.subtotalCentavos))}${linha("Descontos", reais(c.descontoCentavos))}${linha("Acréscimos", reais(c.acrescimoCentavos))}${linha("Total da venda", reais(c.totalCentavos), true)}${linhasPagamento(c).map(([forma, valor]) => linha(forma, valor)).join("")}${linha(c.pagamentos.fiado ? "Valor a receber" : "Valor recebido", reais(c.recebidoCentavos))}${c.trocoCentavos > 0 ? linha("Troco", reais(c.trocoCentavos)) : ""}</div>${htmlObservacao(c.observacao)}<div class="doc-agradecimento">${escapeHtml(c.empresa?.agradecimento || "Obrigado pela preferência! Papelaria Futura - Volte sempre!")}</div><div class="doc-rodape">Documento comercial não fiscal. Emissão: ${escapeHtml(horario(c.emitidoEm))}</div></article>`;
@@ -133,7 +136,7 @@ function htmlComprovanteTermico(c, formato) {
     'mm;padding:3mm;font-size:10px"><header style="text-align:center"><img src="' +
     logoUrl() +
     '" alt="Logo Papelaria Futura" style="width:18mm;height:19mm"><h2 style="font-size:15px;color:#074274">PAPELARIA FUTURA</h2>' +
-    [c.empresa?.endereco, c.empresa?.telefone, c.empresa?.cnpj]
+    [c.empresa?.endereco, c.empresa?.telefone, "CNPJ: " + empresaPdv(c.empresa).cnpj]
       .filter(Boolean)
       .map((v) => "<p>" + escapeHtml(v) + "</p>")
       .join("") +
@@ -267,6 +270,7 @@ async function imagemLogo() {
   });
 }
 function cabecalho(doc, logo, titulo, empresa) {
+  empresa = empresaPdv(empresa);
   doc.addImage(logo, "PNG", 12, 12, 24, 25);
   doc.setTextColor(...azul);
   doc.setFont("helvetica", "normal");
@@ -305,6 +309,7 @@ function rodapes(doc, emissao) {
   }
 }
 export async function pdfComprovante(c, formato = "a4", baixar = true) {
+  c = {...c, empresa: empresaPdv(c.empresa)};
   const { jsPDF } = window.jspdf;
   const logo = await imagemLogo();
   if (formato !== "a4") return pdfTermico(c, logo, formato, baixar);

@@ -3,6 +3,8 @@ import {
   totalCentavos,
   calcularComissao,
 } from "./vendas-comissoes-core.js";
+export const CNPJ_LOJA = "01.064.836/0001-12";
+export function empresaPdv(empresa = {}) { empresa = empresa || {}; return {...empresa, cnpj: String(empresa.cnpj || "").trim() || CNPJ_LOJA}; }
 export const FORMAS_PDV = [
   "dinheiro",
   "pix",
@@ -175,7 +177,7 @@ export function dadosComprovante(v, empresa, emissao) {
     versao: 2,
     vendaId: v.id,
     numero: v.numero || v.id,
-    empresa: { nome: "Papelaria Futura", ...empresa },
+    empresa: { nome: "Papelaria Futura", ...empresaPdv(empresa) },
     emitidoEm: emissao,
     vendedor: v.vendedorNome || "Vendedor não identificado",
     operador: v.operadorNome || "",

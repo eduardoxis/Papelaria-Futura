@@ -17,8 +17,11 @@ for (const formato of ['a4', '58', '80']) {
   const html = documentos.htmlComprovante(comprovanteAntigo, formato);
   assert.match(html, /CPF do cliente: 001\.234\.567-89/);
   assert.match(html, /Cliente de teste/);
+  assert.ok(html.includes("01.064.836/0001-12"), "CNPJ da loja em "+formato);
   assert.match(html, /Observação:<\/b> Retirar &lt;na loja&gt;/);
 }
 const caixa=fs.readFileSync(new URL('../js/caixa.js',import.meta.url),'utf8');const inicio=caixa.indexOf('function calcularTotais() {'),fim=caixa.indexOf('\nfunction renderTudo()',inicio);const contexto={_itens:[{unitario:.1,qtd:3,descontoValor:0}],_descontoTotalTipo:'PCT',_descontoTotalValor:2.345,_acrescimoTipo:'RS',_acrescimoValor:0,centavos:n=>Math.round((n+Number.EPSILON)*100)};vm.createContext(contexto);vm.runInContext(caixa.slice(inicio,fim),contexto);assert.equal(contexto.calcularTotais().total,.29);
 const code=fs.readFileSync(new URL('../js/pdv-ui.js',import.meta.url),'utf8');assert.ok(code.includes('value="a4">A4'));assert.ok(code.includes('value="58"'));assert.ok(code.includes('value="80"'));assert.ok(!caixa.includes('_pedirSenhaComissao('));
 console.log('OK PDV/CORE: centavos, pagamentos mistos, troco, comissão fora da gaveta, cancelamento, devolução, sobra/falta, snapshots independentes de cadastros, dados antigos e A4/58/80.');
+
+assert.equal(m.dadosComprovante(v, {cnpj:"  "}, "2026-11-24").empresa.cnpj,"01.064.836/0001-12");
