@@ -14,11 +14,13 @@ const chrome =
   process.env.CHROME_BIN ||
   "C:/Program Files/Google/Chrome/Application/chrome.exe";
 const pausa = (ms) => new Promise((r) => setTimeout(r, ms));
+const responsivo=process.env.PF_TEST_RESPONSIVO==='1';
 const sdk = `
 window.__leituras=[];
 export class Timestamp {constructor(seconds){this.seconds=seconds;this.nanoseconds=0;}static fromDate(d){return new Timestamp(d.getTime()/1000);}static now(){return Timestamp.fromDate(new Date());}toDate(){return new Date(this.seconds*1000);}valueOf(){return this.seconds*1000;}}
 const ts=Timestamp.fromDate(new Date('2026-11-04T12:00:00Z'));
 const registros={pf_produtos:Array.from({length:450},(_,i)=>({id:String(i).padStart(4,'0'),nome:'Produto '+String(i).padStart(4,'0'),codigo:String(i),estoque:5,preco:10,precoCusto:5,categoria:'Papelaria'})),pf_servicos:Array.from({length:75},(_,i)=>({id:String(i).padStart(4,'0'),nome:'Serviço '+String(i).padStart(4,'0'),codigo:String(i),ativo:true})),usuarios:Array.from({length:65},(_,i)=>({id:String(i).padStart(4,'0'),nome:'Pessoa '+i,email:'teste'+i+'@example.test',roles:['vendedor']})),comissoes:Array.from({length:65},(_,i)=>({id:String(i).padStart(4,'0'),titulo:'Planilha '+i,dataCriacao:ts,criadoPor:'admin'})),pf_entregas:Array.from({length:65},(_,i)=>({id:String(i).padStart(4,'0'),cliente:'Cliente '+i,data:'2026-11-04',horaSaida:'10:00',horaVolta:'11:00',local:'Centro',criadoPor:'admin'})),prom_clientes:Array.from({length:75},(_,i)=>({id:String(i).padStart(4,'0'),nome:'Cliente '+String(i).padStart(4,'0'),ativo:true})),prom_compras:Array.from({length:150},(_,i)=>({id:String(i),clienteId:String(Math.floor(i/2)).padStart(4,'0'),valor:10,vencimento:ts})),prom_pagamentos:Array.from({length:75},(_,i)=>({id:String(i),clienteId:String(i).padStart(4,'0'),valor:5})),pf_estoque_historico:Array.from({length:120},(_,i)=>({id:String(i).padStart(4,'0'),produtoId:'0000',nomeProduto:'Produto 0000',tipo:'entrada',qtdAntes:i,qtdDepois:i+1,delta:1,criadoEm:ts,operador:'Admin'}))};
+${responsivo ? "registros.comissoes.forEach(c=>{c.senhaHash='a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3';c.titulo='Planilha de comissão da equipe com título completo '+c.id;registros['comissoes/'+c.id+'/registros']=Array.from({length:8},(_,i)=>({id:String(i),cliente:'Cliente de nome completo '+i,descricao:'Serviço de impressão e acabamento com descrição completa '+i,qtdFolhas:20,valorUnitario:5,valorTotal:100,categoria:'Pix',data:'2026-11-04',dataCriacao:ts}));});registros.pf_caixa_sessoes=[{id:'sessao-teste',versaoPdv:2,caixaNumero:'CX-01',status:'aberto',operadorAberturaUid:'admin',operadorAberturaNome:'Admin Teste',abertoEm:ts}];registros.pf_caixa_controle=[{id:'CX-01',sessaoId:'sessao-teste'}];" : ''}
 registros.clientes_cadastro=registros.prom_clientes.map(c=>({...c,nomeBusca:c.nome.toLowerCase()}));
 registros.cotacoes=Array.from({length:65},(_,i)=>
   [['Futura',undefined],['FM3','fm3'],['HTL','htl']].map(([modelo,tipoOrcamento])=>({
@@ -36,11 +38,11 @@ export const refEqual=queryEqual;
 const snap=(p,d)=>({id:d.id,ref:{path:p+'/'+d.id},data:()=>({...d}),exists:()=>true});
 export async function getDocs(q){let a=[...(registros[q.path]||[])];for(const f of q.f||[]){if(!f.campo)continue;a=a.filter(d=>{const v=d[f.campo],t=f.valor;switch(f.op){case '==':return v===t;case 'in':return t.includes(v);case 'array-contains':return v?.includes(t);case '>=':return v>=t;case '<=':return v<=t;case '<':return v<t;default:return true;}});}for(const f of (q.f||[]).filter(f=>f.ordem).reverse())a.sort((x,y)=>{const a=f.ordem==='__name__'?x.id:x[f.ordem],b=f.ordem==='__name__'?y.id:y[f.ordem];return (a<b?-1:a>b?1:0)*(f.direcao==='desc'?-1:1);});const apos=q.f?.find(f=>f.apos);if(apos)a=a.slice(a.findIndex(d=>d.id===apos.apos)+1);const n=q.f?.find(f=>f.limite)?.limite;if(n)a=a.slice(0,n);window.__leituras.push({colecao:q.path,quantidade:a.length,limitada:!!n});const docs=a.map(d=>snap(q.path,d));return {docs,size:docs.length,empty:!docs.length,forEach:fn=>docs.forEach(fn),metadata:{fromCache:false,hasPendingWrites:false}};}
 export const getDocsFromServer=getDocs;
-export async function getDoc(r){const p=r.path.split('/');const d=(registros[p[0]]||[]).find(d=>d.id===p[1]);return d?snap(p[0],d):{exists:()=>false,data:()=>({}),id:p.at(-1)};}
+export async function getDoc(r){const p=r.path.split('/'),base=p.slice(0,-1).join('/');const d=(registros[base]||[]).find(d=>d.id===p.at(-1));return d?snap(base,d):{exists:()=>false,data:()=>({}),id:p.at(-1)};}
 export const getDocFromServer=getDoc;
 export const count=()=>({}),sum=()=>({}),arrayUnion=(...a)=>a,serverTimestamp=()=>ts;
 export async function getAggregateFromServer(){return {data:()=>({quantidade:0,valor:0})};}
-export function onSnapshot(q,...a){const fn=a.find(v=>typeof v==='function');getDocs(q).then(s=>fn(s));return()=>{};}
+export function onSnapshot(q,...a){const fn=a.find(v=>typeof v==='function');(q.type==='document'?getDoc(q):getDocs(q)).then(s=>fn(s));return()=>{};}
 export function writeBatch(){throw Error('Gravação não esperada neste teste');}
 export async function runTransaction(){throw Error('Gravação não esperada neste teste');}
 export const addDoc=runTransaction,setDoc=runTransaction,updateDoc=runTransaction,deleteDoc=runTransaction;
@@ -247,6 +249,7 @@ try {
     return {relatorio,erros:window.__erros,consultas:window.__leituras.length};
   })()`);
   assert.equal(resultado.erros.length, 0);
+  if(responsivo) await (await import("./responsividade-interface.mjs")).verificarResponsividade({avaliar,comando,pausa,pasta});
   fs.writeFileSync(
     path.join(pasta, "resultado.json"),
     JSON.stringify(resultado, null, 2),

@@ -511,3 +511,194 @@
   gap: var(--space-2);
   margin-top: var(--space-4);
 }
+
+/* Mantém as colunas flexíveis mesmo com nomes, valores e mensagens longos. */
+#page-caixa .caixa-grid,
+#page-caixa .caixa-col-esq,
+#page-caixa .caixa-col-dir,
+#page-caixa .card {
+  min-width: 0;
+  max-width: 100%;
+}
+
+#page-caixa .caixa-header {
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+#page-caixa .caixa-header > div {
+  min-width: 0;
+}
+
+#page-caixa .caixa-status-line {
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+}
+
+#page-caixa .caixa-header-acoes {
+  flex-wrap: wrap;
+  flex-shrink: 1;
+}
+
+#page-caixa .caixa-resumo-linha,
+#page-caixa .caixa-resumo-total {
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+#page-caixa .caixa-resumo-descgrid,
+#page-caixa .caixa-pagto-grid,
+#page-caixa .caixa-atalhos-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#page-caixa .caixa-resumo-descgrid > div,
+#page-caixa .caixa-pagto-grid > div,
+#page-caixa .caixa-atalho-card {
+  min-width: 0;
+}
+
+#page-caixa .caixa-atalho-card strong,
+#page-caixa .caixa-atalho-card small {
+  overflow-wrap: anywhere;
+}
+
+#page-caixa .caixa-itens-card .table-wrap {
+  min-width: 0;
+  max-width: 100%;
+  overflow: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media screen and (max-width: 768px) {
+  #page-caixa .caixa-header {
+    margin-inline: 16px;
+  }
+
+  #page-caixa .caixa-header > div,
+  #page-caixa .caixa-header-acoes {
+    width: 100%;
+  }
+
+  #page-caixa .caixa-header-acoes > button {
+    flex: 1 1 130px;
+    min-width: 0;
+    min-height: 44px;
+    justify-content: center;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  #page-caixa .caixa-card-header-row {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  #page-caixa .caixa-terminal-input,
+  #page-caixa input,
+  #page-caixa select,
+  #page-caixa textarea {
+    min-width: 0;
+    max-width: 100%;
+    font-size: 16px;
+  }
+
+  #page-caixa .caixa-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  #page-caixa .caixa-col-esq,
+  #page-caixa .caixa-col-dir {
+    gap: 0;
+  }
+
+  /* Esta grade é uma tabela de edição; a transformação genérica em cards
+     separava os números dos produtos. A rolagem fica apenas na tabela. */
+  #tabelaCaixaItens {
+    min-width: 590px;
+    table-layout: auto;
+  }
+
+  #tabelaCaixaItens thead {
+    display: table-header-group;
+  }
+
+  #tabelaCaixaItens tbody {
+    display: table-row-group;
+  }
+
+  #tabelaCaixaItens tr {
+    display: table-row;
+  }
+
+  #tabelaCaixaItens th,
+  #tabelaCaixaItens td {
+    display: table-cell;
+    padding: 10px 8px;
+    white-space: nowrap;
+  }
+
+  #tabelaCaixaItens th:nth-child(2),
+  #tabelaCaixaItens td:nth-child(2) {
+    min-width: 160px;
+    max-width: 240px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  #tabelaCaixaItens td.empty-cell {
+    white-space: normal;
+  }
+
+  #page-caixa .caixa-preco-editar,
+  #page-caixa .caixa-item-remover,
+  #page-caixa .caixa-toggle-btn {
+    min-height: 44px;
+    min-width: 40px;
+  }
+
+  #page-caixa .caixa-btn-finalizar {
+    min-height: 48px;
+    white-space: normal;
+  }
+
+  .caixa-vendedor-opcao {
+    min-width: 0;
+    min-height: 48px;
+  }
+
+  .caixa-vendedor-opcao > div,
+  .caixa-lista-item-linha > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .caixa-lista-item-linha {
+    flex-wrap: wrap;
+  }
+
+  .caixa-preco-add-wrap {
+    min-width: 0;
+    max-width: 100%;
+    flex-wrap: wrap;
+    margin-left: auto;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  #page-caixa .caixa-resumo-descgrid,
+  #page-caixa .caixa-pagto-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #page-caixa .caixa-atalho-card {
+    padding: 12px 10px;
+  }
+
+  #page-caixa .caixa-resumo-total strong {
+    font-size: clamp(22px, 7vw, 28px);
+    overflow-wrap: anywhere;
+  }
+}

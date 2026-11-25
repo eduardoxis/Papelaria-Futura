@@ -140,7 +140,7 @@ function corpoModalServico(dados = {}) {
       <label class="field-label">Nome do serviço *</label>
       <input type="text" id="mServNome" class="field-input--plain" placeholder="Ex: Topo de Bolo Personalizado" value="${escHtml(dados.nome || "")}" autocomplete="off" />
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+    <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
       <div>
         <label class="field-label">Código (opcional)</label>
         <input type="text" id="mServCodigo" class="field-input--plain" placeholder="Ex: SERV-001" value="${escHtml(dados.codigo || "")}" autocomplete="off" />

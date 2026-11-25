@@ -170,3 +170,101 @@
 .vc-form p {
   line-height: 1.6;
 }
+
+/* Mantém as tabelas financeiras completas dentro de uma área de rolagem. */
+#vcConteudo .card,
+#vcConteudo .vc-graficos > *,
+.vc-cards > *,
+.vc-filtros > *,
+.vc-ranking > * {
+  min-width: 0;
+}
+
+#vcConteudo .table-wrap,
+#modal .table-wrap:has(.vc-table) {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.vc-cabecalho h3,
+.vc-ranking > *,
+.vc-indicador span {
+  overflow-wrap: anywhere;
+}
+
+.vc-filtros input,
+.vc-filtros select {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  #adminPanelVendasComissoes .vc-table,
+  #modal .vc-table {
+    display: table;
+    min-width: 860px;
+  }
+
+  #adminPanelVendasComissoes .vc-table thead,
+  #modal .vc-table thead {
+    display: table-header-group;
+  }
+
+  #adminPanelVendasComissoes .vc-table tbody,
+  #modal .vc-table tbody {
+    display: table-row-group;
+  }
+
+  #adminPanelVendasComissoes .vc-table tr,
+  #modal .vc-table tr {
+    display: table-row;
+  }
+
+  #adminPanelVendasComissoes .vc-table th,
+  #adminPanelVendasComissoes .vc-table td,
+  #modal .vc-table th,
+  #modal .vc-table td {
+    display: table-cell;
+    padding: 12px;
+    vertical-align: top;
+    white-space: normal;
+  }
+
+  .vc-filtros .field-input--plain,
+  .vc-filtros select,
+  .vc-form input:not([type="checkbox"]),
+  .vc-form select {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .vc-cabecalho > button,
+  .vc-acoes > button,
+  .vc-paginacao > button,
+  .vc-filtros > button {
+    min-height: 44px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 540px) {
+  .vc-ranking {
+    grid-template-columns: 32px minmax(0, 1fr);
+  }
+
+  .vc-ranking > :nth-child(n + 3) {
+    grid-column: 2;
+  }
+
+  .vc-paginacao > * {
+    min-width: 0;
+  }
+
+  .vc-cabecalho > button {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}

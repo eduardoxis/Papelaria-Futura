@@ -7,7 +7,7 @@
    ---------------------------------------------------------------- */
 .comissao-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
   gap: var(--space-5);
 }
 
@@ -423,10 +423,6 @@
     grid-template-columns: 1fr;
   }
 
-  .cac-btn span {
-    display: none;
-  }
-
   .cac-btn {
     padding: 8px;
   }
@@ -472,12 +468,179 @@
 .comissao-row-select { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary, #2563EB); }
 .comissao-linha-selecionada { background: #EFF6FF !important; }
 
-@media (max-width: 640px) {
-  .comissao-autosave-toggle span:not(.comissao-autosave-status) {
-    display: none;
+.col-com-cat select.excel-select {
+  border-radius: 6px;
+}
+
+/* A planilha mantém as colunas e a edição; somente sua área pode rolar. */
+#page-comissao,
+#comissaoListaPanel,
+#comissaoDetalhePanel,
+.comissao-grid,
+.comissao-card,
+.comissao-card-body {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.comissao-card-titulo,
+.comissao-card-desc,
+.comissao-card-criador,
+.comissao-card-data,
+#comissaoDetalheTitulo,
+#comissaoDetalheDesc {
+  overflow-wrap: anywhere;
+}
+
+.comissao-detalhe-header {
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.comissao-detalhe-header > .btn-icon {
+  flex-shrink: 0;
+}
+
+.comissao-detalhe-header h3 {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+#comissaoDetalhePanel > .page-header > div {
+  min-width: 0;
+  max-width: 100%;
+}
+
+#comissaoDetalhePanel > .page-header > div:last-child {
+  flex-wrap: wrap;
+}
+
+#tableWrapComissao {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+#tableWrapComissao .excel-table {
+  min-width: 1120px;
+}
+
+#tableWrapComissao .col-com-desc {
+  min-width: 220px;
+}
+
+#tableWrapComissao .col-com-cat {
+  min-width: 170px;
+}
+
+#tableWrapComissao td.col-com-cliente,
+#tableWrapComissao td.col-com-desc {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+#tableWrapComissao td.col-acao {
+  min-width: 104px;
+}
+
+@media (max-width: 1024px) {
+  #comissaoDetalhePanel > .page-header > div {
+    flex-basis: 100%;
+  }
+
+  #comissaoDetalhePanel > .page-header > div:last-child > button {
+    flex: 1 1 140px;
+    min-width: 0;
+    min-height: 44px;
+    justify-content: center;
+    white-space: normal;
+  }
+
+  .comissao-autosave-toggle {
+    flex-wrap: wrap;
+    min-height: 44px;
   }
 }
 
-.col-com-cat select.excel-select {
-  border-radius: 6px;
+@media (max-width: 768px) {
+  #page-comissao .comissao-card-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  #page-comissao .cac-btn {
+    min-width: 0;
+    min-height: 44px;
+    gap: 6px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  #page-comissao .cac-btn span,
+  #page-comissao .comissao-autosave-toggle span {
+    display: inline;
+  }
+
+  #comissaoDetalhePanel .filter-periodo {
+    min-width: 0;
+    width: 100%;
+  }
+
+  #comissaoDetalhePanel .filter-periodo > input {
+    width: 100% !important;
+    min-width: 0;
+    min-height: 44px;
+    padding-inline: 12px;
+  }
+
+  #wrapQtdLinhasComissao > div {
+    min-width: 0;
+  }
+
+  #wrapQtdLinhasComissao #qtdLinhasComissao {
+    width: 100% !important;
+    min-width: 0;
+    flex: 1;
+  }
+
+  #wrapQtdLinhasComissao #btnConfirmarQtdLinhas {
+    flex-shrink: 0;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  #comissaoDetalhePanel .filter-bar > button {
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  #page-comissao .comissao-contagem {
+    margin-left: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  #tableWrapComissao .excel-input {
+    min-height: 46px;
+    font-size: 16px;
+  }
+
+  #tableWrapComissao .btn-remove-row {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+  }
+
+  #tableWrapComissao .comissao-row-select,
+  #chkSelecionarTodasComissao {
+    width: 22px;
+    height: 22px;
+  }
+
+  #page-comissao .btn-ver-fotos {
+    min-height: 44px;
+  }
 }

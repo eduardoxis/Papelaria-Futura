@@ -3,10 +3,11 @@
 // ============================================================
 // Sobe a versão do cache sempre que alterar arquivos estáticos
 // para forçar os usuários a receberem a versão nova.
-const CACHE_VERSION = "pf-cache-caixa-compartilhado-v14";
+const CACHE_VERSION = "pf-cache-responsivo-v15";
 const CACHE_NAME = `papelaria-futura-${CACHE_VERSION}`;
 
 const APP_SHELL = [
+  "./css/responsivo.css",
   "./css/loading.css", "./js/loading.js",
   "./css/animations.css", "./js/utils/intro.js", "./assets/images/logo-intro.webp",
   './js/operacoes-banco.js', './js/leituras-cache.js', './js/paginacao.js', './js/tabelas-paginadas.js',

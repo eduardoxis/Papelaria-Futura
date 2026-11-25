@@ -280,7 +280,7 @@ function corpoModalEntrega(dados = {}) {
       <label class="field-label">Local</label>
       <input type="text" id="mEntLocal" class="field-input--plain" placeholder="Endereço ou ponto de entrega" value="${escHtml(dados.local || "")}" autocomplete="off" />
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px">
+    <div class="form-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px">
       <div>
         <label class="field-label">Data</label>
         <input type="date" id="mEntData" class="field-input--plain" value="${escHtml(dados.data || hojeISO())}" autocomplete="off" />

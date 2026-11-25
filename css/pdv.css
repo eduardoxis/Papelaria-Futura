@@ -67,3 +67,89 @@
     width: 100%;
   }
 }
+
+/* O histórico e a prévia podem ser largos; só suas áreas internas rolam. */
+#pdvHistoricoCaixas .card,
+#pdvHistoricoCaixas .pdv-form,
+#pdvHistoricoCaixas .pdv-form > *,
+#modal .pdv-form,
+#modal .pdv-form > *,
+#pdvCupomPrevia {
+  min-width: 0;
+  max-width: 100%;
+}
+
+#pdvHistoricoCaixas .table-wrap,
+#modal:has(.pdv-tabela) .table-wrap,
+#pdvCupomPrevia .pdv-previa {
+  max-width: 100%;
+  overflow: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media screen and (max-width: 768px) {
+  #modal .pdv-form label,
+  #pdvHistoricoCaixas .pdv-form label,
+  #page-caixa .pdv-form label {
+    min-width: 0;
+    flex: 1 1 180px;
+  }
+
+  #modal .pdv-form input,
+  #modal .pdv-form select,
+  #pdvHistoricoCaixas .pdv-form input,
+  #pdvHistoricoCaixas .pdv-form select {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  #modal .pdv-tabela thead,
+  #pdvHistoricoCaixas .pdv-tabela thead {
+    display: table-header-group;
+  }
+
+  #modal .pdv-tabela tbody,
+  #pdvHistoricoCaixas .pdv-tabela tbody {
+    display: table-row-group;
+  }
+
+  #modal .pdv-tabela tr,
+  #pdvHistoricoCaixas .pdv-tabela tr {
+    display: table-row;
+  }
+
+  #modal .pdv-tabela th,
+  #modal .pdv-tabela td,
+  #pdvHistoricoCaixas .pdv-tabela th,
+  #pdvHistoricoCaixas .pdv-tabela td {
+    display: table-cell;
+    padding: 10px;
+    white-space: normal;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+  }
+
+  #modal .pdv-tabela button,
+  #pdvHistoricoCaixas .pdv-tabela button {
+    min-height: 44px;
+    white-space: normal;
+    margin-block: 3px;
+  }
+
+  #pdvHistoricoCaixas .pdv-form > button {
+    min-width: 0;
+    min-height: 44px;
+    white-space: normal;
+    justify-content: center;
+    flex: 1 1 180px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  #modal .pdv-form label,
+  #pdvHistoricoCaixas .pdv-form label,
+  #page-caixa .pdv-form label {
+    flex-basis: 100%;
+  }
+}
