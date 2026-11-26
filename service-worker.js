@@ -3,7 +3,7 @@
 // ============================================================
 // Sobe a versão do cache sempre que alterar arquivos estáticos
 // para forçar os usuários a receberem a versão nova.
-const CACHE_VERSION = "pf-cache-responsivo-v15";
+const CACHE_VERSION = "pf-cache-recursos-v16";
 const CACHE_NAME = `papelaria-futura-${CACHE_VERSION}`;
 
 const APP_SHELL = [
@@ -95,30 +95,39 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(fetch(request));
     return;
   }
-  if (!/^https?:$/.test(url.protocol) || url.hostname === 'ext-cdn.cuponomia.com.br') return;
+  if (!/^https?:$/.test(url.protocol)) return;
 
   const ehExterno = url.origin !== self.location.origin;
   const ehFirebase = ehExterno && /firestore|firebaseio|googleapis|gstatic\.com\/firebasejs|identitytoolkit/.test(url.href);
 
   if (ehFirebase) {
     // Dados do Firebase: nunca cachear, sempre buscar da rede
-    event.respondWith(fetch(request).catch(() => new Response(null, { status: 503 })));
+    event.respondWith(fetch(request));
     return;
   }
 
   if (ehExterno) {
-    // CDNs (fontes, jsPDF, xlsx, etc.) — cache primeiro, rede como reforço
+    // Apenas CDNs usados pelo site. Recursos de extensões e outros serviços
+    // seguem direto pelo navegador, sem respostas Offline fabricadas pelo SW.
+    if (!['fonts.googleapis.com', 'fonts.gstatic.com', 'cdn.jsdelivr.net', 'cdnjs.cloudflare.com'].includes(url.hostname)) return;
+    // Não reutilizar nem gravar erros 4xx/5xx. Antes, uma falha temporária
+    // podia permanecer no cache e ser devolvida mesmo depois da recuperação.
     event.respondWith(
-      caches.match(request).then((cached) => {
-        const rede = fetch(request)
-          .then((resposta) => {
-            const copiaParaCache = resposta.clone();
-            caches.open(CACHE_NAME)
-              .then((cache) => cache.put(request, copiaParaCache))
-              .catch((err) => console.warn("Falha ao atualizar cache:", err));
+      caches.match(request, { cacheName: CACHE_NAME }).then((salvo) => {
+        const cached = salvo && (salvo.status === 200 || salvo.type === 'opaque') ? salvo : null;
+        const rede = fetch(request).then(async (resposta) => {
+            if (resposta.status === 200 || resposta.type === 'opaque') {
+              try {
+                const cache = await caches.open(CACHE_NAME);
+                await cache.put(request, resposta.clone());
+              } catch (err) { console.warn("Falha ao atualizar cache:", err); }
+            }
+            if (resposta.status >= 400 && cached) return cached;
             return resposta;
-          })
-          .catch(() => cached || new Response("Recurso indisponível", { status: 503, statusText: "Offline" }));
+          }).catch((erro) => { if (cached) return cached; throw erro; });
+        // Mantém a atualização em segundo plano viva e trata sua rejeição
+        // quando já há uma cópia válida sendo entregue ao navegador.
+        if (cached) event.waitUntil(rede.catch(() => {}));
         return cached || rede;
       })
     );
@@ -133,7 +142,7 @@ self.addEventListener("fetch", (event) => {
       .then(async (resposta) => {
         if (resposta.status >= 500) {
           const copia = await caches.match(request, { cacheName: CACHE_NAME });
-          return copia || resposta;
+          return copia?.status === 200 ? copia : resposta;
         }
         if (resposta && resposta.status === 200) {
           const copiaParaCache = resposta.clone();
@@ -144,7 +153,7 @@ self.addEventListener("fetch", (event) => {
         return resposta;
       })
       .catch(() => caches.match(request, { cacheName: CACHE_NAME }).then((cached) =>
-        cached || new Response("Recurso indisponível", { status: 503, statusText: "Offline" })
+        cached?.status === 200 ? cached : new Response("Recurso indisponível: confira a conexão e recarregue a página.", { status: 503, statusText: "Offline" })
       ))
   );
 });

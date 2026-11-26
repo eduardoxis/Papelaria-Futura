@@ -45,7 +45,8 @@ function solicitar(url) {
   let resposta;
   eventos.get("fetch")({
     request: new Request(url),
-    respondWith: promessa => { resposta = promessa; }
+    respondWith: promessa => { resposta = promessa; },
+    waitUntil: promessa => promessa.catch(() => {})
   });
   return resposta;
 }
@@ -64,7 +65,7 @@ const firebase = "https://firestore.googleapis.com/v1/projects/teste";
 arquivos.set(firebase, new Response("dados antigos"));
 const antes = acessosCache;
 rede = async () => { throw new TypeError("Rede indisponível"); };
-assert.equal((await solicitar(firebase)).status, 503);
+await assert.rejects(() => solicitar(firebase), /Rede indisponível/);
 assert.equal(acessosCache, antes, "Dados do Firebase não devem passar pelo cache");
 const apiEscalas = origem + '/api/escalas';
 arquivos.set(apiEscalas, new Response('escala antiga de outra sessão'));
@@ -74,4 +75,24 @@ assert.equal(await (await solicitar(apiEscalas)).text(), 'escala atual');
 assert.equal(acessosCache, antesApi, 'A API autenticada não deve consultar o cache');
 rede = async () => { throw new TypeError('Rede indisponível'); };
 await assert.rejects(() => solicitar(apiEscalas), /Rede indisponível/);
-console.log("OK: módulo local usa o cache em falha de rede e HTTP 503, sem cachear dados do Firebase.");
+const fonte = 'https://fonts.gstatic.com/s/inter/teste.woff2';
+arquivos.set(fonte, new Response('falha antiga', {status:503}));
+rede = async () => new Response('fonte recuperada');
+assert.equal(await (await solicitar(fonte)).text(), 'fonte recuperada');
+assert.equal(await arquivos.get(fonte).clone().text(), 'fonte recuperada');
+rede = async () => new Response('falha temporária', {status:503});
+assert.equal(await (await solicitar(fonte)).text(), 'fonte recuperada');
+await new Promise(r=>setTimeout(r,0));
+assert.equal(await arquivos.get(fonte).clone().text(), 'fonte recuperada', 'Não sobrescrever fonte válida com HTTP 503');
+arquivos.delete(fonte);
+assert.equal((await solicitar(fonte)).status,503);
+assert.ok(!arquivos.has(fonte),'Erro HTTP não pode entrar no cache');
+rede = async () => { throw new TypeError('Rede indisponível'); };
+await assert.rejects(()=>solicitar(fonte), /Rede indisponível/);
+assert.equal(solicitar('https://ext-cdn.cuponomia.com.br/recurso.js'),undefined);
+assert.equal(solicitar('https://outro-servico.test/recurso'),undefined);
+const csp = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url),'utf8')).headers
+  .flatMap(h=>h.headers).find(h=>h.key==='Content-Security-Policy').value;
+assert.match(csp,/font-src 'self' data: https:\/\/fonts.gstatic.com;/);
+assert.ok(!csp.match(/script-src[^;]*data:/),'A permissão de dados deve ficar restrita às fontes');
+console.log("OK: recuperação de recurso e fonte após erro 503; cache rejeita erros; dados autenticados sem cache; extensões sem interceptação; fontes incorporadas permitidas apenas em font-src.");
