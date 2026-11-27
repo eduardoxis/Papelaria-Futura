@@ -1,3 +1,5 @@
+import { lerTotaisOrcamento } from "./orcamento-totais.js";
+
 // ============================================================
 // pdf.js — Gerador de Cotação PDF — Papelaria Futura Centro
 // Usa jsPDF + jsPDF-AutoTable (CDN no index.html)
@@ -49,6 +51,13 @@ function formatarUnidadeOrcamento(unidade) {
   return texto && texto !== "-" ? texto : "UN";
 }
 
+function rotuloDescontoOrcamento(totais) {
+  const percentual = totais.desconto?.tipo === "percentual"
+    ? " (" + Number(totais.desconto.valor).toLocaleString("pt-BR", { maximumFractionDigits: 2 }) + "%)"
+    : "";
+  return "DESCONTO" + percentual;
+}
+
 export async function gerarPDF(cotacao, modelo = "original", retornarArquivo = false) {
   if (modelo === "fw3") return gerarPDFFW3(cotacao, retornarArquivo);
   if (modelo === "avenida") return gerarPDFAvenida(cotacao, retornarArquivo);
@@ -57,6 +66,7 @@ export async function gerarPDF(cotacao, modelo = "original", retornarArquivo = f
 
 async function gerarPDFOriginal(cotacao, retornarArquivo = false) {
   try {
+    const totais = lerTotaisOrcamento(cotacao);
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
 
@@ -421,12 +431,20 @@ async function gerarPDFOriginal(cotacao, retornarArquivo = false) {
       tableLineWidth: 0.3,
     });
 
-    Y = doc.lastAutoTable.finalY + 7;
+    Y = doc.lastAutoTable.finalY + (totais.descontoCentavos > 0 ? 5 : 7);
 
     // ══════════════════════════════════════════════════════
     // 5. CARD VALOR TOTAL
     // ══════════════════════════════════════════════════════
-    if (Y + 28 > 272) { doc.addPage(); Y = 16; }
+    if (Y + (totais.descontoCentavos > 0 ? 40 : 28) > 272) { doc.addPage(); Y = 16; }
+    if (totais.descontoCentavos > 0) {
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8); rgb(C.pretoTexto);
+      doc.text("SUBTOTAL", MX + CW - 90, Y + 2);
+      doc.text(fmtMoeda(totais.subtotal), MX + CW - 4, Y + 2, { align: "right" });
+      doc.text(rotuloDescontoOrcamento(totais), MX + CW - 90, Y + 8);
+      doc.text("- " + fmtMoeda(totais.descontoCentavos / 100), MX + CW - 4, Y + 8, { align: "right" });
+      Y += 12;
+    }
 
     const TOT_H = 26;
 
@@ -458,7 +476,7 @@ async function gerarPDFOriginal(cotacao, retornarArquivo = false) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
     rgb(C.azulMedio);
-    doc.text(fmtMoeda(cotacao.valorTotal), MX + 23, Y + 20);
+    doc.text(fmtMoeda(totais.valorTotal), MX + 23, Y + 20);
 
     // Seção 2 — validade
     const S2X = MX + T3 + 5;
@@ -484,7 +502,7 @@ async function gerarPDFOriginal(cotacao, retornarArquivo = false) {
     rgb(C.cinzaTexto);
     doc.text(`${dia} DE ${MESES[parseInt(mes)]} DE ${ano}`, S3X + 16, Y + 18);
 
-    Y += TOT_H + 7;
+    Y += TOT_H + (totais.descontoCentavos > 0 ? 5 : 7);
 
     // ══════════════════════════════════════════════════════
     // 6. OBSERVAÇÕES
@@ -524,13 +542,13 @@ async function gerarPDFOriginal(cotacao, retornarArquivo = false) {
       rgb(C.pretoTexto);
       doc.text(linhasObs, MX + 17, Y + 14.5);
 
-      Y += OBS_H + 7;
+      Y += OBS_H + (totais.descontoCentavos > 0 ? 3 : 7);
     }
 
     // ══════════════════════════════════════════════════════
     // 7. ELABORADO POR
     // ══════════════════════════════════════════════════════
-    if (Y + 12 > 272) { doc.addPage(); Y = 16; }
+    if (Y + 8 > 272) { doc.addPage(); Y = 16; }
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
@@ -611,6 +629,7 @@ async function gerarPDFOriginal(cotacao, retornarArquivo = false) {
 // ============================================================
 async function gerarPDFFW3(cotacao, retornarArquivo = false) {
   try {
+    const totais = lerTotaisOrcamento(cotacao);
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
     const MX = 16, PW = 210, CW = PW - MX * 2;
@@ -622,7 +641,7 @@ async function gerarPDFFW3(cotacao, retornarArquivo = false) {
     };
     // Deixa espaço para a validade e a descrição no rodapé, mantendo menos
     // de 20 itens por página conforme o modelo FM3.
-    const itensPorPagina = 18;
+    const itensPorPagina = totais.descontoCentavos > 0 ? 16 : 18;
     const paginas = dividirEmPaginas(cotacao.itens || [], itensPorPagina);
     let logo = null;
     try { logo = await carregarImagemBase64("./img/logo-fw3.png"); } catch { /* há cabeçalho textual de reserva */ }
@@ -660,16 +679,28 @@ async function gerarPDFFW3(cotacao, retornarArquivo = false) {
         margin: { left: MX, right: MX }, theme: "grid",
         styles: { font: "helvetica", fontSize: 7.5, cellPadding: 2.1, valign: "middle", lineColor: [0, 0, 0], lineWidth: 0.2, minCellHeight: 7.9 },
         headStyles: { fillColor: azul, textColor: [255, 255, 255], fontStyle: "bold", halign: "center", minCellHeight: 8 },
-        columnStyles: { 0: { cellWidth: 12, halign: "center" }, 1: { cellWidth: 13, halign: "center" }, 2: { cellWidth: 13, halign: "center" }, 3: { cellWidth: 95 }, 4: { cellWidth: 24, halign: "right" }, 5: { cellWidth: 24, halign: "right" } }
+        columnStyles: { 0: { cellWidth: 12, halign: "center" }, 1: { cellWidth: 13, halign: "center" }, 2: { cellWidth: 13, halign: "center" }, 3: { cellWidth: 92 }, 4: { cellWidth: 24, halign: "right" }, 5: { cellWidth: 24, halign: "right" } }
       });
       if (indice === paginas.length - 1) {
-        const y = Math.min((doc.lastAutoTable?.finalY || 78) + 8, 267);
-        doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.5); doc.rect(122, y, 72, 12);
-        doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(0, 0, 0);
-        doc.text("VALOR TOTAL", 126, y + 7.3);
-        doc.text(fmtMoeda(cotacao.valorTotal), 190, y + 7.3, { align: "right" });
+        const alturaTotais = totais.descontoCentavos > 0 ? 28 : 12;
+        let y = (doc.lastAutoTable?.finalY || 78) + 8;
+        if (y + alturaTotais + 38 > 282) {
+          doc.addPage(); desenharCabecalho(doc.internal.getNumberOfPages(), doc.internal.getNumberOfPages()); y = 78;
+        }
+        doc.setDrawColor(0, 0, 0); doc.setLineWidth(0.5); doc.rect(112, y, 82, alturaTotais);
+        doc.setTextColor(0, 0, 0);
+        if (totais.descontoCentavos > 0) {
+          doc.setFont("helvetica", "normal"); doc.setFontSize(7.5);
+          doc.text("SUBTOTAL", 116, y + 6);
+          doc.text(fmtMoeda(totais.subtotal), 190, y + 6, { align: "right" });
+          doc.text(rotuloDescontoOrcamento(totais), 116, y + 13);
+          doc.text("- " + fmtMoeda(totais.descontoCentavos / 100), 190, y + 13, { align: "right" });
+        }
+        doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+        doc.text("VALOR TOTAL", 116, y + alturaTotais - 4.7);
+        doc.text(fmtMoeda(totais.valorTotal), 190, y + alturaTotais - 4.7, { align: "right" });
 
-        const rodapeY = y + 17;
+        const rodapeY = y + alturaTotais + 5;
         const dataEmissao = new Intl.DateTimeFormat("pt-BR").format(new Date());
         doc.setFont("helvetica", "bold"); doc.setFontSize(8); doc.setTextColor(0, 0, 0);
         doc.text(`VALIDADE DO ORÇAMENTO ${textoValidadeOrcamento(cotacao.validade).toUpperCase()} • ENTREGA: IMEDIATO • LUZIÂNIA-GO ${dataEmissao}`, MX, rodapeY);
@@ -701,6 +732,7 @@ async function gerarPDFFW3(cotacao, retornarArquivo = false) {
 // ============================================================
 async function gerarPDFAvenida(cotacao, retornarArquivo = false) {
   try {
+    const totais = lerTotaisOrcamento(cotacao);
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
     const MX = 10, PW = 210, CW = PW - MX * 2;
@@ -744,21 +776,24 @@ async function gerarPDFAvenida(cotacao, retornarArquivo = false) {
         margin: { left: MX, right: MX }, theme: "grid",
         styles: { font: "times", fontSize: 8, cellPadding: 2.1, valign: "middle", lineColor: [0, 0, 0], lineWidth: 0.2, minCellHeight: 7.7 },
         headStyles: { fillColor: [220, 220, 220], textColor: [0, 0, 0], font: "times", fontStyle: "bold", halign: "center", minCellHeight: 8 },
-        columnStyles: { 0: { cellWidth: 12, halign: "center" }, 1: { cellWidth: 82 }, 2: { cellWidth: 18, halign: "center" }, 3: { cellWidth: 29, halign: "right" }, 4: { cellWidth: 31, halign: "right" }, 5: { cellWidth: 28, halign: "center" } }
+        columnStyles: { 0: { cellWidth: 12, halign: "center" }, 1: { cellWidth: 72 }, 2: { cellWidth: 18, halign: "center" }, 3: { cellWidth: 29, halign: "right" }, 4: { cellWidth: 31, halign: "right" }, 5: { cellWidth: 28, halign: "center" } }
       });
       if (indice === paginas.length - 1) {
         // A soma é a continuação imediata da tabela de itens.
         doc.autoTable({
           startY: doc.lastAutoTable?.finalY || 96,
-          body: [[
-            { content: "VALOR TOTAL", colSpan: 4, styles: { halign: "center", fontStyle: "bold" } },
-            { content: fmtMoeda(cotacao.valorTotal), styles: { halign: "center", fontStyle: "bold" } },
-            ""
-          ]],
+          body: [
+            ...(totais.descontoCentavos > 0 ? [
+              [{ content: "SUBTOTAL", colSpan: 4, styles: { halign: "right" } }, { content: fmtMoeda(totais.subtotal), styles: { halign: "center" } }, ""],
+              [{ content: rotuloDescontoOrcamento(totais), colSpan: 4, styles: { halign: "right" } }, { content: "- " + fmtMoeda(totais.descontoCentavos / 100), styles: { halign: "center" } }, ""],
+            ] : []),
+            [{ content: "VALOR TOTAL", colSpan: 4, styles: { halign: "center", fontStyle: "bold" } },
+             { content: fmtMoeda(totais.valorTotal), styles: { halign: "center", fontStyle: "bold" } }, ""]
+          ],
           margin: { left: MX, right: MX }, theme: "grid",
           styles: { font: "times", fontSize: 9, cellPadding: 2.1, valign: "middle", lineColor: [0, 0, 0], lineWidth: 0.2, minCellHeight: 8 },
           columnStyles: {
-            0: { cellWidth: 12 }, 1: { cellWidth: 82 }, 2: { cellWidth: 18 }, 3: { cellWidth: 29 },
+            0: { cellWidth: 12 }, 1: { cellWidth: 72 }, 2: { cellWidth: 18 }, 3: { cellWidth: 29 },
             4: { cellWidth: 31, halign: "center", fontStyle: "bold" },
             5: { cellWidth: 28, halign: "center" }
           }
@@ -768,7 +803,10 @@ async function gerarPDFAvenida(cotacao, retornarArquivo = false) {
         const dataEmissao = new Intl.DateTimeFormat("pt-BR", {
           day: "2-digit", month: "long", year: "numeric"
         }).format(new Date()).toUpperCase();
-        const rodapeY = (doc.lastAutoTable?.finalY || 96) + 9;
+        let rodapeY = (doc.lastAutoTable?.finalY || 96) + 9;
+        if (rodapeY + 34 > 282) {
+          doc.addPage(); desenharCabecalho(doc.internal.getNumberOfPages(), doc.internal.getNumberOfPages()); rodapeY = 96;
+        }
         doc.setFont("times", "bold"); doc.setFontSize(9); doc.setTextColor(0, 0, 0);
         doc.text(`Validade: ${textoValidadeOrcamento(cotacao.validade)}`, MX, rodapeY);
         doc.text(`Luziânia-GO ${dataEmissao}.`, MX, rodapeY + 6);
@@ -785,6 +823,12 @@ async function gerarPDFAvenida(cotacao, retornarArquivo = false) {
         }
       }
     });
+    const totalPaginas = doc.internal.getNumberOfPages();
+    for (let pagina = 1; pagina <= totalPaginas; pagina++) {
+      doc.setPage(pagina); doc.setFillColor(255,255,255); doc.rect(MX + CW - 45, 286, 45, 8, "F");
+      doc.setFont("times", "normal"); doc.setFontSize(7); doc.setTextColor(70,70,70);
+      doc.text(`Página ${pagina} de ${totalPaginas}`, MX + CW, 290, { align: "right" });
+    }
     return baixarPdf(doc, `Orcamento_HTL_${nomeSeguroPdf(cotacao.cliente)}.pdf`, retornarArquivo);
     window.mostrarToast?.("PDF HTL gerado com sucesso!", "success");
   } catch (erro) {

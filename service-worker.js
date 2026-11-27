@@ -3,10 +3,11 @@
 // ============================================================
 // Sobe a versão do cache sempre que alterar arquivos estáticos
 // para forçar os usuários a receberem a versão nova.
-const CACHE_VERSION = "pf-cache-recursos-v16";
+const CACHE_VERSION = "pf-cache-desconto-orcamentos-v17";
 const CACHE_NAME = `papelaria-futura-${CACHE_VERSION}`;
 
 const APP_SHELL = [
+  "./js/orcamento-totais.js",
   "./css/responsivo.css",
   "./css/loading.css", "./js/loading.js",
   "./css/animations.css", "./js/utils/intro.js", "./assets/images/logo-intro.webp",

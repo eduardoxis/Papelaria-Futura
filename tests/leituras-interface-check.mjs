@@ -15,6 +15,7 @@ const chrome =
   "C:/Program Files/Google/Chrome/Application/chrome.exe";
 const pausa = (ms) => new Promise((r) => setTimeout(r, ms));
 const responsivo=process.env.PF_TEST_RESPONSIVO==='1';
+const desconto=process.env.PF_TEST_DESCONTO==='1';
 const sdk = `
 window.__leituras=[];
 export class Timestamp {constructor(seconds){this.seconds=seconds;this.nanoseconds=0;}static fromDate(d){return new Timestamp(d.getTime()/1000);}static now(){return Timestamp.fromDate(new Date());}toDate(){return new Date(this.seconds*1000);}valueOf(){return this.seconds*1000;}}
@@ -45,7 +46,7 @@ export async function getAggregateFromServer(){return {data:()=>({quantidade:0,v
 export function onSnapshot(q,...a){const fn=a.find(v=>typeof v==='function');(q.type==='document'?getDoc(q):getDocs(q)).then(s=>fn(s));return()=>{};}
 export function writeBatch(){throw Error('Gravação não esperada neste teste');}
 export async function runTransaction(){throw Error('Gravação não esperada neste teste');}
-export const addDoc=runTransaction,setDoc=runTransaction,updateDoc=runTransaction,deleteDoc=runTransaction;
+${desconto ? `window.__cotacoesTeste=registros.cotacoes;window.__gravacoesCotacao=[];export async function addDoc(ref,dados){if(ref.path!=='cotacoes')throw Error('Coleção não autorizada no teste');const id='desconto-'+(window.__gravacoesCotacao.length+1);registros.cotacoes.push({id,...dados});window.__gravacoesCotacao.push({id,...dados});return {id,path:'cotacoes/'+id};}export async function updateDoc(ref,dados){if(!ref.path.startsWith('cotacoes/'))throw Error('Coleção não autorizada no teste');const item=registros.cotacoes.find(c=>c.id===ref.id);if(!item)throw Error('Registro ausente');Object.assign(item,dados);window.__gravacoesCotacao.push({...item});}export const setDoc=runTransaction,deleteDoc=runTransaction;` : 'export const addDoc=runTransaction,setDoc=runTransaction,updateDoc=runTransaction,deleteDoc=runTransaction;'}
 `;
 const servidor = http.createServer(async (req, res) => {
   let p = new URL(req.url, "http://localhost").pathname;
@@ -249,6 +250,7 @@ try {
     return {relatorio,erros:window.__erros,consultas:window.__leituras.length};
   })()`);
   assert.equal(resultado.erros.length, 0);
+  if(desconto) await (await import("./orcamento-desconto-interface.mjs")).verificarDesconto({avaliar,comando,pausa,pasta});
   if(responsivo) await (await import("./responsividade-interface.mjs")).verificarResponsividade({avaliar,comando,pausa,pasta});
   fs.writeFileSync(
     path.join(pasta, "resultado.json"),

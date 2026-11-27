@@ -12,6 +12,7 @@ import { gerarPDF } from "./pdf.js";
 import { temCargo } from "./auth.js";
 import { startListLoading } from "./loading.js";
 import { montarPaginacao } from "./paginacao.js";
+import { calcularTotaisOrcamento } from "./orcamento-totais.js";
 
 let _usuario      = null;
 let _dadosUsuario = null;
@@ -277,6 +278,9 @@ export function iniciarCotacao(usuario, dadosUsuario) {
     validarECorrigirTelefone(e.target.value);
   });
 
+  document.getElementById("cotDescontoTipo")?.addEventListener("change", atualizarTotalGeral);
+  document.getElementById("cotDescontoValor")?.addEventListener("input", atualizarTotalGeral);
+
   // Botões do formulário
   document.getElementById("btnAdicionarLinha")?.addEventListener("click", () => {
     adicionarLinha();
@@ -389,6 +393,7 @@ export function iniciarCotacao(usuario, dadosUsuario) {
   window.gerarPDFById       = gerarPDFById;
 
   definirValidadePadrao();
+  preencherDescontoCotacao();
 }
 
 // ================================================================
@@ -817,6 +822,7 @@ function prepararNovaCotacao() {
   definirTipoPessoa("pf");
   document.getElementById("cotStatus").value = "ativa";
   definirValidadePadrao();
+  preencherDescontoCotacao();
 
   document.getElementById("tbodyItens").innerHTML = "";
   _contadorLinhas = 0;
@@ -1111,12 +1117,38 @@ function renumerarLinhas() {
 }
 
 function atualizarTotalGeral() {
-  let total = 0;
-  document.querySelectorAll("#tbodyItens [data-campo='valorTotal']").forEach(cell => {
-    total += parsearMoeda(cell.textContent);
-  });
-  document.getElementById("totalGeral").textContent = formatarMoeda(total);
-  return total;
+  const campo = document.getElementById("cotDescontoValor");
+  const percentual = document.getElementById("cotDescontoTipo").value === "percentual";
+  document.getElementById("cotDescontoValorLabel").textContent = percentual ? "Percentual do desconto (%)" : "Valor do desconto (R$)";
+  if (percentual) campo.max = "100"; else campo.removeAttribute("max");
+  campo.setCustomValidity("");
+  const erro = document.getElementById("cotDescontoErro");
+  try {
+    const totais = calcularTotaisOrcamento(coletarItens(), descontoDaTela());
+    document.getElementById("totalGeral").textContent = formatarMoeda(totais.valorTotal);
+    document.getElementById("cotSubtotal").textContent = formatarMoeda(totais.subtotal);
+    document.getElementById("cotDescontoAplicado").textContent = "− " + formatarMoeda(totais.descontoCentavos / 100);
+    document.getElementById("cotTotalComDesconto").textContent = formatarMoeda(totais.valorTotal);
+    document.getElementById("cotDescontoAplicadoLabel").textContent = percentual ? "Desconto (" + totais.desconto.valor.toLocaleString("pt-BR") + "%)" : "Desconto aplicado";
+    document.getElementById("cotDescontoResumo").hidden = totais.descontoCentavos === 0;
+    erro.hidden = true; erro.textContent = "";
+    return totais.valorTotal;
+  } catch (e) {
+    campo.setCustomValidity(e.message);
+    erro.textContent = e.message; erro.hidden = false;
+    document.getElementById("totalGeral").textContent = "—";
+    document.getElementById("cotDescontoResumo").hidden = true;
+    return null;
+  }
+}
+
+function descontoDaTela() {
+  const bruto = document.getElementById("cotDescontoValor")?.value ?? "0";
+  return {tipo: document.getElementById("cotDescontoTipo")?.value || "real", valor: bruto === "" ? 0 : Number(bruto)};
+}
+function preencherDescontoCotacao(desconto = {}) {
+  document.getElementById("cotDescontoTipo").value = desconto?.tipo === "percentual" ? "percentual" : "real";
+  document.getElementById("cotDescontoValor").value = desconto?.valor ?? 0;
 }
 
 // ================================================================
@@ -1193,9 +1225,9 @@ function coletarDadosCotacao() {
   const obs      = document.getElementById("cotObs").value.trim();
   const status   = document.getElementById("cotStatus").value;
   const itens    = coletarItens();
-  const valorTotal = itens.reduce((s, i) => s + i.valorTotal, 0);
+  const totais = calcularTotaisOrcamento(itens, descontoDaTela());
 
-  return { cliente, cnpj, telefone, email, validade, observacoes: obs, status, itens, valorTotal, funcionario: nomeFuncionarioLogado(), tipoOrcamento: _tipoOrcamentoAtual };
+  return { cliente, cnpj, telefone, email, validade, observacoes: obs, status, itens, ...totais, funcionario: nomeFuncionarioLogado(), tipoOrcamento: _tipoOrcamentoAtual };
 }
 
 // ================================================================
@@ -1352,7 +1384,9 @@ async function oferecerEnvioCotacao(cotacao) {
   }
 }
 async function salvarCotacao() {
-  const dados = coletarDadosCotacao();
+  let dados;
+  try { dados = coletarDadosCotacao(); }
+  catch (erro) { atualizarTotalGeral(); window.mostrarToast?.(erro.message, "warning"); document.getElementById("cotDescontoValor").reportValidity(); return; }
 
   const campoEmail = document.getElementById("cotEmail");
   campoEmail.value = dados.email;
@@ -1429,6 +1463,7 @@ async function abrirCotacaoSomenteLeitura(id) {
 
   const c = resultado.dados;
   _funcionarioCotacaoAtual = c.funcionario || null;
+  preencherDescontoCotacao(c.desconto);
 
   const tituloVisualizacao = _tipoOrcamentoAtual === "original" ? "Visualizar Cotação" : `Visualizar ${TIPOS_ORCAMENTO[_tipoOrcamentoAtual].singular}`;
   document.getElementById("cotacaoEditandoId").value      = id;
@@ -1436,7 +1471,7 @@ async function abrirCotacaoSomenteLeitura(id) {
   const tituloMobile = document.getElementById("titleFormCotacaoMobile");
   if (tituloMobile) tituloMobile.textContent = tituloVisualizacao;
 
-  ["cotCliente","cotCnpj","cotTelefone","cotEmail","cotValidade","cotStatus","cotObs"].forEach(campoId => {
+  ["cotCliente","cotCnpj","cotTelefone","cotEmail","cotValidade","cotStatus","cotObs","cotDescontoTipo","cotDescontoValor"].forEach(campoId => {
     const el = document.getElementById(campoId);
     if (el) el.disabled = true;
   });
@@ -1472,7 +1507,7 @@ async function abrirCotacaoSomenteLeitura(id) {
 function restaurarModoEdicao() {
   if (!_modoSomenteLeitura) return;
   _modoSomenteLeitura = false;
-  ["cotCliente","cotCnpj","cotTelefone","cotEmail","cotValidade","cotStatus","cotObs"].forEach(campoId => {
+  ["cotCliente","cotCnpj","cotTelefone","cotEmail","cotValidade","cotStatus","cotObs","cotDescontoTipo","cotDescontoValor"].forEach(campoId => {
     const el = document.getElementById(campoId);
     if (el) el.disabled = false;
   });
@@ -1497,6 +1532,7 @@ async function editarCotacaoById(id) {
 
   const c = resultado.dados;
   _funcionarioCotacaoAtual = c.funcionario || null;
+  preencherDescontoCotacao(c.desconto);
 
   const tituloEdicao = _tipoOrcamentoAtual === "original" ? "Editar Cotação" : `Editar ${TIPOS_ORCAMENTO[_tipoOrcamentoAtual].singular}`;
   document.getElementById("cotacaoEditandoId").value       = id;
@@ -1565,7 +1601,9 @@ function nomeFuncionarioLogado() {
 }
 
 function gerarPDFDaTela() {
-  const dados = coletarDadosCotacao();
+  let dados;
+  try { dados = coletarDadosCotacao(); }
+  catch (erro) { atualizarTotalGeral(); window.mostrarToast?.(erro.message, "warning"); document.getElementById("cotDescontoValor").reportValidity(); return; }
   if (!dados.cliente) {
     window.mostrarToast?.("Informe o nome do cliente antes de gerar o PDF.", "warning");
     return;
@@ -1611,7 +1649,7 @@ function parsearMoeda(valor) {
 }
 
 function calcularTotal(qtd, unit) {
-  return parsearNumero(qtd) * parsearNumero(unit);
+  return Math.round((parsearNumero(qtd) * parsearNumero(unit) + Number.EPSILON) * 100) / 100;
 }
 
 function formatarCampoMoeda(valor) {
